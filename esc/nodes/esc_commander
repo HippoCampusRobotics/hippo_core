@@ -1,0 +1,179 @@
+#!/usr/bin/env python3
+from typing import List
+
+import rcl_interfaces.msg
+import rclpy
+import smbus2  # type: ignore # pylint: disable=import-error
+from rcl_interfaces.msg import (FloatingPointRange, IntegerRange,
+                                ParameterDescriptor, ParameterType)
+from std_msgs.msg import Float64
+from rclpy.node import Node
+from rclpy.parameter import Parameter
+
+from esc import afro_esc
+from hippo_msgs.msg import ActuatorControls, Float64Stamped
+
+
+class ESC(Node):
+    """Handles the interaction with the thrusters' ESCs.
+    """
+    def __init__(self, node_name):
+        super().__init__(node_name=node_name)
+        self.init_params()
+        self.addresses = self.get_parameter('i2c_addresses').value
+        self.rx_timeout = self.get_parameter('rx_timeout').value
+
+        self.timed_out = True
+
+        self.bus = smbus2.SMBus(1)
+
+        self.escs = self.detect_escs()
+        self.thrusts = [0.0] * 8
+        self.t_rev_last = self.get_clock().now()
+
+        self.rpm_pub = self.create_publisher(ActuatorControls, "thruster_rpms",
+                                             1)
+        self.vbat_pub = self.create_publisher(Float64Stamped, "battery_voltage",
+                                              1)
+        self.actuator_sub = self.create_subscription(ActuatorControls,
+                                                     'thruster_controls',
+                                                     self.on_thruster_controls,
+                                                     1)
+        self.send_thrust_timer = self.create_timer(1 / 50, self.send_thrusts)
+        self.read_rpm_timer = self.create_timer(1 / 10, self.read_rpm_counter)
+        self.read_vbat_timer = self.create_timer(1.0, self.read_vbat)
+        self.timeout_timer = self.create_timer(self.rx_timeout, self.on_timeout)
+
+    def read_vbat(self):
+        v = 0.0
+        i = 0
+        for esc in self.escs:
+            if esc is not None:
+                try:
+                    v += esc.get_battery_voltage()
+                except IOError:
+                    self.get_logger().error('Could not read voltage from '
+                                            f'thruster {hex(esc.address)}.')
+                else:
+                    i += 1
+
+        msg = Float64Stamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        if i > 0:
+            msg.data = v / i
+        else:
+            msg.data = 0.0
+        self.vbat_pub.publish(msg)
+
+    def on_thruster_controls(self, msg: ActuatorControls):
+        self.timeout_timer.reset()
+        if self.timed_out:
+            self.thrusts = [0.0] * 8
+            self.send_thrusts(force=True)
+            self.timed_out = False
+        self.thrusts = msg.control
+
+    def on_timeout(self):
+        self.get_logger().info('Thruster controls timed out.')
+        self.thrusts = [0.0] * 8
+        self.send_thrusts()
+        self.timed_out = True
+        self.timeout_timer.cancel()
+
+    def send_thrusts(self, force=False):
+        if self.timed_out and not force:
+            return
+        for esc, thrust in zip(self.escs, self.thrusts):
+            if esc is not None:
+                try:
+                    esc.set_motor_speed(thrust)
+                    print(esc.get_battery_voltage())
+                except IOError:
+                    self.get_logger().error(
+                        f'Communication with thruster {hex(esc.address)} failed!'
+                    )
+
+    def read_rpm_counter(self):
+        now = self.get_clock().now()
+        dt = now - self.t_rev_last
+        self.t_rev_last = now
+        revs = [0.0] * 8
+        for i, esc in enumerate(self.escs):
+            if esc is not None:
+                try:
+                    revs[i] = esc.get_motor_rev_counter(
+                    ) / dt.nanoseconds * 1e9 * 60
+                except IOError:
+                    self.get_logger().error(
+                        'Failed to receive revolution '
+                        f'counter for thruster {hex(esc.address)}.')
+        self.rpm_pub.publish(ActuatorControls(control=revs))
+
+    def init_params(self):
+        param_name = 'rx_timeout'
+        descriptor = ParameterDescriptor(
+            type=ParameterType.PARAMETER_DOUBLE,
+            description=('If the node does not get a new setpoint for a '
+                         f'duration of <{param_name}>, it will set neutral '
+                         'outputs.'),
+            floating_point_range=[
+                FloatingPointRange(from_value=0.0, to_value=1.0)
+            ])
+        self.declare_parameter(name=param_name,
+                               value=0.5,
+                               descriptor=descriptor)
+
+        param_name = 'i2c_addresses'
+        descriptor = ParameterDescriptor(
+            type=ParameterType.PARAMETER_INTEGER_ARRAY,
+            description=('I2C addresses of the ESCs to use.'),
+            integer_range=[IntegerRange(from_value=0, to_value=127, step=1)])
+        default = [0x29 + x for x in range(4)]
+        self.declare_parameter(name=param_name,
+                               value=default,
+                               descriptor=descriptor)
+
+        self.add_on_set_parameters_callback(self.on_set_parameters)
+
+    def on_set_parameters(
+        self, params: List[rcl_interfaces.msg.Parameter]
+    ) -> rcl_interfaces.msg.SetParametersResult:
+        for param in params:
+            if param.name == 'i2c_addresses':
+                print(f'Setting i2c_address type: {param.type_}')
+                if param.type_ == Parameter.Type.INTEGER_ARRAY:
+                    self.addresses = param.value
+                else:
+                    return rcl_interfaces.msg.SetParametersResult(
+                        successful=False)
+        return rcl_interfaces.msg.SetParametersResult(successful=True)
+
+    def detect_escs(self):
+        escs = [None] * 8
+        for i, address in enumerate(self.addresses):
+            esc = afro_esc.AfroESC(self.bus, address)
+            try:
+                success = esc.verify_id()
+            except IOError:
+                success = False
+                self.get_logger().error(
+                    f'Could not find device at {hex(address)}')
+            else:
+                if not success:
+                    self.get_logger().warning(
+                        f'Device at {hex(address)} does '
+                        'not seem to be an ESC. Ignoring it.')
+            if success:
+                self.get_logger().info(f'ESC at {hex(address)} added.')
+                escs[i] = esc
+        return escs
+
+
+def main():
+    rclpy.init()
+    node = ESC("esc_commander")
+    rclpy.spin(node)
+
+
+if __name__ == "__main__":
+    main()
