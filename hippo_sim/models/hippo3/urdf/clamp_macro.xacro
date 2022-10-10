@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="clamp" params="suffix parent xyz rpy">
+        <xacro:property name="link" value="${suffix}_link" />
+        <xacro:property name="joint" value="${suffix}_joint" />
+        <link name="${link}">
+            <inertial>
+                <mass value="1e-5" />
+                <inertia ixx="1e-5" ixy="0.0" ixz="0.0" iyy="1e-5" iyz="0.0" izz="1e-5" />
+            </inertial>
+            <visual>
+                <geometry>
+                    <mesh filename="$(find hippo_sim)/models/hippo3/meshes/motor_clamp.dae" />
+                </geometry>
+            </visual>
+        </link>
+        <joint name="${joint}" type="fixed">
+            <origin xyz="${xyz}" rpy="${rpy}" />
+            <parent link="${parent}" />
+            <child link="${link}" />
+        </joint>
+        <gazebo reference="${joint}">
+            <preserveFixedJoint>true</preserveFixedJoint>
+        </gazebo>
+
+        <gazebo reference="${link}">
+            <visual>
+                <material>
+
+                    <ambient>1 1 1 1</ambient>
+                    <diffuse>1 1 1 1</diffuse>
+                    <specular>1 1 1 1</specular>
+                    <pbr>
+                        <metal>
+                            <metalness>1</metalness>
+                            <roughness>0.5</roughness>
+                            <environment_map>$(find hippo_sim)/models/common/textures/env_map.dds</environment_map>
+                            <albedo_map>$(find hippo_sim)/models/common/textures/dark_grey.png</albedo_map>
+                        </metal>
+                    </pbr>
+                </material>
+            </visual>
+        </gazebo>
+    </xacro:macro>
+</robot>

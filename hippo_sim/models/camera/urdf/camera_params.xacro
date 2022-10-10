@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:property name="width" value="640" />
+    <xacro:property name="height" value="480" />
+    <xacro:property name="fps" value="10" />
+    <xacro:property name="horizontal_fov" value="1.2" />
+</robot>

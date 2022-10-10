@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="thruster" params="suffix parent xyz axis turning_direction propeller_direction color number">
+        <xacro:include filename="$(find hippo_sim)/models/thruster/urdf/thruster_params.xacro" />
+
+        <xacro:property name="mount_link" value="${suffix}_thruster_mount_link" />
+        <xacro:property name="mount_joint" value="${suffix}_thruster_mount_joint" />
+        <xacro:property name="hull_link" value="${suffix}_thruster_hull_link" />
+        <xacro:property name="hull_joint" value="${suffix}_thruster_hull_joint" />
+        <xacro:property name="propeller_link" value="${suffix}_thruster_propeller_link" />
+        <xacro:property name="propeller_joint" value="${suffix}_thruster_propeller_joint" />
+
+
+        <link name="${mount_link}">
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <inertial>
+                <mass value="${thruster_mass}" />
+                <inertia ixx="${thruster_ixx}" ixy="0.0" ixz="0.0" iyy="${thruster_iyy}" iyz="0.0" izz="${thruster_izz}" />
+            </inertial>
+            <visual>
+                <geometry>
+                    <mesh filename="$(find hippo_sim)/models/thruster/meshes/motor_mount.dae" />
+                </geometry>
+            </visual>
+        </link>
+        <gazebo reference="${mount_link}">
+            <visual>
+                <material>
+
+                    <ambient>1 1 1 1</ambient>
+                    <diffuse>1 1 1 1</diffuse>
+                    <specular>1 1 1 1</specular>
+                    <pbr>
+                        <metal>
+                            <metalness>1</metalness>
+                            <roughness>0.5</roughness>
+                            <environment_map>$(find hippo_sim)/models/common/textures/env_map.dds</environment_map>
+                            <albedo_map>$(find hippo_sim)/models/common/textures/grey.png</albedo_map>
+                        </metal>
+                    </pbr>
+                </material>
+            </visual>
+        </gazebo>
+        <joint name="${mount_joint}" type="fixed">
+            <axis xyz="${axis}" />
+            <origin xyz="${xyz}" />
+            <parent link="${parent}" />
+            <child link="${mount_link}" />
+        </joint>
+        <gazebo reference="${mount_joint}">
+            <disableFixedJointLumping>true</disableFixedJointLumping>
+            <preserveFixedJoint>true</preserveFixedJoint>
+        </gazebo>
+
+        <link name="${hull_link}">
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <inertial>
+                <mass value="${thruster_mass}" />
+                <inertia ixx="${thruster_ixx}" ixy="0.0" ixz="0.0" iyy="${thruster_iyy}" iyz="0.0" izz="${thruster_izz}" />
+            </inertial>
+            <visual>
+                <geometry>
+                    <mesh filename="$(find hippo_sim)/models/thruster/meshes/motor_hull.dae" />
+                </geometry>
+            </visual>
+        </link>
+        <gazebo reference="${hull_link}">
+            <visual>
+                <material>
+
+                    <ambient>1 1 1 1</ambient>
+                    <diffuse>1 1 1 1</diffuse>
+                    <specular>1 1 1 1</specular>
+                    <pbr>
+                        <metal>
+                            <metalness>1</metalness>
+                            <roughness>0.5</roughness>
+                            <environment_map>$(find hippo_sim)/models/common/textures/env_map.dds</environment_map>
+                            <albedo_map>$(find hippo_sim)/models/thruster/textures/hippocampus_text.png</albedo_map>
+                        </metal>
+                    </pbr>
+                </material>
+            </visual>
+        </gazebo>
+        <joint name="${hull_joint}" type="continuous">
+            <axis xyz="${axis}" />
+            <origin xyz="${xyz}" />
+            <parent link="${parent}" />
+            <child link="${hull_link}" />
+        </joint>
+
+        <link name="${propeller_link}">
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <inertial>
+                <mass value="${thruster_mass}" />
+                <inertia ixx="${thruster_ixx}" ixy="0.0" ixz="0.0" iyy="${thruster_iyy}" iyz="0.0" izz="${thruster_izz}" />
+            </inertial>
+            <visual>
+                <geometry>
+                    <mesh filename="$(find hippo_sim)/models/thruster/meshes/propeller_${propeller_direction}.dae" />
+                </geometry>
+            </visual>
+        </link>
+        <gazebo>
+            <plugin filename="thruster" name="hippo_gz_plugins::thruster">
+                <thruster_config>
+                    <link>${propeller_link}</link>
+                    <joint>${propeller_joint}</joint>
+                    <linear_coeff>${thrust_linear_coeff}</linear_coeff>
+                    <quadratic_coeff>${thrust_quadratic_coeff}</quadratic_coeff>
+                    <torque_coeff>${torque_constant}</torque_coeff>
+                    <rpm_scaler>${rpm_scaler}</rpm_scaler>
+                    <max_rpm>${max_rpm}</max_rpm>
+                    <thruster_number>${number}</thruster_number>
+                    <turning_direction>${turning_direction}</turning_direction>
+                    <propeller_direction>${propeller_direction}</propeller_direction>
+                    <timeconstant_up>${timeconstant_up}</timeconstant_up>
+                    <timeconstant_down>${timeconstant_down}</timeconstant_down>
+                </thruster_config>
+            </plugin>
+        </gazebo>
+        <gazebo reference="${propeller_link}">
+            <visual>
+                <material>
+
+                    <ambient>1 1 1 1</ambient>
+                    <diffuse>1 1 1 1</diffuse>
+                    <specular>1 1 1 1</specular>
+                    <pbr>
+                        <metal>
+                            <metalness>1</metalness>
+                            <roughness>0.3</roughness>
+                            <environment_map>$(find hippo_sim)/models/common/textures/env_map.dds</environment_map>
+                            <albedo_map>$(find hippo_sim)/models/common/textures/${color}.png</albedo_map>
+                        </metal>
+                    </pbr>
+                </material>
+            </visual>
+        </gazebo>
+        <joint name="${propeller_joint}" type="continuous">
+            <axis xyz="${axis}" />
+            <origin xyz="${xyz}" />
+            <parent link="${parent}" />
+            <child link="${propeller_link}" />
+        </joint>
+    </xacro:macro>
+</robot>

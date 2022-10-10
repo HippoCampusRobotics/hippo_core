@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="apriltag">
+    <xacro:include filename="$(find hippo_sim)/models/common/urdf/common.xacro" />
+
+    <xacro:arg name="size_x" default="0.04" />
+    <xacro:arg name="size_y" default="0.04" />
+    <xacro:arg name="size_z" default="0.01" />
+    <xacro:arg name="tag_id" default="0" />
+
+    <xacro:property name="z" value="$(arg size_z)" />
+    <xacro:property name="xyz" default="0 0 ${-0.5 * z}" />
+    <xacro:property name="id" value="$(arg tag_id)" />
+    <xacro:property name="link" value="base_link" />
+    <xacro:property name="size" value="$(arg size_x) $(arg size_y) $(arg size_z)" />
+    <gazebo>
+        <static>true</static>
+    </gazebo>
+    <link name="${link}">
+        <xacro:zero_inertia />
+        <visual>
+            <origin xyz="${xyz}" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="$(find hippo_sim)/models/apriltag/meshes/cube.dae" scale="${size}" />
+            </geometry>
+        </visual>
+    </link>
+    <gazebo reference="${link}">
+        <visual>
+            <material>
+                <ambient>1 1 1 1</ambient>
+                <diffuse>1 1 1 1</diffuse>
+                <specular>1 1 1 1</specular>
+                <pbr>
+                    <metal>
+                        <metalness>1</metalness>
+                        <roughness>0.5</roughness>
+                        <environment_map>$(find hippo_sim)/models/common/textures/env_map.dds</environment_map>
+                        <albedo_map>$(find hippo_sim)/models/apriltag/textures/tag36h11/tag36_11_${'%05d' % id}.png</albedo_map>
+                    </metal>
+                </pbr>
+            </material>
+        </visual>
+    </gazebo>
+</robot>

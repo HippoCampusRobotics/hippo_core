@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="camera_macro" params="prefix parent xyz rpy">
+        <xacro:include filename="$(find hippo_sim)/models/common/urdf/common.xacro" />
+        <xacro:include filename="$(find hippo_sim)/models/camera/urdf/camera_params.xacro" />
+        <xacro:property name="link" value="${prefix}_link" />
+        <xacro:property name="joint" value="${prefix}_joint" />
+
+        <link name="${link}">
+            <xacro:zero_inertia />
+            <visual>
+                <origin rpy="0 ${radians(90)} 0" />
+                <geometry>
+                    <cylinder radius="0.02" length="0.01" />
+                </geometry>
+            </visual>
+        </link>
+
+        <joint name="${joint}" type="fixed">
+            <origin xyz="${xyz}" rpy="${rpy}" />
+            <parent link="${parent}" />
+            <child link="${link}" />
+        </joint>
+        <gazebo reference="${link}">
+            <disableFixedJointLumping>true</disableFixedJointLumping>
+            <preserveFixedJoint>true</preserveFixedJoint>
+        </gazebo>
+
+        <gazebo reference="${link}">
+            <visual>
+                <material>
+                    <ambient>0.5 0.25 1 1</ambient>
+                    <diffuse>1 0.5 1 1</diffuse>
+                    <specular>1 1 1 1</specular>
+                </material>
+            </visual>
+            <sensor name="${prefix}" type="camera">
+                <camera>
+                    <horizontal_fov>${horizontal_fov}</horizontal_fov>
+                    <image>
+                        <width>${width}</width>
+                        <height>${height}</height>
+                    </image>
+                    <clip>
+                        <near>0.05</near>
+                        <far>10</far>
+                    </clip>
+                </camera>
+                <always_on>1</always_on>
+                <update_rate>30</update_rate>
+                <visualize>true</visualize>
+                <topic>$(arg vehicle_name)/${prefix}</topic>
+            </sensor>
+        </gazebo>
+
+    </xacro:macro>
+</robot>

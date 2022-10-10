@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="pool">
+    <xacro:include filename="$(find hippo_sim)/models/common/urdf/common.xacro" />
+    <gazebo>
+        <static>true</static>
+    </gazebo>
+    <link name="base_link">
+        <xacro:zero_inertia />
+        <visual>
+            <geometry>
+                <mesh filename="$(find hippo_sim)/models/pool/meshes/pool.dae" />
+            </geometry>
+        </visual>
+    </link>
+
+    <gazebo reference="base_link">
+        <visual>
+            <material>
+                <ambient>1 1 1 1</ambient>
+                <diffuse>1 1 1 1</diffuse>
+                <specular>1 1 1 1</specular>
+                <pbr>
+                    <metal>
+                        <metalness>1</metalness>
+                        <roughness>0.5</roughness>
+                        <environment_map>$(find hippo_sim)/models/common/textures/env_map.dds</environment_map>
+                        <albedo_map>$(find hippo_sim)/models/common/textures/blue.png</albedo_map>
+                    </metal>
+                </pbr>
+            </material>
+        </visual>
+    </gazebo>
+
+</robot>
