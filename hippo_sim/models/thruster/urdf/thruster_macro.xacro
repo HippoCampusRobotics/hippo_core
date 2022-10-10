@@ -103,20 +103,18 @@
         </link>
         <gazebo>
             <plugin filename="thruster" name="hippo_gz_plugins::thruster">
-                <thruster_config>
-                    <link>${propeller_link}</link>
-                    <joint>${propeller_joint}</joint>
-                    <linear_coeff>${thrust_linear_coeff}</linear_coeff>
-                    <quadratic_coeff>${thrust_quadratic_coeff}</quadratic_coeff>
-                    <torque_coeff>${torque_constant}</torque_coeff>
-                    <rpm_scaler>${rpm_scaler}</rpm_scaler>
-                    <max_rpm>${max_rpm}</max_rpm>
-                    <thruster_number>${number}</thruster_number>
-                    <turning_direction>${turning_direction}</turning_direction>
-                    <propeller_direction>${propeller_direction}</propeller_direction>
-                    <timeconstant_up>${timeconstant_up}</timeconstant_up>
-                    <timeconstant_down>${timeconstant_down}</timeconstant_down>
-                </thruster_config>
+                <link>${propeller_link}</link>
+                <joint>${propeller_joint}</joint>
+                <linear_coeff>${thrust_linear_coeff}</linear_coeff>
+                <quadratic_coeff>${thrust_quadratic_coeff}</quadratic_coeff>
+                <torque_coeff>${torque_constant}</torque_coeff>
+                <rpm_scaler>${rpm_scaler}</rpm_scaler>
+                <max_rpm>${max_rpm}</max_rpm>
+                <thruster_number>${number}</thruster_number>
+                <turning_direction>${turning_direction}</turning_direction>
+                <propeller_direction>${propeller_direction}</propeller_direction>
+                <timeconstant_up>${timeconstant_up}</timeconstant_up>
+                <timeconstant_down>${timeconstant_down}</timeconstant_down>
             </plugin>
         </gazebo>
         <gazebo reference="${propeller_link}">

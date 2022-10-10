@@ -3,6 +3,7 @@
 #include <rclcpp/node_interfaces/node_topics.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <ros_ign_bridge/convert.hpp>
+#include <hippo_msgs/msg/esc_rpms.hpp>
 
 using namespace geometry_msgs::msg;
 using namespace sensor_msgs::msg;
@@ -12,6 +13,7 @@ using namespace ignition;
 using namespace nav_msgs::msg;
 namespace gz_msgs = ignition::msgs;
 using std::placeholders::_1;
+using std::placeholders::_2;
 
 class Bridge {
  public:
@@ -58,18 +60,22 @@ class Bridge {
   }
 
   void CreateThrusterBridge() {
+    rclcpp::SystemDefaultsQoS qos;
+    rpm_pub_  = ros_node_->create_publisher<EscRpms>(node_topics->resolve_topic_name("esc_rpm"), qos);
     for (int i = 0; i < ActuatorControls().control.size(); i++) {
       std::string topic_name;
       rclcpp::SystemDefaultsQoS qos;
       qos.keep_last(50);
-      topic_name = node_topics->resolve_topic_name("thruster_") +
-                   std::to_string(i) + "/thrust";
+      std::string topic_prefix = node_topics->resolve_topic_name("thruster_") + std::to_string(i);
+      topic_name = topic_prefix + "/thrust";
 
       // gazebo publisher
       thrust_pubs_[i] = gz_node_->Advertise<gz_msgs::Double>(topic_name);
+      topic_name = topic_prefix + "/rpm";
+      std::function<void(const gz_msgs::Double &)> f = std::bind(&Bridge::OnThrusterRpm, this, _1, i);
+      gz_node_->Subscribe(topic_name, f);
     }
 
-    rclcpp::SystemDefaultsQoS qos;
     thrust_sub_ = ros_node_->create_subscription<ActuatorControls>(
         "thruster_command", qos,
         std::bind(&Bridge::OnThrusterCommand, this, _1));
@@ -79,6 +85,18 @@ class Bridge {
     sensor_msgs::msg::Imu ros_msg;
     ros_ign_bridge::convert_ign_to_ros(_msg, ros_msg);
     imu_pub_->publish(ros_msg);
+  }
+
+  void OnThrusterRpm(const gz_msgs::Double &_msg, int _i) {
+    if (_i > thrusters_rpm_msg_.rpms.size()) {
+      return;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    thrusters_rpm_msg_.rpms[_i] = _msg.data();
+    if (_i == 0) {
+      thrusters_rpm_msg_.header.stamp = ros_node_->get_clock()->now();
+      rpm_pub_->publish(thrusters_rpm_msg_);
+    }
   }
 
   void OnPose(const gz_msgs::Pose &_msg) {
@@ -116,10 +134,15 @@ class Bridge {
       std::make_shared<transport::Node>();
   rclcpp::node_interfaces::NodeTopics *node_topics;
 
+  std::mutex mutex_;
+
+  EscRpms thrusters_rpm_msg_;
+
   rclcpp::Publisher<Imu>::SharedPtr imu_pub_;
   rclcpp::Publisher<PoseStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<Odometry>::SharedPtr odometry_pub_;
   std::map<int, transport::Node::Publisher> thrust_pubs_;
+  rclcpp::Publisher<EscRpms>::SharedPtr rpm_pub_;
   rclcpp::Subscription<ActuatorControls>::SharedPtr thrust_sub_;
 };
 
