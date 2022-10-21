@@ -2,7 +2,7 @@
 #include <ignition/transport/Node.hh>
 #include <rclcpp/node_interfaces/node_topics.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <ros_ign_bridge/convert.hpp>
+#include <ros_gz_bridge/convert.hpp>
 #include <hippo_msgs/msg/esc_rpms.hpp>
 
 using namespace geometry_msgs::msg;
@@ -83,7 +83,7 @@ class Bridge {
 
   void OnImu(const gz_msgs::IMU &_msg) {
     sensor_msgs::msg::Imu ros_msg;
-    ros_ign_bridge::convert_ign_to_ros(_msg, ros_msg);
+    ros_gz_bridge::convert_gz_to_ros(_msg, ros_msg);
     imu_pub_->publish(ros_msg);
   }
 
@@ -101,13 +101,13 @@ class Bridge {
 
   void OnPose(const gz_msgs::Pose &_msg) {
     geometry_msgs::msg::PoseStamped ros_msg;
-    ros_ign_bridge::convert_ign_to_ros(_msg, ros_msg);
+    ros_gz_bridge::convert_gz_to_ros(_msg, ros_msg);
     pose_pub_->publish(ros_msg);
   }
 
   void OnOdometry(const gz_msgs::Odometry &_msg) {
     Odometry ros_msg;
-    ros_ign_bridge::convert_ign_to_ros(_msg, ros_msg);
+    ros_gz_bridge::convert_gz_to_ros(_msg, ros_msg);
     odometry_pub_->publish(ros_msg);
   }
 

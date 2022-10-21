@@ -5,7 +5,7 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(gflags REQUIRED)
-find_package(ros_ign_bridge REQUIRED)
+find_package(ros_gz_bridge REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(hippo_msgs REQUIRED)
@@ -48,7 +48,7 @@ install(TARGETS
 add_executable(bridge src/static_bridge.cpp)
 ament_target_dependencies(bridge
   rclcpp
-  ros_ign_bridge
+  ros_gz_bridge
   ignition-transport${GZ_TRANSPORT_VER}
   geometry_msgs
   nav_msgs

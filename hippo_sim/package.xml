@@ -9,7 +9,7 @@
 
   <depend>rclcpp</depend>
   <depend>libgflags-dev</depend>
-  <depend>ros_ign</depend>
+  <depend>ros_gz</depend>
   <depend>ignition-msgs8</depend>
   <depend>ignition-transport11</depend>
   <depend>ignition-math6</depend>
