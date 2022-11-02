@@ -20,6 +20,11 @@ install(
   DIRECTORY include/
   DESTINATION include
 )
+
+################################################################################
+# trajectory_generator library
+################################################################################
+
 set(lib_name trajectory_generator)
 add_library(${lib_name}
   src/trajectory_generator/generator.cpp
@@ -42,5 +47,15 @@ install(TARGETS ${lib_name}
   INCLUDES DESTINATION include
 )
 
+################################################################################
+# single_tracker node
+################################################################################
+set(exec_name single_tracker_node)
+add_executable(${exec_name} src/nodes/single_tracker_node.cpp)
+ament_target_dependencies(${exec_name} rclcpp hippo_msgs hippo_common)
+target_link_libraries(${exec_name} trajectory_generator)
+install(TARGETS ${exec_name}
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_package()

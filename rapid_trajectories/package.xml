@@ -8,6 +8,8 @@
   <license>TODO: License declaration</license>
 
   <depend>rclcpp</depend>
+  <depend>hippo_msgs</depend>
+  <depend>hippo_common</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
