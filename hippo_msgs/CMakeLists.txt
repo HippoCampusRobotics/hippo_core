@@ -3,6 +3,11 @@
 
 cmake_minimum_required(VERSION 3.5)
 project(hippo_msgs)
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+set(CXX_FLAGS -Wall -Wextra -Wpedantic -Wshadow -std=c++17)
+add_compile_options(${CXX_FLAGS})
 
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
