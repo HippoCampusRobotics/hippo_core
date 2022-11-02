@@ -183,9 +183,9 @@ class AttitudeControlNode : public rclcpp::Node {
     if (feedthrough_) {
       ActuatorControls msg;
       msg.header.stamp = now();
-      msg.control[msg.INDEX_ROLL] = attitude_target_.attitude.x;
-      msg.control[msg.INDEX_PITCH] = attitude_target_.attitude.y;
-      msg.control[msg.INDEX_YAW] = attitude_target_.attitude.z;
+      msg.control[msg.INDEX_ROLL] = attitude_target_.body_rate.x;
+      msg.control[msg.INDEX_PITCH] = attitude_target_.body_rate.y;
+      msg.control[msg.INDEX_YAW] = attitude_target_.body_rate.z;
       msg.control[msg.INDEX_THRUST] = attitude_target_.thrust;
       control_output_pub_->publish(msg);
     }
