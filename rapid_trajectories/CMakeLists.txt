@@ -12,6 +12,8 @@ find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(hippo_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 ################################################################################
 # install headers
@@ -52,7 +54,13 @@ install(TARGETS ${lib_name}
 ################################################################################
 set(exec_name single_tracker_node)
 add_executable(${exec_name} src/nodes/single_tracker_node.cpp)
-ament_target_dependencies(${exec_name} rclcpp hippo_msgs hippo_common)
+ament_target_dependencies(${exec_name}
+  rclcpp
+  hippo_msgs
+  hippo_common
+  nav_msgs
+  visualization_msgs
+)
 target_link_libraries(${exec_name} trajectory_generator)
 install(TARGETS ${exec_name}
   DESTINATION lib/${PROJECT_NAME}

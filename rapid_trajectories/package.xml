@@ -10,6 +10,8 @@
   <depend>rclcpp</depend>
   <depend>hippo_msgs</depend>
   <depend>hippo_common</depend>
+  <depend>nav_msgs</depend>
+  <depend>visualization_msgs</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
