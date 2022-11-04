@@ -150,6 +150,7 @@ class AttitudeControlNode : public rclcpp::Node {
           get_logger(), *get_clock(), 1000,
           "AttitudeTarget frame is [%s] but only [map] is handled. Ignoring...",
           _msg->header.frame_id.c_str());
+          return;
     }
     std::lock_guard<std::mutex> lock(mutex_);
     if (!(_msg->mask & _msg->IGNORE_ROLL_ANGLE)) {
