@@ -1,9 +1,9 @@
 #include <hippo_msgs/msg/actuator_controls.hpp>
+#include <hippo_msgs/msg/esc_rpms.hpp>
 #include <ignition/transport/Node.hh>
 #include <rclcpp/node_interfaces/node_topics.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <ros_gz_bridge/convert.hpp>
-#include <hippo_msgs/msg/esc_rpms.hpp>
 
 using namespace geometry_msgs::msg;
 using namespace sensor_msgs::msg;
@@ -61,18 +61,20 @@ class Bridge {
 
   void CreateThrusterBridge() {
     rclcpp::SystemDefaultsQoS qos;
-    rpm_pub_  = ros_node_->create_publisher<EscRpms>(node_topics->resolve_topic_name("esc_rpm"), qos);
-    for (int i = 0; i < ActuatorControls().control.size(); i++) {
+    rpm_pub_ = ros_node_->create_publisher<EscRpms>(
+        node_topics->resolve_topic_name("esc_rpm"), qos);
+    for (size_t i = 0; i < ActuatorControls().control.size(); i++) {
       std::string topic_name;
-      rclcpp::SystemDefaultsQoS qos;
       qos.keep_last(50);
-      std::string topic_prefix = node_topics->resolve_topic_name("thruster_") + std::to_string(i);
+      std::string topic_prefix =
+          node_topics->resolve_topic_name("thruster_") + std::to_string(i);
       topic_name = topic_prefix + "/thrust";
 
       // gazebo publisher
       thrust_pubs_[i] = gz_node_->Advertise<gz_msgs::Double>(topic_name);
       topic_name = topic_prefix + "/rpm";
-      std::function<void(const gz_msgs::Double &)> f = std::bind(&Bridge::OnThrusterRpm, this, _1, i);
+      std::function<void(const gz_msgs::Double &)> f =
+          std::bind(&Bridge::OnThrusterRpm, this, _1, i);
       gz_node_->Subscribe(topic_name, f);
     }
 
@@ -87,7 +89,7 @@ class Bridge {
     imu_pub_->publish(ros_msg);
   }
 
-  void OnThrusterRpm(const gz_msgs::Double &_msg, int _i) {
+  void OnThrusterRpm(const gz_msgs::Double &_msg, size_t _i) {
     if (_i > thrusters_rpm_msg_.rpms.size()) {
       return;
     }
@@ -117,16 +119,14 @@ class Bridge {
                    "ActuatControls and publisher map do not have same size!");
       return;
     }
-    for (int i = 0; i < thrust_pubs_.size(); ++i) {
+    for (unsigned int i = 0; i < thrust_pubs_.size(); ++i) {
       gz_msgs::Double gz_msg;
       gz_msg.set_data(_msg->control[i]);
       thrust_pubs_[i].Publish(gz_msg);
     }
   }
 
-  void Run() {
-    rclcpp::spin(ros_node_);
-  }
+  void Run() { rclcpp::spin(ros_node_); }
 
  private:
   rclcpp::Node::SharedPtr ros_node_ = std::make_shared<rclcpp::Node>("bridge");
