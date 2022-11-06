@@ -21,6 +21,7 @@ find_package(hippo_common REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 
+
 ################################################################################
 # install headers
 ################################################################################
@@ -53,6 +54,31 @@ install(TARGETS ${lib_name}
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
   INCLUDES DESTINATION include
+)
+
+################################################################################
+# rviz helper library
+################################################################################
+
+set(lib_name rviz_helper)
+add_library(${lib_name}
+  src/rviz_helper.cpp
+)
+target_include_directories(${lib_name}
+PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+$<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${lib_name} rclcpp visualization_msgs)
+ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
+ament_export_dependencies(rclcpp visualization_msgs)
+
+install(TARGETS ${lib_name}
+EXPORT ${lib_name}Target
+LIBRARY DESTINATION lib
+ARCHIVE DESTINATION lib
+RUNTIME DESTINATION bin
+INCLUDES DESTINATION include
 )
 
 ################################################################################
