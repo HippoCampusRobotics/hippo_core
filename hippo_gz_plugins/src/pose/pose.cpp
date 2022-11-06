@@ -14,8 +14,7 @@
 IGNITION_ADD_PLUGIN(pose::PosePlugin, ignition::gazebo::System,
                     pose::PosePlugin::ISystemConfigure,
                     pose::PosePlugin::ISystemPostUpdate)
-IGNITION_ADD_PLUGIN_ALIAS(pose::PosePlugin,
-                          "hippo_gz_plugins::pose")
+IGNITION_ADD_PLUGIN_ALIAS(pose::PosePlugin, "hippo_gz_plugins::pose")
 
 using namespace pose;
 using namespace ignition;
@@ -26,8 +25,7 @@ class pose::PosePluginPrivate {
   std::chrono::steady_clock::duration update_period_{0};
   std::chrono::steady_clock::duration last_pub_time_{0};
 
-  void ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf,
-                EntityComponentManager &_ecm) {
+  void ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf) {
     sdf_params_.link = _sdf->Get<std::string>("link", sdf_params_.link).first;
     sdf_params_.base_topic =
         _sdf->Get<std::string>("base_topic", sdf_params_.base_topic).first;
@@ -81,8 +79,6 @@ class pose::PosePluginPrivate {
     frame->add_value("map");
   }
 
-  void SetModel(Entity _entity) { ; }
-
   void SetModelName(const std::string _name) { model_name_ = _name; }
 
   std::string ModelName() { return model_name_; }
@@ -107,11 +103,12 @@ class pose::PosePluginPrivate {
 PosePlugin::PosePlugin()
     : System(), private_(std::make_unique<PosePluginPrivate>()) {}
 
-void PosePlugin::Configure(const ignition::gazebo::Entity &_entity,
-                           const std::shared_ptr<const sdf::Element> &_sdf,
-                           ignition::gazebo::EntityComponentManager &_ecm,
-                           ignition::gazebo::EventManager &_eventMgr) {
-  private_->ParseSdf(_sdf, _ecm);
+void PosePlugin::Configure(
+    const ignition::gazebo::Entity &_entity,
+    const std::shared_ptr<const sdf::Element> &_sdf,
+    ignition::gazebo::EntityComponentManager &_ecm,
+    [[maybe_unused]] ignition::gazebo::EventManager &_eventMgr) {
+  private_->ParseSdf(_sdf);
   if (!private_->InitModel(_ecm, _entity)) {
     ignerr << "PosePlugin needs to be attached to model entity." << std::endl;
     return;
