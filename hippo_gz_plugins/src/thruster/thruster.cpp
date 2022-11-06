@@ -11,11 +11,12 @@ IGNITION_ADD_PLUGIN_ALIAS(thruster::Plugin, "hippo_gz_plugins::thruster")
 namespace thruster {
 Plugin::Plugin() : System(), private_(std::make_unique<PluginPrivate>()) {}
 
-void Plugin::Configure(const ignition::gazebo::Entity &_entity,
-                       const std::shared_ptr<const sdf::Element> &_sdf,
-                       ignition::gazebo::EntityComponentManager &_ecm,
-                       ignition::gazebo::EventManager &_eventMgr) {
-  private_->ParseSdf(_sdf, _ecm);
+void Plugin::Configure(
+    const ignition::gazebo::Entity &_entity,
+    const std::shared_ptr<const sdf::Element> &_sdf,
+    ignition::gazebo::EntityComponentManager &_ecm,
+    [[maybe_unused]] ignition::gazebo::EventManager &_eventMgr) {
+  private_->ParseSdf(_sdf);
   if (!private_->InitModel(_ecm, _entity)) {
     ignerr << "Plugin needs to be attached to model entity." << std::endl;
     return;
@@ -24,12 +25,13 @@ void Plugin::Configure(const ignition::gazebo::Entity &_entity,
   private_->SubscribeThrust();
 }
 void Plugin::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
-                        ignition::gazebo::EntityComponentManager &_ecm) {
+                       ignition::gazebo::EntityComponentManager &_ecm) {
   if (_info.paused) {
     return;
   }
-   // Apply forces/moments in each step
-  private_->UpdateRotorVelocity(_ecm, std::chrono::duration<double>(_info.dt).count());
+  // Apply forces/moments in each step
+  private_->UpdateRotorVelocity(
+      _ecm, std::chrono::duration<double>(_info.dt).count());
   private_->ApplyWrench(_ecm);
 
   // publish messages with specified update rate

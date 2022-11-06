@@ -24,7 +24,7 @@ void HydrodynamicsPlugin::Configure(
     const ignition::gazebo::Entity &_entity,
     const std::shared_ptr<const sdf::Element> &_sdf,
     ignition::gazebo::EntityComponentManager &_ecm,
-    ignition::gazebo::EventManager &_eventMgr) {
+    [[maybe_unused]] ignition::gazebo::EventManager &_eventMgr) {
   model_ = ignition::gazebo::Model(_entity);
   if (!model_.Valid(_ecm)) {
     ignerr << "Hydrodynamics Plugin can only be attached to a model entity."
@@ -36,7 +36,7 @@ void HydrodynamicsPlugin::Configure(
 }
 
 void HydrodynamicsPlugin::Update(
-    const ignition::gazebo::UpdateInfo &_info,
+    [[maybe_unused]] const ignition::gazebo::UpdateInfo &_info,
     ignition::gazebo::EntityComponentManager &_ecm) {
   UpdateForcesAndMoments(_ecm);
 }

@@ -6,8 +6,7 @@
 
 namespace buoyancy {
 
-void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf,
-                             ignition::gazebo::EntityComponentManager &_ecm) {
+void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf) {
   sdf_params_.link = _sdf->Get<std::string>("link", sdf_params_.link).first;
 
   sdf_params_.additional_buoyancy_force =

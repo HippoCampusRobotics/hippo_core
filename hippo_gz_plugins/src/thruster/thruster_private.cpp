@@ -14,8 +14,7 @@ static constexpr int CCW = -1;
 static constexpr int CW = 1;
 }  // namespace direction
 
-void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf,
-                             ignition::gazebo::EntityComponentManager &_ecm) {
+void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf) {
   AssignSdfParam(_sdf, "link", sdf_params_.link);
   AssignSdfParam(_sdf, "joint", sdf_params_.joint);
   AssignSdfParam(_sdf, "publish_rate", sdf_params_.publish_rate);

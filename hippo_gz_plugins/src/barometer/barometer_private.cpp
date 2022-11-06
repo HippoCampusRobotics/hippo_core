@@ -2,8 +2,7 @@
 
 namespace barometer {
 
-void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf,
-                             ignition::gazebo::EntityComponentManager &_ecm) {
+void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf) {
   sdf_params_.link = _sdf->Get<std::string>("link", sdf_params_.link).first;
   sdf_params_.base_topic =
       _sdf->Get<std::string>("base_topic", sdf_params_.base_topic).first;
@@ -23,7 +22,8 @@ void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf,
                         sdf_params_.water_surface_offset)
           .first;
   sdf_params_.position =
-      _sdf->Get<ignition::math::Vector3d>("position", sdf_params_.position).first;
+      _sdf->Get<ignition::math::Vector3d>("position", sdf_params_.position)
+          .first;
 }
 
 bool PluginPrivate::InitModel(ignition::gazebo::EntityComponentManager &_ecm,

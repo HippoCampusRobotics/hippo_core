@@ -35,8 +35,7 @@ class FirstOrderFilter {
 
 class PluginPrivate {
  public:
-  void ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf,
-                ignition::gazebo::EntityComponentManager &_ecm);
+  void ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf);
 
   bool InitModel(ignition::gazebo::EntityComponentManager &_ecm,
                  ignition::gazebo::Entity _entity);

@@ -7,14 +7,12 @@
 namespace buoyancy {
 class PluginPrivate {
  public:
-  void ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf,
-                ignition::gazebo::EntityComponentManager &_ecm);
+  void ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf);
 
   bool InitModel(ignition::gazebo::EntityComponentManager &_ecm,
                  ignition::gazebo::Entity _entity);
 
-  void ApplyBuoyancy(
-      ignition::gazebo::EntityComponentManager &_ecm);
+  void ApplyBuoyancy(ignition::gazebo::EntityComponentManager &_ecm);
 
   std::chrono::steady_clock::duration update_period_{0};
   std::chrono::steady_clock::duration last_pub_time_{0};
