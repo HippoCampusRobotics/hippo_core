@@ -18,8 +18,9 @@
  */
 
 #pragma once
+#include <eigen3/Eigen/Dense>
+
 #include "rapid_trajectories/trajectory_generator/single_axis.h"
-#include "vec3.h"
 
 namespace rapid_trajectories {
 namespace trajectory_generator {
@@ -71,42 +72,43 @@ class RapidTrajectoryGenerator {
   };
 
   //! Constructor, user must define initial state, and the direction of gravity.
-  RapidTrajectoryGenerator(const Vec3 x0, const Vec3 v0, const Vec3 a0,
-                           const Vec3 gravity);
+  RapidTrajectoryGenerator(const Eigen::Vector3d &_x0,
+                           const Eigen::Vector3d &_v0,
+                           const Eigen::Vector3d &_a0);
 
   // set the final state for all axes:
   //! Fix the full position at the end time (see also the per-axis functions).
-  void SetGoalPosition(const Vec3 in);
+  void SetGoalPosition(const Eigen::Vector3d &_in);
   //! Fix the full velocity at the end time (see also the per-axis functions).
-  void SetGoalVelocity(const Vec3 in);
+  void SetGoalVelocity(const Eigen::Vector3d &_in);
   //! Fix the full acceleration at the end time (see also the per-axis
   //! functions).
-  void SetGoalAcceleration(const Vec3 in);
+  void SetGoalAcceleration(const Eigen::Vector3d &_in);
 
   // set final state per axis:
   //! Fix the position at the end time in one axis. If not set, it is left free.
-  void SetGoalPositionInAxis(const unsigned axNum, const double in) {
-    _axis[axNum].SetGoalPosition(in);
+  void SetGoalPositionInAxis(const unsigned _index, const double _in) {
+    axis_[_index].SetGoalPosition(_in);
   };
   //! Fix the velocity at the end time in one axis. If not set, it is left free.
-  void SetGoalVelocityInAxis(const unsigned axNum, const double in) {
-    _axis[axNum].SetGoalVelocity(in);
+  void SetGoalVelocityInAxis(const unsigned _index, const double _in) {
+    axis_[_index].SetGoalVelocity(_in);
   };
   //! Fix the acceleration at the end time in one axis. If not set, it is left
   //! free.
-  void SetGoalAccelerationInAxis(const unsigned axNum, const double in) {
-    _axis[axNum].SetGoalAcceleration(in);
+  void SetGoalAccelerationInAxis(const unsigned _index, const double _in) {
+    axis_[_index].SetGoalAcceleration(_in);
   };
 
   //! Reset the trajectory, clearing any end state constraints.
   void Reset(void);
 
-  /*! Calculate the optimal trajectory of duration `timeToGo`.
+  /*! Calculate the optimal trajectory of duration `_time`.
    *
    * Calculate the full trajectory, for all the parameters defined so far.
-   * @param timeToGo The trajectory duration, in [s].
+   * @param _time The trajectory duration, in [s].
    */
-  void Generate(const double timeToGo);
+  void Generate(const double _time);
 
   /*! Test the trajectory for input feasibility.
    *
@@ -124,17 +126,17 @@ class RapidTrajectoryGenerator {
    * Note that if the result is not feasible, the result is that of the first
    * section which tested infeasible/indeterminate.
    *
-   * @param fminAllowed Minimum thrust value inputs allowed [m/s**2].
-   * @param fmaxAllowed Maximum thrust value inputs allowed [m/s**2].
-   * @param wmaxAllowed Maximum body rates input allowed [rad/s].
-   * @param minTimeSection Minimum time section to test during the recursion
+   * @param _f_min_allowed Minimum thrust value inputs allowed [m/s**2].
+   * @param _f_max_allowed Maximum thrust value inputs allowed [m/s**2].
+   * @param _w_max_allowed Maximum body rates input allowed [rad/s].
+   * @param _dt_min Minimum time section to test during the recursion
    * [s].
    * @return an instance of InputFeasibilityResult.
    */
-  InputFeasibilityResult CheckInputFeasibility(double fminAllowed,
-                                               double fmaxAllowed,
-                                               double wmaxAllowed,
-                                               double minTimeSection);
+  InputFeasibilityResult CheckInputFeasibility(double _f_min_allowed,
+                                               double _f_max_allowed,
+                                               double _w_max_allowed,
+                                               double _dt_min);
 
   /*! Test the trajectory for position feasibility.
    *
@@ -150,77 +152,88 @@ class RapidTrajectoryGenerator {
    * from the boundary.
    * @return An instance of StateFeasibilityResult.
    */
-  StateFeasibilityResult CheckPositionFeasibility(Vec3 boundaryPoint,
-                                                  Vec3 boundaryNormal);
+  StateFeasibilityResult CheckPositionFeasibility(
+      Eigen::Vector3d &_boundaryPoint, Eigen::Vector3d &_boundary_normal);
 
-  //! Return the jerk along the trajectory at time t
-  Vec3 GetJerk(double t) const {
-    return Vec3(_axis[0].GetJerk(t), _axis[1].GetJerk(t), _axis[2].GetJerk(t));
+  //! Return the jerk along the trajectory at time _t
+  Eigen::Vector3d GetJerk(double _t) const {
+    return Eigen::Vector3d(axis_[0].GetJerk(_t), axis_[1].GetJerk(_t),
+                           axis_[2].GetJerk(_t));
   };
-  //! Return the acceleration along the trajectory at time t
-  Vec3 GetAcceleration(double t) const {
-    return Vec3(_axis[0].GetAcceleration(t), _axis[1].GetAcceleration(t),
-                _axis[2].GetAcceleration(t));
+  //! Return the acceleration along the trajectory at time _t
+  Eigen::Vector3d GetAcceleration(double _t) const {
+    return Eigen::Vector3d{axis_[0].GetAcceleration(_t),
+                           axis_[1].GetAcceleration(_t),
+                           axis_[2].GetAcceleration(_t)};
   };
-  //! Return the velocity along the trajectory at time t
-  Vec3 GetVelocity(double t) const {
-    return Vec3(_axis[0].GetVelocity(t), _axis[1].GetVelocity(t),
-                _axis[2].GetVelocity(t));
+  //! Return the velocity along the trajectory at time _t
+  Eigen::Vector3d GetVelocity(double _t) const {
+    return Eigen::Vector3d(axis_[0].GetVelocity(_t), axis_[1].GetVelocity(_t),
+                           axis_[2].GetVelocity(_t));
   };
   //! Return the position along the trajectory at time t
-  Vec3 GetPosition(double t) const {
-    return Vec3(_axis[0].GetPosition(t), _axis[1].GetPosition(t),
-                _axis[2].GetPosition(t));
+  Eigen::Vector3d GetPosition(double _t) const {
+    return Eigen::Vector3d(axis_[0].GetPosition(_t), axis_[1].GetPosition(_t),
+                           axis_[2].GetPosition(_t));
   };
 
-  //! Return the quadrocopter's normal vector along the trajectory at time t
-  Vec3 GetNormalVector(double t) const {
-    return (GetAcceleration(t) - _grav).GetUnitVector();
+  inline double GetFinalTime() { return t_final_; }
+
+  //! Return the quadrocopter's normal vector along the trajectory at time _t
+  Eigen::Vector3d GetNormalVector(double _t) const {
+    // add almost zero vector to ensure we do not normalize a zero vector
+    return (GetAcceleration(_t) * mass_param_ + GetVelocity(_t) * damping_ +
+            Eigen::Vector3d{0.0, 0.0, 1e-6})
+        .normalized();
   };
-  //! Return the quadrocopter's thrust input along the trajectory at time t
-  double GetThrust(double t) const {
-    return (GetAcceleration(t) - _grav).GetNorm2();
+  //! Return the quadrocopter's thrust input along the trajectory at time _t
+  double GetThrust(double _t) const {
+    return (GetAcceleration(_t) * mass_param_ + GetVelocity(_t) * damping_)
+        .norm();
   };
-  /*! Return the quadrocopter's body rates along the trajectory at time t
+  /*! Return the quadrocopter's body rates along the trajectory at time _t
    *
    * Returns the required body rates along the trajectory. These are expressed
    * in the world frame (in which the trajectory was planned). To convert them
    * to (p,q,r), this needs to be rotated by the quadrocopter's attitude.
    *
    * The rates are calculated by taking the rates required to rotate the
-   * quadrocopter's normal at time `t` to that at time `t+dt`. Therefore, if
+   * quadrocopter's normal at time `_t` to that at time `_t+dt`. Therefore, if
    * the trajectory is used as implicit MPC control law, the value dt should
    * correspond to the controller period.
    *
-   * @param t Time along the trajectory to be evaluated [s].
+   * @param _t Time along the trajectory to be evaluated [s].
    * @param timeStep The timestep size for the finite differencing [s].
    * @return The body rates, expressed in the inertial frame [rad/s]
    */
-  Vec3 GetOmega(double t, double timeStep) const;
+  Eigen::Vector3d GetOmega(double _t, double timeStep) const;
 
   //! Return the total cost of the trajectory.
   double GetCost(void) const {
-    return _axis[0].GetCost() + _axis[1].GetCost() + _axis[2].GetCost();
+    return axis_[0].GetCost() + axis_[1].GetCost() + axis_[2].GetCost();
   };
 
   //! Return the parameter defining the trajectory.
-  double GetAxisParamAlpha(int i) const { return _axis[i].GetParamAlpha(); };
+  inline double GetAxisParamAlpha(int i) const { return axis_[i].GetParamAlpha(); };
   //! Return the parameter defining the trajectory.
-  double GetAxisParamBeta(int i) const { return _axis[i].GetParamBeta(); };
+  inline double GetAxisParamBeta(int i) const { return axis_[i].GetParamBeta(); };
   //! Return the parameter defining the trajectory.
-  double GetAxisParamGamma(int i) const { return _axis[i].GetParamGamma(); };
+  inline double GetAxisParamGamma(int i) const { return axis_[i].GetParamGamma(); };
 
  private:
   //! Test a section of the trajectory for input feasibility (recursion).
-  InputFeasibilityResult CheckInputFeasibilitySection(double fminAllowed,
-                                                      double fmaxAllowed,
-                                                      double wmaxAllowed,
-                                                      double t1, double t2,
-                                                      double minTimeSection);
+  InputFeasibilityResult CheckInputFeasibilitySection(double _f_min_allowed,
+                                                      double _f_max_allowed,
+                                                      double _w_max_allowed,
+                                                      double _t1, double _t2,
+                                                      double _dt_min);
 
-  SingleAxisTrajectory _axis[3];  //!< The axes along the single trajectories
-  Vec3 _grav;                     //!< gravity in the frame of the trajectory
-  double _tf;                     //!< trajectory end time [s]
+  SingleAxisTrajectory axis_[3];  //!< The axes along the single trajectories
+  double t_final_;                //!< trajectory end time [s]
+  double damping_{5.4};
+  double mass_param_{2.6};
+  double thrust_max_;
+  double thrust_min_;
 };
 };  // namespace trajectory_generator
 };  // namespace rapid_trajectories

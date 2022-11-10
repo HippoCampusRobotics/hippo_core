@@ -93,9 +93,17 @@ ament_target_dependencies(${exec_name}
   nav_msgs
   visualization_msgs
 )
-target_link_libraries(${exec_name} trajectory_generator)
+target_link_libraries(${exec_name} trajectory_generator rviz_helper)
 install(TARGETS ${exec_name}
   DESTINATION lib/${PROJECT_NAME}
+)
+
+################################################################################
+# install shared resources
+################################################################################
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
 )
 
 ament_package()
