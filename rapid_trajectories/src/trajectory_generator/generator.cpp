@@ -61,6 +61,22 @@ T min(T a, T b, T c) {
   }
 }
 
+/**
+ * @brief p[0] * x^4 + p[1] * x^3 + p[2] * x^2 + p[3] * x^1 + p[4]
+ *
+ * @param _p polynomial coefficients
+ * @param _x
+ * @return double
+ */
+inline double EvalPoly(std::vector<double> _polynomial, double _x) {
+  double result = _p[_n - 1];
+  for (const auto &p : _polynomial) {
+    result += p * _x;
+    _x *= _x;
+  }
+  return result;
+}
+
 RapidTrajectoryGenerator::RapidTrajectoryGenerator(const Eigen::Vector3d &_p0,
                                                    const Eigen::Vector3d &_v0,
                                                    const Eigen::Vector3d &_a0) {
@@ -70,7 +86,11 @@ RapidTrajectoryGenerator::RapidTrajectoryGenerator(const Eigen::Vector3d &_p0,
     axis_[i].SetInitialState(_p0[i], _v0[i], _a0[i]);
   }
 }
-
+/**
+ * @brief
+ *
+ * @param _in
+ */
 void RapidTrajectoryGenerator::SetGoalPosition(const Eigen::Vector3d &_in) {
   for (unsigned i = 0; i < 3; i++) {
     SetGoalPositionInAxis(i, _in[i]);
@@ -119,7 +139,9 @@ RapidTrajectoryGenerator::CheckInputFeasibilitySection(double _f_min_allowed,
 
   // Test the limits of the box we're putting around the trajectory:
   for (int i = 0; i < 3; i++) {
-    double roots[6];
+    std::vector<double> roots;
+    roots.reserve(3);
+    double root1, root2, root3;
     size_t n_roots;
     double alpha = axis_[i].GetParamAlpha();
     double beta = axis_[i].GetParamBeta();
@@ -128,17 +150,53 @@ RapidTrajectoryGenerator::CheckInputFeasibilitySection(double _f_min_allowed,
     f_dot[0] = damping_ * alpha / 6.0;
     f_dot[1] = mass_param_ * alpha / 6.0 + damping_ * beta * 0.5;
     f_dot[2] = mass_param_ * beta * 0.5 + damping_ * gamma;
-    f_dot[3] = mass_param_ * gamma + damping_ * axis_[i].GetInitialAcceleration();
+    f_dot[3] =
+        mass_param_ * gamma + damping_ * axis_[i].GetInitialAcceleration();
 
     // TODO(lennartalff): check if another algorithm is needed
     // bring it in normal form by dividing by f_dot[0]
-    n_roots = magnet::math::cubicSolve(f_dot[1] / f_dot[0], f_dot[2] / f_dot[0], f_dot[3] / f_dot[0],
-                                       roots[0], roots[1], roots[2]);
-    // TODO(lennartalff): handle other cases
-    assert(n_roots == 3);
+    n_roots =
+        magnet::math::cubicSolve(f_dot[1] / f_dot[0], f_dot[2] / f_dot[0],
+                                 f_dot[3] / f_dot[0], root1, root2, root3);
+    switch (n_roots) {
+      case 0:
+        // TODO(lennartalff): does this mean, we are fine? i guess so. no
+        // extrema and borders are checked already. so handle this correctly.
+        continue;
+        break;
+      case 1:
+        roots.push_back(root1);
+        break;
+      case 2:
+        roots.push_back(root2);
+        roots.push_back(root1);
+      case 3:
+        roots.push_back(root3);
+        roots.push_back(root2);
+        roots.push_back(root1);
+        break;
+
+      default:
+        // actually this cannot happen. cubic equations can only have 3 roots.
+        assert(false);
+        break;
+    }
+    std::vector<double> f_poly{damping_ * alpha / 24,
+                               (mass_param_ * alpha + damping_ * beta) / 6.0,
+                               (mass_param_ * beta + damping_ * gamma) / 2.0,
+                               mass_param_ * gamma + damping_,
+                               mass_param_ * axis_[i].GetInitialAcceleration() +
+                                   damping_ * axis_[i].GetInitialVelocity()};
+
     // no need to check explicitly for saddle points. In this case, the min and
     // max value would lie on the interval borders and we checked feasibility
     // for the borders in the beginning.
+    std::vector<double> force_candidates;
+    // we now, we can't have more than 3 roots. So just reserve memory for them.
+    force_candidates.reserve(3);
+    for (std::vector<double>::size_type i = 0; i < roots.size(); ++i) {
+      force_candidates.push_back(EvalPoly(f_poly, roots.at(i)));
+    }
 
     // TODO(lennartalff): why this check? what about n_roots?
     if (roots[2] < 0) {
