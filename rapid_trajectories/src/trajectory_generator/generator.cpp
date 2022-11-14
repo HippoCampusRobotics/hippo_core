@@ -17,7 +17,7 @@
  * along with the code.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "rapid_trajectories/trajectory_generator/generator.h"
+#include "rapid_trajectories/trajectory_generator/generator.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -59,22 +59,6 @@ T min(T a, T b, T c) {
     }
     return c;
   }
-}
-
-/**
- * @brief p[0] * x^4 + p[1] * x^3 + p[2] * x^2 + p[3] * x^1 + p[4]
- *
- * @param _p polynomial coefficients
- * @param _x
- * @return double
- */
-inline double EvalPoly(std::vector<double> _polynomial, double _x) {
-  double result = _p[_n - 1];
-  for (const auto &p : _polynomial) {
-    result += p * _x;
-    _x *= _x;
-  }
-  return result;
 }
 
 RapidTrajectoryGenerator::RapidTrajectoryGenerator(const Eigen::Vector3d &_p0,
@@ -133,138 +117,84 @@ RapidTrajectoryGenerator::CheckInputFeasibilitySection(double _f_min_allowed,
   if (std::min(GetThrust(_t1), GetThrust(_t2)) < _f_min_allowed)
     return InputInfeasibleThrustLow;
 
-  double f_min_square = 0;
-  double f_max_square = 0;
-  double jerk_max_square = 0;
+  // The following sums are used as a rough upper and lower limit. The actual
+  // minimum or maximum over the trajectory time horizon might be much larger
+  // than the sum of the sum of minimas and much smaller than the sum of
+  // maximas of each axis. If this coarse criterium is not sufficient to
+  // determine feasibility, this function can be called recursively with the
+  // time horizon
+
+  // split in half. sum of min(f²) over all axes
+  double f_square_min_sum = 0;
+  // sum of max(f^2) over all axes
+  double f_square_max_sum = 0;
+  double jerk_square_max = 0;
 
   // Test the limits of the box we're putting around the trajectory:
   for (int i = 0; i < 3; i++) {
-    std::vector<double> roots;
-    roots.reserve(3);
-    double root1, root2, root3;
-    size_t n_roots;
-    double alpha = axis_[i].GetParamAlpha();
-    double beta = axis_[i].GetParamBeta();
-    double gamma = axis_[i].GetParamGamma();
-    double f_dot[5];
-    f_dot[0] = damping_ * alpha / 6.0;
-    f_dot[1] = mass_param_ * alpha / 6.0 + damping_ * beta * 0.5;
-    f_dot[2] = mass_param_ * beta * 0.5 + damping_ * gamma;
-    f_dot[3] =
-        mass_param_ * gamma + damping_ * axis_[i].GetInitialAcceleration();
+    auto [f_min, f_max] = axis_[i].GetMinMaxForce(_t1, _t2);
 
-    // TODO(lennartalff): check if another algorithm is needed
-    // bring it in normal form by dividing by f_dot[0]
-    n_roots =
-        magnet::math::cubicSolve(f_dot[1] / f_dot[0], f_dot[2] / f_dot[0],
-                                 f_dot[3] / f_dot[0], root1, root2, root3);
-    switch (n_roots) {
-      case 0:
-        // TODO(lennartalff): does this mean, we are fine? i guess so. no
-        // extrema and borders are checked already. so handle this correctly.
-        continue;
-        break;
-      case 1:
-        roots.push_back(root1);
-        break;
-      case 2:
-        roots.push_back(root2);
-        roots.push_back(root1);
-      case 3:
-        roots.push_back(root3);
-        roots.push_back(root2);
-        roots.push_back(root1);
-        break;
-
-      default:
-        // actually this cannot happen. cubic equations can only have 3 roots.
-        assert(false);
-        break;
-    }
-    std::vector<double> f_poly{damping_ * alpha / 24,
-                               (mass_param_ * alpha + damping_ * beta) / 6.0,
-                               (mass_param_ * beta + damping_ * gamma) / 2.0,
-                               mass_param_ * gamma + damping_,
-                               mass_param_ * axis_[i].GetInitialAcceleration() +
-                                   damping_ * axis_[i].GetInitialVelocity()};
-
-    // no need to check explicitly for saddle points. In this case, the min and
-    // max value would lie on the interval borders and we checked feasibility
-    // for the borders in the beginning.
-    std::vector<double> force_candidates;
-    // we now, we can't have more than 3 roots. So just reserve memory for them.
-    force_candidates.reserve(3);
-    for (std::vector<double>::size_type i = 0; i < roots.size(); ++i) {
-      force_candidates.push_back(EvalPoly(f_poly, roots.at(i)));
+    double f_min_square = f_min * f_min;
+    double f_max_square = f_max * f_max;
+    if (f_min_square > f_max_square) {
+      std::swap(f_min_square, f_max_square);
     }
 
-    // TODO(lennartalff): why this check? what about n_roots?
-    if (roots[2] < 0) {
-      roots[2] = 0;
-    }
-    double v1, v2;
-    // TODO: why do i need two variables, if they are the same?
-    v1 = v2 = GetThrust(roots[2]);
-
-    thrust_max_ = v1;
-    // TODO(lennartalff): WTF is this doing? roots[3] is uninitalized and
-    // therefore the value is undefined!!
-    thrust_min_ = GetThrust(roots[3]);
-
-    f_max_square = thrust_max_ * thrust_max_;
+    // if a single axis already has max(f²) > f²ₘₐₓ, the trajectory
+    // is not feasible. Very coarse criterium.
     if (f_max_square > _f_max_allowed * _f_max_allowed) {
       return InputInfeasibleThrustHigh;
     }
 
-    f_min_square = p
-
-        // definitely infeasible:
-        if (std::max(pow(v1, 2), pow(v2, 2)) >
-            pow(_f_max_allowed, 2)) return InputInfeasibleThrustHigh;
-
-    if (v1 * v2 < 0) {
-      // sign of acceleration changes, so we've gone through zero
-      f_min_square += 0;
+    // zero crossing => min(f²) = 0
+    if (f_min * f_max < 0) {
+      // gets optimized away by compilers. just for readability
+      f_square_min_sum += 0;
     } else {
-      f_min_square += pow(std::min(fabs(v1), fabs(v2)), 2);
+      f_square_min_sum += f_min_square;
     }
-
-    f_max_square += pow(std::max(fabs(v1), fabs(v2)), 2);
-
-    jerk_max_square += axis_[i].GetMaxJerkSquared(_t1, _t2);
+    f_square_max_sum += f_max_square;
+    jerk_square_max += axis_[i].GetMaxJerkSquared(_t1, _t2);
   }
 
-  double fmin = sqrt(f_min_square);
-  double fmax = sqrt(f_max_square);
-  double wBound;
-  if (f_min_square > 1e-6)
-    wBound = sqrt(jerk_max_square / f_min_square);  // the 1e-6 is a
-                                                    // divide-by-zero protection
-  else
-    wBound = std::numeric_limits<double>::max();
-
-  // definitely infeasible:
-  if (fmax < _f_min_allowed) return InputInfeasibleThrustLow;
-  if (fmin > _f_max_allowed) return InputInfeasibleThrustHigh;
-
-  // possibly infeasible:
-  if (fmin < _f_min_allowed || fmax > _f_max_allowed ||
-      wBound > _w_max_allowed) {  // indeterminate: must check more closely:
-    double tHalf = (_t1 + _t2) / 2;
-    InputFeasibilityResult r1 = CheckInputFeasibilitySection(
-        _f_min_allowed, _f_max_allowed, _w_max_allowed, _t1, tHalf, _dt_min);
-
-    if (r1 == InputFeasible) {
-      // continue with second half
-      return CheckInputFeasibilitySection(_f_min_allowed, _f_max_allowed,
-                                          _w_max_allowed, tHalf, _t2, _dt_min);
-    }
-
-    // first section is already infeasible, or indeterminate:
-    return r1;
+  // if not even the sum of individual maxima is sufficient to reach the minum
+  // allowed force, all hope is lost.
+  if (f_square_max_sum < _f_min_allowed * _f_min_allowed) {
+    return InputInfeasibleThrustLow;
+  }
+  // if not even the sum of indiviual minima is sufficient to be below the
+  // maximum allowed force, we can stop right here.
+  if (f_square_min_sum > _f_max_allowed * _f_max_allowed) {
+    return InputInfeasibleThrustHigh;
   }
 
-  // definitely feasible:
+  double omega_bound_square;
+  // dont divide by zero
+  if (f_square_min_sum > 1e-6) {
+    omega_bound_square = jerk_square_max / f_square_min_sum;
+  } else {
+    omega_bound_square = std::numeric_limits<double>::max();
+  }
+
+  // opposite of:
+  // sum(min(f²)) >= f²ₘₐₓ AND
+  // sum(max(f²)) <= f²ₘᵢₙ AND
+  // ω² <= ω²ₘₐₓ
+  // that is the only (but coarse) criterium for feasibility.
+  if ((f_square_min_sum < _f_min_allowed * _f_min_allowed) ||
+      (f_square_max_sum > _f_max_allowed * _f_max_allowed) ||
+      (omega_bound_square > _w_max_allowed * _w_max_allowed)) {
+    // we need to split the interval
+    double t_mid = (_t1 + _t2) * 0.5;
+    InputFeasibilityResult result;
+    result = CheckInputFeasibilitySection(_f_min_allowed, _f_max_allowed,
+                                          _w_max_allowed, _t1, t_mid, _dt_min);
+    if (result == InputFeasible) {
+      result = CheckInputFeasibilitySection(
+          _f_min_allowed, _f_max_allowed, _w_max_allowed, t_mid, _t2, _dt_min);
+    }
+    return result;
+  }
   return InputFeasible;
 }
 
@@ -328,7 +258,7 @@ RapidTrajectoryGenerator::CheckPositionFeasibility(
     if (roots[i] < 0) continue;
     if (roots[i] > t_final_) continue;
 
-    if ((GetPosition(roots[i]) - boundaryPoint).Dot(_boundary_normal) <= 0) {
+    if ((GetPosition(roots[i]) - _boundary_point).dot(_boundary_normal) <= 0) {
       // touching, or on the wrong side of, the boundary!
       return StateInfeasible;
     }

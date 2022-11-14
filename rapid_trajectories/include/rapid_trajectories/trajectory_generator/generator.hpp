@@ -20,7 +20,7 @@
 #pragma once
 #include <eigen3/Eigen/Dense>
 
-#include "rapid_trajectories/trajectory_generator/single_axis.h"
+#include "rapid_trajectories/trajectory_generator/single_axis.hpp"
 
 namespace rapid_trajectories {
 namespace trajectory_generator {

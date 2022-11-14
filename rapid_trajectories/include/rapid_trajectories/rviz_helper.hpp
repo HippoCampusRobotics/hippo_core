@@ -1,4 +1,4 @@
-#include <rapid_trajectories/trajectory_generator/generator.h>
+#include <rapid_trajectories/trajectory_generator/generator.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <eigen3/Eigen/Dense>

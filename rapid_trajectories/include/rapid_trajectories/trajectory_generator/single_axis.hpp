@@ -18,6 +18,7 @@
  */
 
 #pragma once
+#include <array>
 
 namespace rapid_trajectories {
 namespace trajectory_generator {
@@ -28,6 +29,10 @@ namespace trajectory_generator {
  */
 class SingleAxisTrajectory {
  public:
+  static constexpr int kMaxForceDerivateRoots = 3;
+  /// @brief We always evaluate at the borders first and 0.0 is always at the
+  /// border. So extrema at this time value will be ignored.
+  static constexpr double kNoPeakTime = 0.0;
   //! Constructor, calls Reset() function.
   SingleAxisTrajectory(void);
 
@@ -35,31 +40,31 @@ class SingleAxisTrajectory {
   //! at time zero
   void SetInitialState(const double pos0, const double vel0,
                        const double acc0) {
-    _p0 = pos0;
-    _v0 = vel0;
-    _a0 = acc0;
+    p_start_ = pos0;
+    v_start_ = vel0;
+    a_start_ = acc0;
     Reset();
   };
 
   //! Define the trajectory's final position (if you don't call this, it is left
   //! free)
   void SetGoalPosition(const double posf) {
-    _posGoalDefined = true;
-    _pf = posf;
+    position_constrained_ = true;
+    p_final_ = posf;
   };
 
   //! Define the trajectory's final velocity (if you don't call this, it is left
   //! free)
   void SetGoalVelocity(const double velf) {
-    _velGoalDefined = true;
-    _vf = velf;
+    velocity_constrained_ = true;
+    v_final_ = velf;
   };
 
   //! Define the trajectory's final acceleration (if you don't call this, it is
   //! left free)
   void SetGoalAcceleration(const double accf) {
-    _accGoalDefined = true;
-    _af = accf;
+    acceleration_constrained_ = true;
+    a_final_ = accf;
   };
 
   //! Generate the trajectory, from the defined initial state to the defined
@@ -72,26 +77,33 @@ class SingleAxisTrajectory {
 
   //! Returns the jerk at time t
   double GetJerk(double t) const {
-    return _g + _b * t + (1 / 2.0) * _a * t * t;
+    return gamma_ + beta_ * t + (1 / 2.0) * alpha_ * t * t;
   };
 
   //! Returns the acceleration at time t
   double GetAcceleration(double t) const {
-    return _a0 + _g * t + (1 / 2.0) * _b * t * t + (1 / 6.0) * _a * t * t * t;
+    return a_start_ + gamma_ * t + (1 / 2.0) * beta_ * t * t +
+           (1 / 6.0) * alpha_ * t * t * t;
   };
+
+  inline double GetForce(double _t) const;
 
   //! Returns the velocity at time t
   double GetVelocity(double t) const {
-    return _v0 + _a0 * t + (1 / 2.0) * _g * t * t + (1 / 6.0) * _b * t * t * t +
-           (1 / 24.0) * _a * t * t * t * t;
+    return v_start_ + a_start_ * t + (1 / 2.0) * gamma_ * t * t +
+           (1 / 6.0) * beta_ * t * t * t + (1 / 24.0) * alpha_ * t * t * t * t;
   };
 
   //! Returns the position at time t
   double GetPosition(double t) const {
-    return _p0 + _v0 * t + (1 / 2.0) * _a0 * t * t +
-           (1 / 6.0) * _g * t * t * t + (1 / 24.0) * _b * t * t * t * t +
-           (1 / 120.0) * _a * t * t * t * t * t;
+    return p_start_ + v_start_ * t + (1 / 2.0) * a_start_ * t * t +
+           (1 / 6.0) * gamma_ * t * t * t + (1 / 24.0) * beta_ * t * t * t * t +
+           (1 / 120.0) * alpha_ * t * t * t * t * t;
   };
+
+  std::vector<double> GetForceDerivativeRoots() const;
+
+  std::pair<double, double> GetMinMaxForce(double _t1, double _t2);
 
   //! Calculate the extrema of the acceleration trajectory over a section
   void GetMinMaxAcc(double &aMinOut, double &aMaxOut, double t1, double t2);
@@ -100,36 +112,67 @@ class SingleAxisTrajectory {
   double GetMaxJerkSquared(double t1, double t2);
 
   //! Get the parameters defining the trajectory
-  double GetParamAlpha(void) const { return _a; };
+  double GetParamAlpha(void) const { return alpha_; };
   //! Get the parameters defining the trajectory
-  double GetParamBeta(void) const { return _b; };
+  double GetParamBeta(void) const { return beta_; };
   //! Get the parameters defining the trajectory
-  double GetParamGamma(void) const { return _g; };
+  double GetParamGamma(void) const { return gamma_; };
   //! Get the parameters defining the trajectory
-  double GetInitialAcceleration(void) const { return _a0; };
+  double GetInitialAcceleration(void) const { return a_start_; };
   //! Get the parameters defining the trajectory
-  double GetInitialVelocity(void) const { return _v0; };
+  double GetInitialVelocity(void) const { return v_start_; };
   //! Get the parameters defining the trajectory
-  double GetInitialPosition(void) const { return _p0; };
+  double GetInitialPosition(void) const { return p_start_; };
 
   //! Get the trajectory cost value
-  double GetCost(void) const { return _cost; };
+  double GetCost(void) const { return cost_; };
 
  private:
-  double _p0, _v0,
-      _a0;  //!< The initial state (position, velocity, acceleration)
-  double _pf, _vf, _af;  //!< The goal state (position, velocity, acceleration)
-  bool _posGoalDefined, _velGoalDefined,
-      _accGoalDefined;  //!< The components of the goal state defined to be
-                        //!< fixed (position, velocity, acceleration)
-  double _a, _b, _g;    //!< The three coefficients that define the trajectory
+  inline void HandleNoPeaks(const double &_t1, const double &_t2, double &_min,
+                            double &_max);
+  struct PeakTimes {
+    std::array<double, 2> t;
+    bool computed{false};
+  };
+  /// @brief Start position of the trajectory.
+  double p_start_;
+  /// @brief Start velocity of the trajectory.
+  double v_start_;
+  /// @brief Start acceleration of the trajectory.
+  double a_start_;
 
-  double _cost;  //!< The trajectory cost, J
+  /// @brief Final position of the trajectory.
+  double p_final_;
+  /// @brief Final velocity of the trajectory.
+  double v_final_;
+  /// @brief Final acceleration of the trajectory.
+  double a_final_;
+  /// @brief Time horizon of the trajectory.
+  double t_final_;
 
-  struct {
-    double t[2];
-    bool initialised;
-  } _accPeakTimes;  //!< The times at which the acceleration has minimum/maximum
+  /// @brief Position for the final state is defined.
+  bool position_constrained_;
+  /// @brief Velocity for the final state is defined.
+  bool velocity_constrained_;
+  /// @brief Acceleleration for the final state is defined.
+  bool acceleration_constrained_;
+  /// @brief Coefficient for the trajectory polynomial
+  double alpha_;
+  /// @brief Coefficient for the trajectory polynomial
+  double beta_;
+  /// @brief Coefficient for the trajectory polynomial
+  double gamma_;
+
+  /// @brief Trajectory cost.
+  double cost_;
+
+  PeakTimes accel_peak_times_;
+  PeakTimes force_peak_times_;
+
+  /// @brief Damping is modelled as a linear function of the velocity;
+  double damping_{5.4};
+  /// @brief Effective mass of the vehicle;
+  double mass_{2.6};
 };
 };  // namespace trajectory_generator
 };  // namespace rapid_trajectories

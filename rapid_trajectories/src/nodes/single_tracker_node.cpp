@@ -1,4 +1,4 @@
-#include <rapid_trajectories/trajectory_generator/generator.h>
+#include <rapid_trajectories/trajectory_generator/generator.hpp>
 
 #include <chrono>
 #include <eigen3/Eigen/Dense>
@@ -92,25 +92,14 @@ class SingleTrackerNode : public rclcpp::Node {
     assert(_target_positions.size() == _target_velocities.size() &&
            _target_positions.size() == _target_accelerations.size());
 
-    Vec3 ps{position_.x(), position_.y(), position_.z()};
-    Vec3 vs{velocity_.x(), velocity_.y(), velocity_.z()};
-    Vec3 as{0.0, 0.0, 0.0};
-    Vec3 gravity{0.0, 0.0, kGravity};
-
     RapidTrajectoryGenerator::InputFeasibilityResult input_feasibility;
 
     for (unsigned int i = 0; i < _target_positions.size(); ++i) {
-      Vec3 pf{_target_positions[i].x(), _target_positions[i].y(),
-              _target_positions[i].z()};
-      Vec3 vf{_target_velocities[i].x(), _target_velocities[i].y(),
-              _target_velocities[i].z()};
-      Vec3 af{_target_accelerations[i].x(), _target_accelerations[i].y(),
-              _target_accelerations[i].z()};
-
-      RapidTrajectoryGenerator trajectory{ps, vs, as, gravity};
-      trajectory.SetGoalPosition(pf);
-      trajectory.SetGoalVelocity(vf);
-      trajectory.SetGoalAcceleration(af);
+      RapidTrajectoryGenerator trajectory{position_, velocity_,
+                                          Eigen::Vector3d::Zero()};
+      trajectory.SetGoalPosition(_target_positions[i]);
+      trajectory.SetGoalVelocity(_target_velocities[i]);
+      trajectory.SetGoalAcceleration(_target_accelerations[i]);
       trajectory.Generate(_duration);
       input_feasibility = trajectory.CheckInputFeasibility(
           input_limits_.thrust_min, input_limits_.thrust_max,
