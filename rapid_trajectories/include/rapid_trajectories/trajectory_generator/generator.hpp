@@ -74,7 +74,18 @@ class RapidTrajectoryGenerator {
   //! Constructor, user must define initial state, and the direction of gravity.
   RapidTrajectoryGenerator(const Eigen::Vector3d &_x0,
                            const Eigen::Vector3d &_v0,
-                           const Eigen::Vector3d &_a0);
+                           const Eigen::Vector3d &_a0, const double _mass,
+                           const double _damping);
+
+  inline std::array<double, SingleAxisTrajectory::kTrajectoryParamsCount>
+  GetAxisParameters(int _i) const {
+    return std::array<double, SingleAxisTrajectory::kTrajectoryParamsCount>{
+        GetAxisParamAlpha(_i), GetAxisParamBeta(_i), GetAxisParamGamma(_i)};
+  }
+
+  inline double GetMass() const { return mass_param_; }
+
+  inline double GetDamping() const { return damping_; }
 
   // set the final state for all axes:
   //! Fix the full position at the end time (see also the per-axis functions).
@@ -182,8 +193,7 @@ class RapidTrajectoryGenerator {
   //! Return the quadrocopter's normal vector along the trajectory at time _t
   Eigen::Vector3d GetNormalVector(double _t) const {
     // add almost zero vector to ensure we do not normalize a zero vector
-    return (GetAcceleration(_t) * mass_param_ + GetVelocity(_t) * damping_ +
-            Eigen::Vector3d{0.0, 0.0, 1e-6})
+    return (GetAcceleration(_t) * mass_param_ + GetVelocity(_t) * damping_)
         .normalized();
   };
   //! Return the quadrocopter's thrust input along the trajectory at time _t
@@ -214,11 +224,17 @@ class RapidTrajectoryGenerator {
   };
 
   //! Return the parameter defining the trajectory.
-  inline double GetAxisParamAlpha(int i) const { return axis_[i].GetParamAlpha(); };
+  inline double GetAxisParamAlpha(int i) const {
+    return axis_[i].GetParamAlpha();
+  };
   //! Return the parameter defining the trajectory.
-  inline double GetAxisParamBeta(int i) const { return axis_[i].GetParamBeta(); };
+  inline double GetAxisParamBeta(int i) const {
+    return axis_[i].GetParamBeta();
+  };
   //! Return the parameter defining the trajectory.
-  inline double GetAxisParamGamma(int i) const { return axis_[i].GetParamGamma(); };
+  inline double GetAxisParamGamma(int i) const {
+    return axis_[i].GetParamGamma();
+  };
 
  private:
   //! Test a section of the trajectory for input feasibility (recursion).
@@ -228,8 +244,8 @@ class RapidTrajectoryGenerator {
                                                       double _t1, double _t2,
                                                       double _dt_min);
 
-  SingleAxisTrajectory axis_[3];  //!< The axes along the single trajectories
-  double t_final_;                //!< trajectory end time [s]
+  std::array<SingleAxisTrajectory, 3> axis_;
+  double t_final_;  //!< trajectory end time [s]
   double damping_{5.4};
   double mass_param_{2.6};
   double thrust_max_;

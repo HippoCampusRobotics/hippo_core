@@ -63,10 +63,16 @@ T min(T a, T b, T c) {
 
 RapidTrajectoryGenerator::RapidTrajectoryGenerator(const Eigen::Vector3d &_p0,
                                                    const Eigen::Vector3d &_v0,
-                                                   const Eigen::Vector3d &_a0) {
+                                                   const Eigen::Vector3d &_a0,
+                                                   const double _mass,
+                                                   const double _damping) {
   // initialise each axis:
   Reset();
-  for (int i = 0; i < 3; i++) {
+  damping_ = _damping;
+  mass_param_ = _mass;
+  for (size_t i = 0; i < axis_.size(); i++) {
+    axis_[i].SetDamping(damping_);
+    axis_[i].SetMass(mass_param_);
     axis_[i].SetInitialState(_p0[i], _v0[i], _a0[i]);
   }
 }
@@ -82,11 +88,15 @@ void RapidTrajectoryGenerator::SetGoalPosition(const Eigen::Vector3d &_in) {
 }
 
 void RapidTrajectoryGenerator::SetGoalVelocity(const Eigen::Vector3d &_in) {
-  for (int i = 0; i < 3; i++) SetGoalVelocityInAxis(i, _in[i]);
+  for (int i = 0; i < 3; i++) {
+    SetGoalVelocityInAxis(i, _in[i]);
+  }
 }
 
 void RapidTrajectoryGenerator::SetGoalAcceleration(const Eigen::Vector3d &_in) {
-  for (int i = 0; i < 3; i++) SetGoalAccelerationInAxis(i, _in[i]);
+  for (int i = 0; i < 3; i++) {
+    SetGoalAccelerationInAxis(i, _in[i]);
+  }
 }
 
 void RapidTrajectoryGenerator::Reset(void) {

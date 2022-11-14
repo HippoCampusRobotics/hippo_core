@@ -19,7 +19,18 @@ find_package(rclcpp REQUIRED)
 find_package(hippo_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/SingleAxisTrajectory.msg"
+  "msg/TargetState.msg"
+  "msg/Trajectory.msg"
+  "msg/TrajectoryArray.msg"
+  "msg/TrajectoryStamped.msg"
+  DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
+)
 
 
 ################################################################################

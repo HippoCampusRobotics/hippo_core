@@ -19,6 +19,7 @@
 
 #pragma once
 #include <array>
+#include <vector>
 
 namespace rapid_trajectories {
 namespace trajectory_generator {
@@ -33,8 +34,13 @@ class SingleAxisTrajectory {
   /// @brief We always evaluate at the borders first and 0.0 is always at the
   /// border. So extrema at this time value will be ignored.
   static constexpr double kNoPeakTime = 0.0;
+  static constexpr int kTrajectoryParamsCount = 3;
   //! Constructor, calls Reset() function.
-  SingleAxisTrajectory(void);
+  SingleAxisTrajectory();
+  SingleAxisTrajectory(double _mass, double _damping);
+  SingleAxisTrajectory(double _alpha, double _beta, double _gamma, double _mass,
+                       double _damping, double _p_start, double _v_start,
+                       double _a_start);
 
   //! Define the trajectory's initial state (position, velocity, acceleration),
   //! at time zero
@@ -66,6 +72,14 @@ class SingleAxisTrajectory {
     acceleration_constrained_ = true;
     a_final_ = accf;
   };
+
+  inline void SetDamping(const double _damping) { damping_ = _damping; }
+
+  inline double GetDamping() const { return damping_; }
+
+  inline void SetMass(const double _mass) { mass_ = _mass; }
+
+  inline double GetMass() const { return mass_; }
 
   //! Generate the trajectory, from the defined initial state to the defined
   //! components of the final state.

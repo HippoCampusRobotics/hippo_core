@@ -1,10 +1,9 @@
-#include <rapid_trajectories/trajectory_generator/generator.hpp>
-
 #include <chrono>
 #include <eigen3/Eigen/Dense>
 #include <hippo_msgs/msg/attitude_target.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rapid_trajectories/rviz_helper.hpp>
+#include <rapid_trajectories/trajectory_generator/generator.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
@@ -95,15 +94,16 @@ class SingleTrackerNode : public rclcpp::Node {
     RapidTrajectoryGenerator::InputFeasibilityResult input_feasibility;
 
     for (unsigned int i = 0; i < _target_positions.size(); ++i) {
-      RapidTrajectoryGenerator trajectory{position_, velocity_,
-                                          Eigen::Vector3d::Zero()};
+      RapidTrajectoryGenerator trajectory{
+          position_, velocity_, Eigen::Vector3d::Zero(),
+          trajectory_settings_.mass, trajectory_settings_.damping};
       trajectory.SetGoalPosition(_target_positions[i]);
       trajectory.SetGoalVelocity(_target_velocities[i]);
       trajectory.SetGoalAcceleration(_target_accelerations[i]);
       trajectory.Generate(_duration);
       input_feasibility = trajectory.CheckInputFeasibility(
-          input_limits_.thrust_min, input_limits_.thrust_max,
-          input_limits_.omega_max, input_limits_.timestep_min);
+          trajectory_settings_.thrust_min, trajectory_settings_.thrust_max,
+          trajectory_settings_.omega_max, trajectory_settings_.timestep_min);
       if (input_feasibility ==
           RapidTrajectoryGenerator::InputFeasibilityResult::InputFeasible) {
         generators_.push_back(trajectory);
@@ -116,12 +116,14 @@ class SingleTrackerNode : public rclcpp::Node {
   void DeleteTrajectories() { generators_.clear(); }
 
   static constexpr double kGravity{-9.81};
-  struct InputLimits {
+  struct TrajectorySettings {
     double thrust_min{0.0};
     double thrust_max{16.0};
     double omega_max{3.0};
+    double mass{2.6};
+    double damping{5.4};
     double timestep_min{0.02};
-  } input_limits_;
+  } trajectory_settings_;
   rclcpp::Publisher<AttitudeTarget>::SharedPtr body_rates_pub_;
   rclcpp::Subscription<Odometry>::SharedPtr state_sub_;
   std::vector<RapidTrajectoryGenerator> generators_;

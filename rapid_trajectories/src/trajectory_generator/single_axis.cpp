@@ -30,10 +30,38 @@ namespace rapid_trajectories {
 namespace trajectory_generator {
 
 SingleAxisTrajectory::SingleAxisTrajectory(void)
-    : alpha_(0),
-      beta_(0),
-      gamma_(0),
-      cost_(std::numeric_limits<double>::max()) {
+    : alpha_(0), beta_(0), gamma_(0), damping_(5.4), mass_(2.6) {
+  Reset();
+}
+
+SingleAxisTrajectory::SingleAxisTrajectory(double _mass, double _damping)
+    : alpha_(0), beta_(0), gamma_(0), damping_(_damping), mass_(_mass) {
+  Reset();
+}
+
+/// @brief This constructor should only be used to sample a specific trajectory
+/// for visualization or similar purposes. Do not use this constructor for
+/// trajectory generation.
+/// @param _alpha
+/// @param _beta
+/// @param _gamma
+/// @param _mass
+/// @param _damping
+/// @param _p_start
+/// @param _v_start
+/// @param _a_start
+SingleAxisTrajectory::SingleAxisTrajectory(double _alpha, double _beta,
+                                           double _gamma, double _mass,
+                                           double _damping, double _p_start,
+                                           double _v_start, double _a_start)
+    : p_start_(_p_start),
+      v_start_(_v_start),
+      a_start_(_a_start),
+      alpha_(_alpha),
+      beta_(_beta),
+      gamma_(_gamma),
+      damping_(_damping),
+      mass_(_mass) {
   Reset();
 }
 
@@ -173,7 +201,8 @@ inline void SingleAxisTrajectory::HandleNoPeaks(const double &_t1,
   }
 }
 
-std::pair<double, double> SingleAxisTrajectory::GetMinMaxForce(double _t1, double _t2) {
+std::pair<double, double> SingleAxisTrajectory::GetMinMaxForce(double _t1,
+                                                               double _t2) {
   double min;
   double max;
   if (!force_peak_times_.computed) {
