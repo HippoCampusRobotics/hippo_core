@@ -86,7 +86,8 @@ void PluginPrivate::UpdateRotorVelocity(
 
 ignition::math::Vector3d PluginPrivate::Thrust() {
   double thrust;
-  double tmp = std::abs(rotor_velocity_);
+  // get rotations per second
+  double tmp = std::abs(rotor_velocity_ / 6.28);
   thrust =
       tmp * tmp * sdf_params_.quadratic_coeff + tmp * sdf_params_.linear_coeff;
   if (rotor_velocity_ < 0) {

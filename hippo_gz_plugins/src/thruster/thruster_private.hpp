@@ -70,7 +70,7 @@ class PluginPrivate {
 
   void OnThrustCmd(const ignition::msgs::Double &_msg);
   double ThrustToVelocity(double _thrust) {
-    return _thrust * turning_direction_ * sdf_params_.maximum_rpm / 60.0 * 3.14;
+    return _thrust * turning_direction_ * sdf_params_.maximum_rpm / 60.0 * 3.14 * 2;
   }
   void InitComponents(ignition::gazebo::EntityComponentManager &_ecm);
   std::string ThrustTopicName();
