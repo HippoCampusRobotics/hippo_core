@@ -1,5 +1,5 @@
-#include <rapid_trajectories/rviz_helper.hpp>
 #include <eigen3/Eigen/Dense>
+#include <rapid_trajectories/rviz_helper.hpp>
 
 namespace rapid_trajectories {
 RvizHelper::RvizHelper(rclcpp::Node::SharedPtr _node) {
@@ -12,14 +12,16 @@ RvizHelper::RvizHelper(rclcpp::Node::SharedPtr _node) {
       node_->create_publisher<visualization_msgs::msg::Marker>("target", qos);
   start_pub_ =
       node_->create_publisher<visualization_msgs::msg::Marker>("start", qos);
+  heading_pub_ =
+      node_->create_publisher<visualization_msgs::msg::Marker>("heading", qos);
   InitStartMarker();
   InitTargetMarker();
   InitThrustMarker();
+  InitHeadingMarker();
 }
 
 void RvizHelper::PublishTrajectory(
-    const trajectory_generator::RapidTrajectoryGenerator &_trajectory,
-    const double _t_final) {
+    const trajectory_generator::RapidTrajectoryGenerator &_trajectory) {
   visualization_msgs::msg::Marker path;
   path.points.resize(n_trajectory_samples_);
   path.header.frame_id = "map";
@@ -35,7 +37,7 @@ void RvizHelper::PublishTrajectory(
   path.pose.orientation.w = 1.0;
   for (int i = 0; i < n_trajectory_samples_; ++i) {
     geometry_msgs::msg::Point &path_point = path.points.at(i);
-    double t = _t_final / n_trajectory_samples_ * i;
+    double t = _trajectory.GetFinalTime() / (n_trajectory_samples_ - 1) * i;
     Eigen::Vector3d p = _trajectory.GetPosition(t);
     path_point.x = p.x();
     path_point.y = p.y();
@@ -49,20 +51,86 @@ void RvizHelper::PublishTrajectory(
     thrust_point.z += thrust * 0.1;
     thrust_marker_.points.at(2 * i + 1) = thrust_point;
   }
-  trajectory_pub_->publish(path);
+  // trajectory_pub_->publish(path);
   trajectory_pub_->publish(thrust_marker_);
 }
 
-void RvizHelper::PublishTarget(const geometry_msgs::msg::Point &_target) {
+void RvizHelper::PublishTarget(const Eigen::Vector3d &_point) {
+  geometry_msgs::msg::Point p;
+  p.x = _point.x();
+  p.y = _point.y();
+  p.z = _point.z();
   target_marker_.header.stamp = node_->get_clock()->now();
-  target_marker_.pose.position = _target;
+  target_marker_.pose.position = p;
   target_pub_->publish(target_marker_);
 }
 
-void RvizHelper::PublishStart(const geometry_msgs::msg::Point &_point) {
+void RvizHelper::PublishHeading(const Eigen::Vector3d &_position,
+                                const Eigen::Quaterniond &_orientation) {
+  heading_marker_.points.clear();
+
+  heading_marker_.scale.x = 1.0; // length
+  heading_marker_.scale.y = 0.05; // width
+  heading_marker_.scale.z = 0.05; // height
+  geometry_msgs::msg::Point p;
+  p.x = _position.x();
+  p.y = _position.y();
+  p.z = _position.z();
+  geometry_msgs::msg::Quaternion q;
+  q.w = _orientation.w();
+  q.x = _orientation.x();
+  q.y = _orientation.y();
+  q.z = _orientation.z();
+  heading_marker_.header.stamp = node_->now();
+  heading_marker_.pose.position = p;
+  heading_marker_.pose.orientation = q;
+  heading_pub_->publish(heading_marker_);
+}
+
+void RvizHelper::PublishHeading(const Eigen::Vector3d &_position,
+                                const Eigen::Vector3d &_axis) {
+  heading_marker_.points.clear();
+  heading_marker_.scale.x = 0.05; // diameter
+  heading_marker_.scale.y = 0.1; // head diameter
+  heading_marker_.scale.z = 0.1; // head length
+  geometry_msgs::msg::Point p;
+  p.x = _position.x();
+  p.y = _position.y();
+  p.z = _position.z();
+  heading_marker_.points.push_back(p);
+  p.x += _axis.x();
+  p.y += _axis.y();
+  p.z += _axis.z();
+  heading_marker_.points.push_back(p);
+  heading_marker_.header.stamp = node_->now();
+  heading_marker_.pose.orientation.w = 1;
+  heading_marker_.pose.orientation.x = 0;
+  heading_marker_.pose.orientation.y = 0;
+  heading_marker_.pose.orientation.z = 0;
+  heading_marker_.pose.position.x = 0;
+  heading_marker_.pose.position.y = 0;
+  heading_marker_.pose.position.z = 0;
+  heading_pub_->publish(heading_marker_);
+}
+
+void RvizHelper::PublishStart(const Eigen::Vector3d &_point) {
+  geometry_msgs::msg::Point p;
+  p.x = _point.x();
+  p.y = _point.y();
+  p.z = _point.z();
   start_marker_.header.stamp = node_->get_clock()->now();
-  start_marker_.pose.position = _point;
+  start_marker_.pose.position = p;
   start_pub_->publish(start_marker_);
+}
+
+void RvizHelper::InitHeadingMarker() {
+  heading_marker_.header.frame_id = "map";
+  heading_marker_.ns = "heading";
+  heading_marker_.action = visualization_msgs::msg::Marker::ADD;
+  heading_marker_.id = 0;
+  heading_marker_.type = visualization_msgs::msg::Marker::ARROW;
+  heading_marker_.color.a = 1.0;
+  heading_marker_.color.g = 1.0;
 }
 
 void RvizHelper::InitTargetMarker() {

@@ -188,7 +188,7 @@ class RapidTrajectoryGenerator {
                            axis_[2].GetPosition(_t));
   };
 
-  inline double GetFinalTime() { return t_final_; }
+  inline double GetFinalTime() const { return t_final_; }
 
   //! Return the quadrocopter's normal vector along the trajectory at time _t
   Eigen::Vector3d GetNormalVector(double _t) const {
