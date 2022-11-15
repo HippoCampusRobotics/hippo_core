@@ -18,20 +18,10 @@ find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(hippo_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
+find_package(rapid_trajectories_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/SingleAxisTrajectory.msg"
-  "msg/TargetState.msg"
-  "msg/Trajectory.msg"
-  "msg/TrajectoryArray.msg"
-  "msg/TrajectoryStamped.msg"
-  DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
-)
-
+find_package(Eigen3 REQUIRED)
 
 ################################################################################
 # install headers
@@ -103,6 +93,8 @@ ament_target_dependencies(${exec_name}
   hippo_common
   nav_msgs
   visualization_msgs
+  rapid_trajectories_msgs
+  Eigen3
 )
 target_link_libraries(${exec_name} trajectory_generator rviz_helper)
 install(TARGETS ${exec_name}
