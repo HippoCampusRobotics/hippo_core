@@ -32,6 +32,17 @@ double SimpleMixer::ApplyInput(
       outputs_[i_out].channels[i_in] += tmp;
     }
     double tmp = abs(outputs_[i_out].total);
+    // normalize the output by applying the reverse of F(n) = an²+bn, n is
+    // revolutions per second and divide by max revs per second to normalize
+    // output to [-1;1].
+    const double a = 2.6e-5;
+    const double b = 4.2e-3;
+    tmp = (-b + sqrt(4 * a * tmp + b * b)) / (2 * a) / 500;
+    if (outputs_[i_out].total < 0) {
+      outputs_[i_out].total = -1 * tmp;
+    } else {
+      outputs_[i_out].total = tmp;
+    }
     scaling = std::max(tmp, scaling);
   }
   return scaling;

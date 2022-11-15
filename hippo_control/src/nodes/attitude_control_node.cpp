@@ -100,19 +100,6 @@ class AttitudeControlNode : public rclcpp::Node {
       controller_.SetYawGainD(gain_yaw_d_);
     }
 
-    name = "scale_output";
-    descr_text =
-        "If true, the output gets evenly to be in range[-1, 1]. Otherwise it "
-        "gets clipped";
-    descr = param_utils::Description(descr_text);
-    {
-      std::lock_guard<std::mutex> lock(mutex_);
-      scale_output_ = false;
-      scale_output_ = declare_parameter(name, scale_output_, descr);
-    }
-
-    misc_cb_handle_ = add_on_set_parameters_callback(
-        std::bind(&AttitudeControlNode::OnSetMisc, this, _1));
     p_gains_cb_handle_ = add_on_set_parameters_callback(
         std::bind(&AttitudeControlNode::OnSetPgains, this, _1));
     d_gains_cb_handle_ = add_on_set_parameters_callback(
@@ -206,28 +193,13 @@ class AttitudeControlNode : public rclcpp::Node {
     {
       std::lock_guard<std::mutex> lock(mutex_);
       Eigen::Vector3d u =
-          controller_.Update(orientation, v_angular, scale_output_);
+          controller_.Update(orientation, v_angular);
       msg.control[ActuatorControls::INDEX_ROLL] = u.x();
       msg.control[ActuatorControls::INDEX_PITCH] = u.y();
       msg.control[ActuatorControls::INDEX_YAW] = u.z();
       msg.control[ActuatorControls::INDEX_THRUST] = attitude_target_.thrust;
     }
     control_output_pub_->publish(msg);
-  }
-
-  SetParametersResult OnSetMisc(
-      const std::vector<rclcpp::Parameter> &parameters) {
-    SetParametersResult result;
-    result.successful = true;
-    for (const rclcpp::Parameter &parameter : parameters) {
-      std::lock_guard<std::mutex> lock(mutex_);
-
-      if (param_utils::AssignIfMatch(parameter, "scale_output",
-                                     scale_output_)) {
-        continue;
-      }
-    }
-    return result;
   }
 
   SetParametersResult OnSetPgains(
@@ -286,7 +258,6 @@ class AttitudeControlNode : public rclcpp::Node {
   double gain_pitch_d_;
   double gain_yaw_p_;
   double gain_yaw_d_;
-  bool scale_output_;
 
   GeometricAttitudeControl controller_;
   AttitudeTarget attitude_target_;
@@ -307,7 +278,6 @@ class AttitudeControlNode : public rclcpp::Node {
 
   OnSetParametersCallbackHandle::SharedPtr p_gains_cb_handle_;
   OnSetParametersCallbackHandle::SharedPtr d_gains_cb_handle_;
-  OnSetParametersCallbackHandle::SharedPtr misc_cb_handle_;
 };
 
 int main(int argc, char **argv) {

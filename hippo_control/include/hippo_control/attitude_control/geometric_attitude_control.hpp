@@ -10,14 +10,11 @@ class GeometricAttitudeControl {
    *
    * @param _orientation Current orientation as quaternion.
    * @param _angular_velocity Current angular velocity (rad/s).
-   * @param _scale Toggles between clip and scale mode to get output values in
-   * range [-1.0, 1.0].
    * @return Eigen::Vector3d Control output as vector of roll, pitch and yaw
    * torque normalized to a maximum of 1.0.
    */
   Eigen::Vector3d Update(const Eigen::Quaterniond &_orientation,
-                         const Eigen::Vector3d &_angular_velocity,
-                         bool _scale = true);
+                         const Eigen::Vector3d &_angular_velocity);
   void SetOrientationTarget(const Eigen::Quaterniond &_target) {
     orientation_target_ = _target;
   }
