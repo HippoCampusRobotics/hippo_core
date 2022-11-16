@@ -151,14 +151,14 @@ void SingleTrackerNode::Update() {
   Eigen::Vector3d trajectory_axis = selected_trajectory_.GetNormalVector(t);
   Eigen::Vector3d unit_x = Eigen::Vector3d::UnitX();
   // https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
-  Eigen::Vector3d n = trajectory_axis.cross(unit_x);
+  Eigen::Vector3d n = unit_x.cross(trajectory_axis);
   Eigen::Quaterniond q;
   q.x() = n.x();
   q.y() = n.y();
   q.z() = n.z();
   q.w() = 1 + trajectory_axis.dot(unit_x);
   q.normalize();
-  Eigen::Vector3d rpy = q.inverse().toRotationMatrix().eulerAngles(0, 1, 2);
+  Eigen::Vector3d rpy = q.toRotationMatrix().eulerAngles(0, 1, 2);
 
   AttitudeTarget msg;
   msg.header.frame_id = "map";
@@ -173,8 +173,7 @@ void SingleTrackerNode::Update() {
   rviz_helper_->PublishTrajectory(selected_trajectory_);
   rviz_helper_->PublishTarget(target_position_);
   rviz_helper_->PublishStart(position_);
-  rviz_helper_->PublishHeading(selected_trajectory_.GetPosition(t),
-                               q.inverse());
+  rviz_helper_->PublishHeading(selected_trajectory_.GetPosition(t), q);
 }
 
 void SingleTrackerNode::UpdateTrajectories() {

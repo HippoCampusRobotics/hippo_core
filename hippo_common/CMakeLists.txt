@@ -14,6 +14,7 @@ add_compile_options(${CXX_FLAGS})
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 # include_directories(
 #   include/${PROJECT_NAME}
@@ -44,9 +45,9 @@ target_include_directories(${lib_name}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(${lib_name} rclcpp)
+ament_target_dependencies(${lib_name} rclcpp Eigen3)
 ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
-ament_export_dependencies(rclcpp)
+ament_export_dependencies(rclcpp Eigen3)
 install(TARGETS ${lib_name}
   EXPORT ${lib_name}Target
   LIBRARY DESTINATION lib
