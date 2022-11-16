@@ -11,6 +11,7 @@ Eigen::Quaterniond EulerToQuaternion(double _roll, double _pitch, double _yaw) {
 
 Eigen::Quaterniond RotationBetweenNormalizedVectors(
     const Eigen::Vector3d &_v1, const Eigen::Vector3d &_v2) {
+  // https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
   Eigen::Vector3d n = _v1.cross(_v2);
   Eigen::Quaterniond q;
   q.x() = n.x();

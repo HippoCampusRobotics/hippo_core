@@ -150,15 +150,10 @@ void SingleTrackerNode::Update() {
 
   Eigen::Vector3d trajectory_axis = selected_trajectory_.GetNormalVector(t);
   Eigen::Vector3d unit_x = Eigen::Vector3d::UnitX();
-  // https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
-  Eigen::Vector3d n = unit_x.cross(trajectory_axis);
-  Eigen::Quaterniond q;
-  q.x() = n.x();
-  q.y() = n.y();
-  q.z() = n.z();
-  q.w() = 1 + trajectory_axis.dot(unit_x);
-  q.normalize();
-  Eigen::Vector3d rpy = q.toRotationMatrix().eulerAngles(0, 1, 2);
+  Eigen::Quaterniond q =
+      hippo_common::tf2_utils::RotationBetweenNormalizedVectors(
+          unit_x, trajectory_axis);
+  Eigen::Vector3d rpy = hippo_common::tf2_utils::QuaternionToEuler(q);
 
   AttitudeTarget msg;
   msg.header.frame_id = "map";
