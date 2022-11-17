@@ -70,7 +70,7 @@ PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(${lib_name} rclcpp visualization_msgs)
+ament_target_dependencies(${lib_name} rclcpp visualization_msgs hippo_common)
 ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
 ament_export_dependencies(rclcpp visualization_msgs)
 

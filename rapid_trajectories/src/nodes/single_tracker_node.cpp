@@ -1,6 +1,7 @@
 #include "single_tracker_node.hpp"
 
 #include <hippo_common/tf2_utils.hpp>
+#include <hippo_common/convert.hpp>
 
 namespace rapid_trajectories {
 namespace single_tracking {
@@ -160,9 +161,7 @@ void SingleTrackerNode::Update() {
   msg.header.stamp = t_now;
   msg.thrust = selected_trajectory_.GetThrust(t);
   msg.mask = msg.IGNORE_RATES;
-  msg.attitude.x = rpy.x();
-  msg.attitude.y = rpy.y();
-  msg.attitude.z = rpy.z();
+  hippo_common::convert::EigenToRos(rpy, msg.attitude);
   attitude_target_pub_->publish(msg);
 
   rviz_helper_->PublishTrajectory(selected_trajectory_);
@@ -188,13 +187,8 @@ void SingleTrackerNode::OnOdometry(const Odometry::SharedPtr _msg) {
                          _msg->header.frame_id.c_str());
     return;
   }
-  position_.x() = _msg->pose.pose.position.x;
-  position_.y() = _msg->pose.pose.position.y;
-  position_.z() = _msg->pose.pose.position.z;
-
-  velocity_.x() = _msg->twist.twist.linear.x;
-  velocity_.y() = _msg->twist.twist.linear.y;
-  velocity_.z() = _msg->twist.twist.linear.z;
+  hippo_common::convert::RosToEigen(_msg->pose.pose.position, position_);
+  hippo_common::convert::RosToEigen(_msg->twist.twist.linear, velocity_);
 }
 
 void SingleTrackerNode::OnTarget(const TargetState::SharedPtr _msg) {

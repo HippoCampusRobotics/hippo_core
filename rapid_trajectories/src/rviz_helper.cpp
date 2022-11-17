@@ -1,5 +1,6 @@
 #include <eigen3/Eigen/Dense>
 #include <rapid_trajectories/rviz_helper.hpp>
+#include <hippo_common/convert.hpp>
 
 namespace rapid_trajectories {
 RvizHelper::RvizHelper(rclcpp::Node::SharedPtr _node) {
@@ -39,10 +40,7 @@ void RvizHelper::PublishTrajectory(
     geometry_msgs::msg::Point &path_point = path.points.at(i);
     double t = _trajectory.GetFinalTime() / (n_trajectory_samples_ - 1) * i;
     Eigen::Vector3d p = _trajectory.GetPosition(t);
-    path_point.x = p.x();
-    path_point.y = p.y();
-    path_point.z = p.z();
-
+    hippo_common::convert::EigenToRos(p, path_point);
     geometry_msgs::msg::Point thrust_point;
     thrust_point = path_point;
 
@@ -57,9 +55,7 @@ void RvizHelper::PublishTrajectory(
 
 void RvizHelper::PublishTarget(const Eigen::Vector3d &_point) {
   geometry_msgs::msg::Point p;
-  p.x = _point.x();
-  p.y = _point.y();
-  p.z = _point.z();
+  hippo_common::convert::EigenToRos(_point, p);
   target_marker_.header.stamp = node_->get_clock()->now();
   target_marker_.pose.position = p;
   target_pub_->publish(target_marker_);
@@ -73,14 +69,9 @@ void RvizHelper::PublishHeading(const Eigen::Vector3d &_position,
   heading_marker_.scale.y = 0.05; // width
   heading_marker_.scale.z = 0.05; // height
   geometry_msgs::msg::Point p;
-  p.x = _position.x();
-  p.y = _position.y();
-  p.z = _position.z();
+  hippo_common::convert::EigenToRos(_position, p);
   geometry_msgs::msg::Quaternion q;
-  q.w = _orientation.w();
-  q.x = _orientation.x();
-  q.y = _orientation.y();
-  q.z = _orientation.z();
+  hippo_common::convert::EigenToRos(_orientation, q);
   heading_marker_.header.stamp = node_->now();
   heading_marker_.pose.position = p;
   heading_marker_.pose.orientation = q;
@@ -94,13 +85,10 @@ void RvizHelper::PublishHeading(const Eigen::Vector3d &_position,
   heading_marker_.scale.y = 0.1; // head diameter
   heading_marker_.scale.z = 0.1; // head length
   geometry_msgs::msg::Point p;
-  p.x = _position.x();
-  p.y = _position.y();
-  p.z = _position.z();
+  hippo_common::convert::EigenToRos(_position, p);
   heading_marker_.points.push_back(p);
-  p.x += _axis.x();
-  p.y += _axis.y();
-  p.z += _axis.z();
+  Eigen::Vector3d tip = _position + _axis;
+  hippo_common::convert::EigenToRos(tip, p);
   heading_marker_.points.push_back(p);
   heading_marker_.header.stamp = node_->now();
   heading_marker_.pose.orientation.w = 1;
@@ -115,9 +103,7 @@ void RvizHelper::PublishHeading(const Eigen::Vector3d &_position,
 
 void RvizHelper::PublishStart(const Eigen::Vector3d &_point) {
   geometry_msgs::msg::Point p;
-  p.x = _point.x();
-  p.y = _point.y();
-  p.z = _point.z();
+  hippo_common::convert::EigenToRos(_point, p);
   start_marker_.header.stamp = node_->get_clock()->now();
   start_marker_.pose.position = p;
   start_pub_->publish(start_marker_);
