@@ -1,5 +1,6 @@
 #include <hippo_msgs/msg/actuator_controls.hpp>
 #include <hippo_msgs/msg/esc_rpms.hpp>
+#include <hippo_msgs/msg/thruster_forces.hpp>
 #include <ignition/transport/Node.hh>
 #include <rclcpp/node_interfaces/node_topics.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -63,21 +64,26 @@ class Bridge {
     rclcpp::SystemDefaultsQoS qos;
     rpm_pub_ = ros_node_->create_publisher<EscRpms>(
         node_topics->resolve_topic_name("esc_rpm"), qos);
+    thruster_forces_pub_ =
+        ros_node_->create_publisher<ThrusterForces>("thrusts", qos);
     for (size_t i = 0; i < ActuatorControls().control.size(); i++) {
       std::string topic_name;
       qos.keep_last(50);
       std::string topic_prefix =
           node_topics->resolve_topic_name("thruster_") + std::to_string(i);
-      topic_name = topic_prefix + "/thrust";
+      topic_name = topic_prefix + "/throttle_cmd";
 
       // gazebo publisher
-      thrust_pubs_[i] = gz_node_->Advertise<gz_msgs::Double>(topic_name);
+      throttle_cmd_pubs_[i] = gz_node_->Advertise<gz_msgs::Double>(topic_name);
+
       topic_name = topic_prefix + "/rpm";
       std::function<void(const gz_msgs::Double &)> f =
           std::bind(&Bridge::OnThrusterRpm, this, _1, i);
       gz_node_->Subscribe(topic_name, f);
+      topic_name = topic_prefix + "/thrust";
+      f = std::bind(&Bridge::OnThrust, this, _1, i);
+      gz_node_->Subscribe(topic_name, f);
     }
-
     thrust_sub_ = ros_node_->create_subscription<ActuatorControls>(
         "thruster_command", qos,
         std::bind(&Bridge::OnThrusterCommand, this, _1));
@@ -90,7 +96,7 @@ class Bridge {
   }
 
   void OnThrusterRpm(const gz_msgs::Double &_msg, size_t _i) {
-    if (_i > thrusters_rpm_msg_.rpms.size()) {
+    if (_i > thrusters_rpm_msg_.rpms.size() - 1) {
       return;
     }
     std::lock_guard<std::mutex> lock(mutex_);
@@ -98,6 +104,18 @@ class Bridge {
     if (_i == 0) {
       thrusters_rpm_msg_.header.stamp = ros_node_->get_clock()->now();
       rpm_pub_->publish(thrusters_rpm_msg_);
+    }
+  }
+
+  void OnThrust(const gz_msgs::Double &_msg, size_t _i) {
+    if (_i > thruster_forces_msg_.force.size() - 1) {
+      return;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    thruster_forces_msg_.force[_i] = _msg.data();
+    if (_i == 0) {
+      thruster_forces_msg_.header.stamp = ros_node_->now();
+      thruster_forces_pub_->publish(thruster_forces_msg_);
     }
   }
 
@@ -114,15 +132,15 @@ class Bridge {
   }
 
   void OnThrusterCommand(const ActuatorControls::SharedPtr _msg) {
-    if (!(_msg->control.size() == thrust_pubs_.size())) {
+    if (!(_msg->control.size() == throttle_cmd_pubs_.size())) {
       RCLCPP_ERROR(ros_node_->get_logger(),
                    "ActuatControls and publisher map do not have same size!");
       return;
     }
-    for (unsigned int i = 0; i < thrust_pubs_.size(); ++i) {
+    for (unsigned int i = 0; i < throttle_cmd_pubs_.size(); ++i) {
       gz_msgs::Double gz_msg;
       gz_msg.set_data(_msg->control[i]);
-      thrust_pubs_[i].Publish(gz_msg);
+      throttle_cmd_pubs_[i].Publish(gz_msg);
     }
   }
 
@@ -137,11 +155,13 @@ class Bridge {
   std::mutex mutex_;
 
   EscRpms thrusters_rpm_msg_;
+  ThrusterForces thruster_forces_msg_;
 
   rclcpp::Publisher<Imu>::SharedPtr imu_pub_;
   rclcpp::Publisher<PoseStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<Odometry>::SharedPtr odometry_pub_;
-  std::map<int, transport::Node::Publisher> thrust_pubs_;
+  rclcpp::Publisher<ThrusterForces>::SharedPtr thruster_forces_pub_;
+  std::map<int, transport::Node::Publisher> throttle_cmd_pubs_;
   rclcpp::Publisher<EscRpms>::SharedPtr rpm_pub_;
   rclcpp::Subscription<ActuatorControls>::SharedPtr thrust_sub_;
 };

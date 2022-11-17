@@ -40,8 +40,18 @@ class PluginPrivate {
   bool InitModel(ignition::gazebo::EntityComponentManager &_ecm,
                  ignition::gazebo::Entity _entity);
   void PublishRpm(const ignition::gazebo::EntityComponentManager &_ecm);
-  void AdvertiseRpm();
-  void SubscribeThrust();
+  void PublishThrust();
+  void AdvertiseRpm() {
+    rpm_publisher_ = node_.Advertise<ignition::msgs::Double>(RpmTopicName());
+  }
+  void AdvertiseThrust() {
+    thrust_publisher_ =
+        node_.Advertise<ignition::msgs::Double>(ThrustTopicName());
+  }
+  void SubscribeThrottleCmd() {
+    node_.Subscribe(ThrottleCmdTopicName(), &PluginPrivate::OnThrottleCmd,
+                    this);
+  }
   void UpdateRotorVelocity(ignition::gazebo::EntityComponentManager &_ecm,
                            double dt);
   void ApplyWrench(ignition::gazebo::EntityComponentManager &_ecm);
@@ -54,8 +64,9 @@ class PluginPrivate {
     std::string link{"base_link"};
     std::string joint;
     double publish_rate{50.0};
-    std::string thrust_base_topic{"thrust"};
+    std::string throttle_cmd_base_topic{"throttle_cmd"};
     std::string rpm_base_topic{"rpm"};
+    std::string thrust_base_topic{"thrust"};
     int thruster_number{0};
     std::string turning_direction{"cw"};
     std::string propeller_direction{"cw"};
@@ -68,15 +79,33 @@ class PluginPrivate {
     double timeconstant_down{0.0};
   } sdf_params_;
 
-  void OnThrustCmd(const ignition::msgs::Double &_msg);
-  double ThrustToVelocity(double _thrust) {
-    return _thrust * turning_direction_ * sdf_params_.maximum_rpm / 60.0 * 3.14 * 2;
+  void OnThrottleCmd(const ignition::msgs::Double &_msg);
+  /**
+   * @brief Assumes throttle [-1; 1] maps linearily to velocity
+   * [-max_rotations_per_second, max_rotations_per_second]
+   *
+   * @param _throttle Normalized motor command in range [-1; 1]
+   * @return double Rotational velocity [omega] = rad/s
+   */
+  double ThrottleToVelocity(double _throttle) {
+    return _throttle * turning_direction_ * sdf_params_.maximum_rpm / 60.0 *
+           3.14 * 2;
   }
   void InitComponents(ignition::gazebo::EntityComponentManager &_ecm);
-  std::string ThrustTopicName();
-  std::string RpmTopicName();
-  std::string TopicPrefix();
-  ignition::math::Vector3d Thrust();
+  std::string ThrottleCmdTopicName() {
+    return TopicPrefix() + "/" + sdf_params_.throttle_cmd_base_topic;
+  }
+  std::string RpmTopicName() {
+    return TopicPrefix() + "/" + sdf_params_.rpm_base_topic;
+  }
+  std::string ThrustTopicName() {
+    return TopicPrefix() + "/" + sdf_params_.thrust_base_topic;
+  }
+  std::string TopicPrefix() {
+    return "/" + model_name_ + "/" + "thruster_" +
+           std::to_string(sdf_params_.thruster_number);
+  }
+  ignition::math::Vector3d ThrusterForce();
   ignition::math::Vector3d Torque();
   void SetRotorVelocity(ignition::gazebo::EntityComponentManager &_ecm,
                         double velocity);
@@ -99,6 +128,7 @@ class PluginPrivate {
 
   ignition::transport::Node node_;
   ignition::transport::Node::Publisher rpm_publisher_;
+  ignition::transport::Node::Publisher thrust_publisher_;
 };
 
 }  // namespace thruster

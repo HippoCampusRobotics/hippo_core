@@ -22,7 +22,8 @@ void Plugin::Configure(
     return;
   }
   private_->AdvertiseRpm();
-  private_->SubscribeThrust();
+  private_->AdvertiseThrust();
+  private_->SubscribeThrottleCmd();
 }
 void Plugin::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
                        ignition::gazebo::EntityComponentManager &_ecm) {
@@ -40,8 +41,8 @@ void Plugin::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
       (dt < private_->update_period_)) {
     return;
   }
-
   private_->last_pub_time_ = _info.simTime;
   private_->PublishRpm(_ecm);
+  private_->PublishThrust();
 }
 }  // namespace thruster

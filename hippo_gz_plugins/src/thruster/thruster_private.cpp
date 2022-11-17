@@ -19,7 +19,8 @@ void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf) {
   AssignSdfParam(_sdf, "joint", sdf_params_.joint);
   AssignSdfParam(_sdf, "publish_rate", sdf_params_.publish_rate);
   AssignSdfParam(_sdf, "rpm_base_topic", sdf_params_.rpm_base_topic);
-  AssignSdfParam(_sdf, "thrust_base_topic", sdf_params_.thrust_base_topic);
+  AssignSdfParam(_sdf, "throttle_cmd_base_topic",
+                 sdf_params_.throttle_cmd_base_topic);
   AssignSdfParam(_sdf, "linear_coeff", sdf_params_.linear_coeff);
   AssignSdfParam(_sdf, "quadratic_coeff", sdf_params_.quadratic_coeff);
   AssignSdfParam(_sdf, "torque_coeff", sdf_params_.torque_coeff);
@@ -61,7 +62,7 @@ void PluginPrivate::ApplyWrench(
   auto pose = link_.WorldPose(_ecm);
   auto parent_pose = parent_link_.WorldPose(_ecm);
   auto pose_diff = *pose - *parent_pose;
-  link_.AddWorldForce(_ecm, pose->Rot().RotateVector(Thrust()));
+  link_.AddWorldForce(_ecm, pose->Rot().RotateVector(ThrusterForce()));
 
   auto parent_wrench_component =
       _ecm.Component<ignition::gazebo::components::ExternalWorldWrenchCmd>(
@@ -84,7 +85,13 @@ void PluginPrivate::UpdateRotorVelocity(
   SetRotorVelocity(_ecm, rotor_velocity_);
 }
 
-ignition::math::Vector3d PluginPrivate::Thrust() {
+/**
+ * @brief Computes thruster force  as T(x) = a * x² + b * x, where x is
+ * rotations per second. The sign also depends on the propeller direction.
+ *
+ * @return ignition::math::Vector3d
+ */
+ignition::math::Vector3d PluginPrivate::ThrusterForce() {
   double thrust;
   // get rotations per second
   double tmp = std::abs(rotor_velocity_ / 6.28);
@@ -93,17 +100,20 @@ ignition::math::Vector3d PluginPrivate::Thrust() {
   if (rotor_velocity_ < 0) {
     thrust *= -1.0;
   }
-  double force = turning_direction_ * propeller_direction_ * thrust;
+  double force = propeller_direction_ * thrust;
   return ignition::math::Vector3d(force, 0, 0);
 }
 
 ignition::math::Vector3d PluginPrivate::Torque() {
-  return -turning_direction_ * propeller_direction_ * Thrust() *
+  return -turning_direction_ * propeller_direction_ * ThrusterForce() *
          sdf_params_.torque_coeff;
 }
 
-void PluginPrivate::SetRotorVelocity(ignition::gazebo::EntityComponentManager &_ecm, double _velocity) {
-  auto velocity_component = _ecm.Component<ignition::gazebo::components::JointVelocityCmd>(joint_entity_);
+void PluginPrivate::SetRotorVelocity(
+    ignition::gazebo::EntityComponentManager &_ecm, double _velocity) {
+  auto velocity_component =
+      _ecm.Component<ignition::gazebo::components::JointVelocityCmd>(
+          joint_entity_);
   if (!velocity_component) {
     ignerr << "Missing JointVelocityCmd component!" << std::endl;
     return;
@@ -113,8 +123,11 @@ void PluginPrivate::SetRotorVelocity(ignition::gazebo::EntityComponentManager &_
   }
 }
 
-double PluginPrivate::RotorVelocity(const ignition::gazebo::EntityComponentManager &_ecm) {
-  auto velocity_component = _ecm.Component<ignition::gazebo::components::JointVelocity>(joint_entity_);
+double PluginPrivate::RotorVelocity(
+    const ignition::gazebo::EntityComponentManager &_ecm) {
+  auto velocity_component =
+      _ecm.Component<ignition::gazebo::components::JointVelocity>(
+          joint_entity_);
   if (!velocity_component) {
     ignerr << "Joint has no JointVelocity component!" << std::endl;
     return 0.0;
@@ -133,29 +146,16 @@ void PluginPrivate::PublishRpm(
   rpm_publisher_.Publish(msg);
 }
 
-void PluginPrivate::AdvertiseRpm() {
-  rpm_publisher_ = node_.Advertise<ignition::msgs::Double>(RpmTopicName());
-}
+void PluginPrivate::PublishThrust() {
+  ignition::math::Vector3d f = ThrusterForce();
+  ignition::msgs::Double msg;
+  msg.set_data(f.X());
+  thrust_publisher_.Publish(msg);
+} 
 
-void PluginPrivate::SubscribeThrust() {
-  node_.Subscribe(ThrustTopicName(), &PluginPrivate::OnThrustCmd, this);
-}
-
-void PluginPrivate::OnThrustCmd(const ignition::msgs::Double &_msg) {
+void PluginPrivate::OnThrottleCmd(const ignition::msgs::Double &_msg) {
   std::lock_guard<std::mutex> lock(thrust_cmd_mutex_);
-  rotor_velocity_setpoint_ = ThrustToVelocity(_msg.data());
-}
-
-std::string PluginPrivate::RpmTopicName() {
-  return  TopicPrefix() + "/" + sdf_params_.rpm_base_topic;
-}
-
-std::string PluginPrivate::ThrustTopicName() {
-  return TopicPrefix() + "/" + sdf_params_.thrust_base_topic;
-}
-
-std::string PluginPrivate::TopicPrefix() {
-  return "/" + model_name_ + "/" + "thruster_" + std::to_string(sdf_params_.thruster_number);
+  rotor_velocity_setpoint_ = ThrottleToVelocity(_msg.data());
 }
 
 void PluginPrivate::InitComponents(
