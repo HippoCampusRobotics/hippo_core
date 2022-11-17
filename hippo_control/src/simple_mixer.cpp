@@ -24,7 +24,7 @@ void SimpleMixer::ResetOutputs() {
 double SimpleMixer::ApplyInput(
     const std::array<double, kChannels> &_actuator_controls) {
   ResetOutputs();
-  double scaling = 0.0;
+  double scaling = 1.0;
   for (int i_out = 0; i_out < kChannels; ++i_out) {
     for (int i_in = 0; i_in < kChannels; ++i_in) {
       double tmp = _actuator_controls[i_in] * mappings_[i_out].scalings[i_in];
@@ -35,9 +35,9 @@ double SimpleMixer::ApplyInput(
     // normalize the output by applying the reverse of F(n) = an²+bn, n is
     // revolutions per second and divide by max revs per second to normalize
     // output to [-1;1].
-    const double a = 2.6e-5;
-    const double b = 4.2e-3;
-    tmp = (-b + sqrt(4 * a * tmp + b * b)) / (2 * a) / 500;
+    const double a = 2.6e-4;
+    const double b = 4.2e-1;
+    tmp = (-b + sqrt(4 * a * tmp + b * b)) / (2 * a) / 50;
     if (outputs_[i_out].total < 0) {
       outputs_[i_out].total = -1 * tmp;
     } else {
