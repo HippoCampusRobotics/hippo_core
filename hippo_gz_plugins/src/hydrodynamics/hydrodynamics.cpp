@@ -38,6 +38,9 @@ void HydrodynamicsPlugin::Configure(
 void HydrodynamicsPlugin::Update(
     [[maybe_unused]] const ignition::gazebo::UpdateInfo &_info,
     ignition::gazebo::EntityComponentManager &_ecm) {
+  if (_info.paused) {
+    return;
+  }
   UpdateForcesAndMoments(_ecm);
 }
 
