@@ -24,6 +24,9 @@
   <depend>hippo_msgs</depend>
   <depend>eigen</depend>
   <depend>geometry_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>tf</depend>
+  <depend>tf2_ros</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

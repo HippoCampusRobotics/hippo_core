@@ -16,6 +16,9 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 add_library(hippo_common
   SHARED
@@ -40,6 +43,28 @@ install(TARGETS hippo_common
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib
+)
+
+################################################################################
+## rviz_mesh_publisher
+################################################################################
+set(exec_name rviz_mesh_publisher)
+add_executable(${exec_name} src/nodes/rviz_mesh_publisher.cpp)
+ament_target_dependencies(${exec_name}
+  rclcpp
+  visualization_msgs
+  geometry_msgs
+  tf2_ros
+)
+target_link_libraries(${exec_name}
+  param_utils
+  convert
+  tf2_utils
+)
+
+install(TARGETS
+  ${exec_name}
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 install(
