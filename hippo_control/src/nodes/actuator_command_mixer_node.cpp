@@ -16,7 +16,8 @@ class ActuatorCommandMixer : public rclcpp::Node {
     RCLCPP_INFO(get_logger(), "Declaring Paramters");
     DeclareParams();
     auto qos = rclcpp::SystemDefaultsQoS();
-    actuator_controls_pub_ = create_publisher<ActuatorControls>("thruster_command", qos);
+    actuator_controls_pub_ =
+        create_publisher<ActuatorControls>("thruster_command", qos);
     actuator_controls_sub_ = create_subscription<ActuatorControls>(
         "actuator_control", qos,
         std::bind(&ActuatorCommandMixer::OnActuatorControls, this, _1));
@@ -42,7 +43,6 @@ class ActuatorCommandMixer : public rclcpp::Node {
           std::to_string(mixer::kChannels * mixer::kChannels) + " but got " +
           std::to_string(limit_matrix.size()));
     }
-
     for (int i = 0; i < mixer::kChannels; ++i) {
       mixer::Mapping mapping;
       for (int j = 0; j < mixer::kChannels; ++j) {
@@ -51,6 +51,26 @@ class ActuatorCommandMixer : public rclcpp::Node {
       }
       mixer_.SetMapping(i, mapping);
     }
+
+    std::string descr;
+    rcl_interfaces::msg::ParameterDescriptor param;
+    name = "linear_coefficient";
+    descr = "Linear coefficient b of thrust function F(n) = ax^2 + bx.";
+    param = hippo_common::param_utils::Description(descr);
+    auto linear_coefficient = declare_parameter<double>(name, param);
+    mixer_.SetLinearCoefficient(linear_coefficient);
+
+    name = "quadratic_coefficient";
+    descr = "Quadratic coefficient a of thrust function F(n) = ax^2 + bx.";
+    param = hippo_common::param_utils::Description(descr);
+    auto quadratic_coefficient = declare_parameter<double>(name, param);
+    mixer_.SetQuadraticCoefficient(quadratic_coefficient);
+    
+    name = "max_rotations_per_second";
+    descr = "The thrusters maximum rotations per second used for normalization.";
+    param = hippo_common::param_utils::Description(descr);
+    auto max_rotations_per_second = declare_parameter<double>(name, param);
+    mixer_.SetMaxRotationsPerSecond(max_rotations_per_second);
   }
 
   void OnActuatorControls(const ActuatorControls::SharedPtr _msg) {
@@ -58,6 +78,28 @@ class ActuatorCommandMixer : public rclcpp::Node {
     out_msg.control = mixer_.Mix(_msg->control);
     out_msg.header = _msg->header;
     actuator_controls_pub_->publish(out_msg);
+  }
+
+  rcl_interfaces::msg::SetParametersResult OnThrustParams(
+      const std::vector<rclcpp::Parameter> &_parameters) {
+    rcl_interfaces::msg::SetParametersResult result;
+    result.successful = true;
+    result.reason = "Undhandled";
+    for (const rclcpp::Parameter &parameter : _parameters) {
+      double tmp_double;
+      if (param_utils::AssignIfMatch(parameter, "linear_coefficient", tmp_double)) {
+        mixer_.SetLinearCoefficient(tmp_double);
+        result.reason = "Set linear_coefficient.";
+        continue;
+      }
+
+      if (param_utils::AssignIfMatch(parameter, "quadratic_coefficient", tmp_double)) {
+        mixer_.SetQuadraticCoefficient(tmp_double);
+        result.reason = "Set quadratic_coefficient.";
+        continue;
+      }
+    }
+    return result;
   }
 
  private:

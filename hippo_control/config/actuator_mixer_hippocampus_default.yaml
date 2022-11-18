@@ -34,3 +34,7 @@
      +1.0, +1.0, +1.0, +1.0, +0.0, +0.0, +0.0, +0.0,
      +1.0, +1.0, +1.0, +1.0, +0.0, +0.0, +0.0, +0.0,
     ]
+    # Thrust is assumed to be a quadratic function of revs per second.
+    quadratic_coefficient: 2.6e-3
+    linear_coefficient: 4.2e-2
+    max_rotations_per_second: 50.0

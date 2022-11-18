@@ -35,9 +35,23 @@ double SimpleMixer::ApplyInput(
     // normalize the output by applying the reverse of F(n) = an²+bn, n is
     // revolutions per second and divide by max revs per second to normalize
     // output to [-1;1].
-    const double a = 2.6e-4;
-    const double b = 4.2e-1;
-    tmp = (-b + sqrt(4 * a * tmp + b * b)) / (2 * a) / 50;
+    if (linear_coefficient_ == 0.0) {
+      if (quadratic_coefficient_ == 0.0) {
+        tmp = 0.0;
+      } else {
+        tmp = sqrt(tmp / quadratic_coefficient_);
+      }
+    } else {
+      if (quadratic_coefficient_ == 0.0) {
+        tmp = tmp / linear_coefficient_;
+      } else {
+        tmp = (-linear_coefficient_ +
+               sqrt(4 * quadratic_coefficient_ * tmp +
+                    linear_coefficient_ * linear_coefficient_)) /
+              (2 * quadratic_coefficient_);
+      }
+    }
+    tmp /= max_rotations_per_second_;
     if (outputs_[i_out].total < 0) {
       outputs_[i_out].total = -1 * tmp;
     } else {
