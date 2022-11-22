@@ -3,20 +3,20 @@
 #include <stdint.h>
 #define EIGEN_MATRIXBASE_PLUGIN <state_estimation/matrix_base_addon.h>
 #include <eigen3/Eigen/Dense>
-// #include <rclcpp/rclcpp.hpp>
+#include <rclcpp/rclcpp.hpp>
 
-// #define LOGGER_NAME "Ekf"
-// #define EKF_INFO_ONCE(...) RCLCPP_INFO_ONCE(rclcpp::get_logger(LOGGER_NAME), ##__VA_ARGS__)
-// #define EKF_DEBUG(...) RCLCPP_DEBUG(rclcpp::get_logger(LOGGER_NAME), ##__VA_ARGS__)
-// #define EKF_INFO(...) RCLCPP_INFO(rclcpp::get_logger(LOGGER_NAME), ##__VA_ARGS__)
-// #define EKF_WARN(...) RCLCPP_WARN(rclcpp::get_logger(LOGGER_NAME), ##__VA_ARGS__)
-// #define EKF_ERROR(...) RCLCPP_ERROR(rclcpp::get_logger(LOGGER_NAME), ##__VA_ARGS__)
+#define LOGGER_NAME "Ekf"
+#define EKF_INFO_ONCE(...) RCLCPP_INFO_ONCE(rclcpp::get_logger(LOGGER_NAME), ##__VA_ARGS__)
+#define EKF_DEBUG(...) RCLCPP_DEBUG(rclcpp::get_logger(LOGGER_NAME), ##__VA_ARGS__)
+#define EKF_INFO(...) RCLCPP_INFO(rclcpp::get_logger(LOGGER_NAME), ##__VA_ARGS__)
+#define EKF_WARN(...) RCLCPP_WARN(rclcpp::get_logger(LOGGER_NAME), ##__VA_ARGS__)
+#define EKF_ERROR(...) RCLCPP_ERROR(rclcpp::get_logger(LOGGER_NAME), ##__VA_ARGS__)
 
-#define EKF_INFO_ONCE(X, ...) printf(X "\n", ##__VA_ARGS__)
-#define EKF_DEBUG(X, ...) printf(X "\n", ##__VA_ARGS__)
-#define EKF_INFO(X, ...) printf(X "\n", ##__VA_ARGS__)
-#define EKF_WARN(X, ...) printf(X "\n", ##__VA_ARGS__)
-#define EKF_ERROR(X, ...) printf(X "\n", ##__VA_ARGS__)
+// #define EKF_INFO_ONCE(X, ...) printf(X "\n", ##__VA_ARGS__)
+// #define EKF_DEBUG(X, ...) printf(X "\n", ##__VA_ARGS__)
+// #define EKF_INFO(X, ...) printf(X "\n", ##__VA_ARGS__)
+// #define EKF_WARN(X, ...) printf(X "\n", ##__VA_ARGS__)
+// #define EKF_ERROR(X, ...) printf(X "\n", ##__VA_ARGS__)
 
 constexpr uint64_t kVisionMaxIntervalUs = (uint64_t)200e3;
 constexpr uint64_t kBaroMaxIntervalUs = (uint64_t)200e3;

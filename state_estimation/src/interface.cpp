@@ -64,14 +64,18 @@ void Interface::SetVisionData(const VisionSample &vision_sample) {
     vision_buffer_.Allocate(observation_buffer_length_);
   }
 
-  if ((vision_sample.time_us - time_last_vision_) >
+  if ((vision_sample.time_us - time_last_vision_) <=
       min_observation_interval_us_) {
-    time_last_vision_ = vision_sample.time_us;
-    VisionSample new_sample = vision_sample;
-    new_sample.time_us -= settings_.vision_delay_us;
-    new_sample.time_us -= kFilterUpdatePeriodUs / 2;
-    vision_buffer_.Push(new_sample);
+    EKF_WARN(
+        "Vision sample discarded because interval is smaller than minimum "
+        "observation interval.");
+    return;
   }
+  time_last_vision_ = vision_sample.time_us;
+  VisionSample new_sample = vision_sample;
+  new_sample.time_us -= settings_.vision_delay_us;
+  new_sample.time_us -= kFilterUpdatePeriodUs / 2;
+  vision_buffer_.Push(new_sample);
 }
 
 bool Interface::InitInterface(uint64_t timestamp_us) {

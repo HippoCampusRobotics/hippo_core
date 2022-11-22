@@ -73,7 +73,8 @@ bool Ekf::InitFilter() {
   }
 
   if (baro_counter_ < observation_buffer_length_) {
-    EKF_INFO_ONCE("Waiting for more barometric data.");
+    EKF_INFO("Waiting for more barometric data. Having (%d/%d).", baro_counter_,
+             observation_buffer_length_);
     return false;
   } else {
     EKF_INFO_ONCE("Got sufficient amount of baro samples.");
@@ -122,18 +123,19 @@ bool Ekf::Update() {
     if (!filter_initialized_) {
       return false;
     }
+    EKF_INFO("Initialized!");
   }
 
   if (imu_updated_) {
     // TODO: does it make sense? In theo original implementation only the imu
     // down-sampler sets the imu_updated_ state.
-    imu_updated_ = false;
     updated = true;
     PredictState();
     PredictCovariance();
     UpdateSensorFusion();
+    CalculateOutputState(latest_imu_sample_);
   }
-  CalculateOutputState(latest_imu_sample_);
+  imu_updated_ = false;
   return updated;
 }
 
@@ -184,7 +186,15 @@ void Ekf::PredictState() {
         imu_sample_delayed_.delta_angle / imu_sample_delayed_.delta_angle_dt;
   }
 }
-
+/**
+ * @brief Compute the output state, i.e. the estimated state at the current time
+ * horizon.
+ *
+ * The state of the delayed time horizon — estimated by the EKF — gets projected
+ * forward in time based on the current IMU samples.
+ *
+ * @param imu_sample Latest IMU sample
+ */
 void Ekf::CalculateOutputState(const ImuSample &imu_sample) {
   const double dt_scale_correction = imu_dt_average_ / dt_average_;
   const Eigen::Vector3d delta_angle(
@@ -194,12 +204,16 @@ void Ekf::CalculateOutputState(const ImuSample &imu_sample) {
       delta_angle.dot(Eigen::Vector3d(R_to_earth_now_.row(2)));
   yaw_delta_ef_ += spin_delta_angle_D;
 
+  // apply some basic low pass filtering to smooth the yaw rate.
   yaw_rate_lpf_ef_ = 0.95 * yaw_rate_lpf_ef_ +
                      0.05 * spin_delta_angle_D / imu_sample.delta_angle_dt;
+  // The delta quaternion by which the output needs to be rotated.
   const Eigen::Quaterniond delta_quat =
       QuaternionFromDeltaAngle(delta_angle, imu_sample.delta_angle_dt);
   output_new_.time_us = imu_sample.time_us;
+  // rotate the current orientation by the delta quaternion
   output_new_.orientation = output_new_.orientation * delta_quat;
+  // make sure the orientation is a unit quaternion
   output_new_.orientation.normalize();
   R_to_earth_now_ = output_new_.orientation.toRotationMatrix();
 
@@ -208,14 +222,13 @@ void Ekf::CalculateOutputState(const ImuSample &imu_sample) {
                                                 dt_scale_correction};
   Eigen::Vector3d delta_velocity_earth{R_to_earth_now_ * delta_velocity_body};
 
-  // TODO: check sign;
   delta_velocity_earth(2) -= kGravity * imu_sample.delta_velocity_dt;
 
   if (imu_sample.delta_velocity_dt > 1e-4) {
     velocity_derivative_ =
         delta_velocity_earth * (1.0 / imu_sample.delta_velocity_dt);
   }
-  const Eigen::Vector3d velocity_last(output_new_.velocity);
+  const Eigen::Vector3d velocity_last{output_new_.velocity};
   output_new_.velocity += delta_velocity_earth;
   // trapezoidal integration
   const Eigen::Vector3d delta_position =
@@ -232,6 +245,8 @@ void Ekf::CalculateOutputState(const ImuSample &imu_sample) {
   }
 
   if (imu_updated_) {
+    // store all the output states in the buffer, so we can apply corrections as
+    // soon as the delayed EKF has a new estimate
     output_buffer_.Push(output_new_);
     const OutputSample &output_delayed = output_buffer_.Oldest();
     const Eigen::Quaterniond q_error(
@@ -334,16 +349,14 @@ void Ekf::FuseOrientation() {
     for (int index = 0; index < StateIndex::NumStates; ++index) {
       if (P_(index, index) < KHP(index, index)) {
         healthy = false;
-        P_.UncorrelateCovarianceSetVariance<1>(index, 0.0);
+        P_.UncorrelateCovarianceSetVariance<1>(index, 1.0);
       }
     }
 
     if (healthy) {
       P_ -= KHP;
       FixCovarianceErrors(true);
-      // TODO(lennartalff): Actually the innovation should not be multiplied by
-      // 1/4
-      Fuse(K_fusion, innovation(i) * 0.25);
+      Fuse(K_fusion, innovation(i));
     } else {
       EKF_WARN("Unhealthy innovation: q%d", i);
     }
@@ -628,8 +641,10 @@ bool Ekf::FuseHorizontalPosition(const Eigen::Vector3d &innovation,
                                  Eigen::Vector3d &innovation_var,
                                  Eigen::Vector2d &test_ratio,
                                  bool inhibit_gate = false) {
-  innovation_var(0) = P_(7, 7) + observation_var(0);
-  innovation_var(1) = P_(8, 8) + observation_var(1);
+  innovation_var(0) =
+      P_(StateIndex::position_x, StateIndex::position_x) + observation_var(0);
+  innovation_var(1) =
+      P_(StateIndex::position_y, StateIndex::position_y) + observation_var(1);
   test_ratio(0) = std::max(
       square(innovation(0)) / (square(innovation_gate(0)) * innovation_var(0)),
       square(innovation(1)) / (square(innovation_gate(0)) * innovation_var(1)));
@@ -645,6 +660,7 @@ bool Ekf::FuseHorizontalPosition(const Eigen::Vector3d &innovation,
     FuseVelocityPositionHeight(innovation(1), innovation_var(1), 4);
     return true;
   } else {
+    EKF_INFO("Refusing horizontal position.");
     innovation_check_status_.flags.reject_horizontal_position = true;
     return false;
   }
@@ -706,6 +722,8 @@ void Ekf::FuseVelocityPositionHeight(const double innovation,
     P_ -= KHP;
     FixCovarianceErrors(true);
     Fuse(K_fusion, innovation);
+  } else {
+    EKF_WARN("Unhealthy observation: %d", state_index);
   }
 }
 
@@ -750,7 +768,7 @@ void Ekf::UpdateSensorFusion() {
       EKF_INFO("Tilt aligned.");
     } else {
       EKF_DEBUG("Error Vec Var: %.6lf",
-               angle_err_vec_var(0) + angle_err_vec_var(1));
+                angle_err_vec_var(0) + angle_err_vec_var(1));
     }
   }
 
@@ -874,6 +892,7 @@ void Ekf::UpdateHeightFusion() {
 
 void Ekf::UpdateVisionFusion() {
   if (vision_data_ready_) {
+    EKF_INFO("Vision data ready to fuse.");
     if (control_status_.flags.tilt_align && control_status_.flags.yaw_align &&
         !control_status_.flags.vision_position) {
       if (IsRecent(time_last_vision_, 2 * kVisionMaxIntervalUs)) {
@@ -891,6 +910,7 @@ void Ekf::UpdateVisionFusion() {
     }
 
     if (control_status_.flags.vision_position) {
+      EKF_INFO("Fusing vision position.");
       Eigen::Vector3d vision_observation_var;
       Eigen::Vector2d vision_innovation_gate;
 
