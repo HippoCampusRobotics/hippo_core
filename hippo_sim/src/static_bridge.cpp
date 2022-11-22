@@ -5,6 +5,7 @@
 #include <rclcpp/node_interfaces/node_topics.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <ros_gz_bridge/convert.hpp>
+#include <sensor_msgs/msg/fluid_pressure.hpp>
 
 using namespace geometry_msgs::msg;
 using namespace sensor_msgs::msg;
@@ -26,6 +27,14 @@ class Bridge {
     CreateGroundTruthBridge();
     CreateImuBridge();
     CreateThrusterBridge();
+    CreateBarometerBridge();
+  }
+
+  void CreateBarometerBridge() {
+    std::string name;
+    name = node_topics->resolve_topic_name("pressure");
+    pressure_pub_ = ros_node_->create_publisher<sensor_msgs::msg::FluidPressure>(name, rclcpp::SystemDefaultsQoS());
+    gz_node_->Subscribe(name, &Bridge::OnPressure, this);
   }
 
   void CreateGroundTruthBridge() {
@@ -89,9 +98,18 @@ class Bridge {
         std::bind(&Bridge::OnThrusterCommand, this, _1));
   }
 
+  void OnPressure(const gz_msgs::FluidPressure &_msg) {
+    sensor_msgs::msg::FluidPressure ros_msg;
+    ros_msg.header.frame_id = "map";
+    ros_msg.header.stamp = ros_node_->now();
+    ros_msg.fluid_pressure = _msg.pressure();
+    pressure_pub_->publish(ros_msg);
+  }
+
   void OnImu(const gz_msgs::IMU &_msg) {
     sensor_msgs::msg::Imu ros_msg;
     ros_gz_bridge::convert_gz_to_ros(_msg, ros_msg);
+    ros_msg.header.stamp = ros_node_->now();
     imu_pub_->publish(ros_msg);
   }
 
@@ -122,12 +140,14 @@ class Bridge {
   void OnPose(const gz_msgs::Pose &_msg) {
     geometry_msgs::msg::PoseStamped ros_msg;
     ros_gz_bridge::convert_gz_to_ros(_msg, ros_msg);
+    ros_msg.header.stamp = ros_node_->now();
     pose_pub_->publish(ros_msg);
   }
 
   void OnOdometry(const gz_msgs::Odometry &_msg) {
     Odometry ros_msg;
     ros_gz_bridge::convert_gz_to_ros(_msg, ros_msg);
+    ros_msg.header.stamp = ros_node_->now();
     odometry_pub_->publish(ros_msg);
   }
 
@@ -161,6 +181,7 @@ class Bridge {
   rclcpp::Publisher<PoseStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<Odometry>::SharedPtr odometry_pub_;
   rclcpp::Publisher<ThrusterForces>::SharedPtr thruster_forces_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::FluidPressure>::SharedPtr pressure_pub_;
   std::map<int, transport::Node::Publisher> throttle_cmd_pubs_;
   rclcpp::Publisher<EscRpms>::SharedPtr rpm_pub_;
   rclcpp::Subscription<ActuatorControls>::SharedPtr thrust_sub_;
