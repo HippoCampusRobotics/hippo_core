@@ -28,18 +28,18 @@ Estimator::Estimator() : Node("estimator_node") {
 void Estimator::InitPublisher() {
   pose_pub_ = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
       "~/pose", 10);
+  delayed_pose_pub_ =
+      create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
+          "~/delayed_pose", rclcpp::SystemDefaultsQoS());
   attitude_pub_ =
       create_publisher<geometry_msgs::msg::QuaternionStamped>("~/attitude", 10);
-  sensor_bias_pub_ =
-      create_publisher<hippo_msgs::msg::EstimatorSensorBias>(
-          "~/sensor_bias", 10);
-  innovation_pub_ =
-      create_publisher<hippo_msgs::msg::EstimatorInnovation>(
-          "~/innovation", 10);
+  sensor_bias_pub_ = create_publisher<hippo_msgs::msg::EstimatorSensorBias>(
+      "~/sensor_bias", 10);
+  innovation_pub_ = create_publisher<hippo_msgs::msg::EstimatorInnovation>(
+      "~/innovation", 10);
   twist_pub_ =
       create_publisher<geometry_msgs::msg::TwistStamped>("~/velocity", 10);
-  state_pub_ =
-      create_publisher<hippo_msgs::msg::EstimatorState>("~/state", 10);
+  state_pub_ = create_publisher<hippo_msgs::msg::EstimatorState>("~/state", 10);
 }
 
 void Estimator::OnImu(const sensor_msgs::msg::Imu::SharedPtr msg) {
@@ -75,6 +75,7 @@ void Estimator::OnImu(const sensor_msgs::msg::Imu::SharedPtr msg) {
   if (ekf_.Update()) {
     PublishState(now_stamp);
     PublishPose(now_stamp);
+    PublishDelayedPose(now_stamp);
     PublishSensorBias(now_stamp);
     PublishInnovations(now_stamp);
     PublishVelocity(now_stamp);
@@ -119,6 +120,7 @@ void Estimator::BaroUpdate() {
 
 void Estimator::VisionUpdate() {
   if (vision_updated_) {
+    RCLCPP_INFO(get_logger(), "Vision updated.");
     vision_updated_ = false;
     ekf_.SetVisionData(vision_sample_);
   }
@@ -161,6 +163,22 @@ void Estimator::PublishPose(const rclcpp::Time &stamp) {
   RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
                        "Publishing Covariance not implemted!");
   pose_pub_->publish(msg);
+}
+
+void Estimator::PublishDelayedPose(const rclcpp::Time &stamp) {
+  StateVectord state = ekf_.StateAtFusionTime();
+  geometry_msgs::msg::PoseWithCovarianceStamped msg;
+  msg.header.frame_id = "map";
+  msg.header.stamp = stamp;
+  msg.pose.pose.position.x = state(StateIndex::position_x);
+  msg.pose.pose.position.y = state(StateIndex::position_y);
+  msg.pose.pose.position.z = state(StateIndex::position_z);
+  msg.pose.pose.orientation.w = state(StateIndex::qw);
+  msg.pose.pose.orientation.x = state(StateIndex::qx);
+  msg.pose.pose.orientation.y = state(StateIndex::qy);
+  msg.pose.pose.orientation.z = state(StateIndex::qz);
+  delayed_pose_pub_->publish(msg);
+
 }
 
 void Estimator::PublishSensorBias(const rclcpp::Time &stamp) {
@@ -233,7 +251,7 @@ void Estimator::PublishState(const rclcpp::Time &stamp) {
   msg.delta_velocity_bias.y = state(StateIndex::delta_velocity_bias_y);
   msg.delta_velocity_bias.z = state(StateIndex::delta_velocity_bias_z);
   state_pub_->publish(msg);
-  }
+}
 
 void Estimator::PublishVelocity(const rclcpp::Time &stamp) {
   geometry_msgs::msg::TwistStamped msg;

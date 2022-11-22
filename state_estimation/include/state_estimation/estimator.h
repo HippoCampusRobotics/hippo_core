@@ -37,6 +37,7 @@ class Estimator final : public rclcpp::Node {
   void PublishAttitude(const rclcpp::Time &stamp);
   void PublishInnovations(const rclcpp::Time &stamp);
   void PublishPose(const rclcpp::Time &stamp);
+  void PublishDelayedPose(const rclcpp::Time &stamp);
   void PublishSensorBias(const rclcpp::Time &stamp);
   void PublishState(const rclcpp::Time &stamp);
   void PublishVelocity(const rclcpp::Time &stamp);
@@ -58,12 +59,13 @@ class Estimator final : public rclcpp::Node {
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
       pose_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
+      delayed_pose_pub_;
   rclcpp::Publisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr
       attitude_pub_;
   rclcpp::Publisher<hippo_msgs::msg::EstimatorSensorBias>::SharedPtr
       sensor_bias_pub_;
-  rclcpp::Publisher<hippo_msgs::msg::EstimatorState>::SharedPtr
-      state_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::EstimatorState>::SharedPtr state_pub_;
 
   //////////////////////////////////////////////////////////////////////////////
   // Subscriber
