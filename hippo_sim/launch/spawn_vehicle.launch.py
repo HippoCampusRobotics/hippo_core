@@ -16,6 +16,10 @@ def generate_launch_description():
         name='vehicle_name',
         default_value=default_vehicle_name,
         description='Vehicle name used as namespace.')
+    fake_estimator_launch_arg = launch.actions.DeclareLaunchArgument(
+        name='fake_state_estimation', default_value='false')
+    fake_vision_launch_arg = launch.actions.DeclareLaunchArgument(
+        name='fake_vision', default_value='false')
 
     robot_description = launch.substitutions.LaunchConfiguration(
         'robot_description',
@@ -50,10 +54,31 @@ def generate_launch_description():
         launch_ros.actions.Node(package='hippo_sim',
                                 executable='bridge',
                                 output='screen'),
+        launch_ros.actions.Node(package='hippo_sim',
+                                executable='fake_state_estimator',
+                                name='state_estimator',
+                                output='screen',
+                                condition=launch.conditions.IfCondition(
+                                    launch.substitutions.LaunchConfiguration(
+                                        'fake_state_estimation'))),
+        launch_ros.actions.Node(
+            package='hippo_sim',
+            executable="fake_vision",
+            name="vision",
+            condition=launch.conditions.IfCondition(
+                launch.substitutions.LaunchConfiguration('fake_vision'))),
+        launch_ros.actions.Node(
+            package='state_estimation',
+            executable='estimator',
+            name='state_estimator',
+            condition=launch.conditions.UnlessCondition(
+                launch.substitutions.LaunchConfiguration('fake_state_estimation'))),
     ])
 
     return launch.LaunchDescription([
         model_launch_arg,
         vehicle_name_launch_arg,
+        fake_estimator_launch_arg,
+        fake_vision_launch_arg,
         vehicle_group,
     ])

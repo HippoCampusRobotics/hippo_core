@@ -39,25 +39,29 @@ set(GZ_TRANSPORT_VER ${ignition-transport11_VERSION_MAJOR})
 find_package(ignition-common4 REQUIRED)
 set(GZ_COMMON_VER ${ignition-common4_VERSION_MAJOR})
 
+set(exec_targets "")
 
-add_executable(spawn src/spawn.cpp)
-ament_target_dependencies(spawn
+set(exec_name fake_vision)
+add_executable(${exec_name} src/fake_vision.cpp)
+ament_target_dependencies(${exec_name} rclcpp nav_msgs geometry_msgs hippo_common)
+list(APPEND exec_targets ${exec_name})
+
+set(exec_name spawn)
+add_executable(${exec_name} src/spawn.cpp)
+ament_target_dependencies(${exec_name}
   rclcpp
 )
-target_link_libraries(spawn
+target_link_libraries(${exec_name}
   gflags
   ignition-math${GZ_MATH_VER}::core
   ignition-msgs${GZ_MSGS_VER}::core
   ignition-transport${GZ_TRANSPORT_VER}::core
 )
+list(APPEND exec_targets ${exec_name})
 
-install(TARGETS
-  spawn
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-add_executable(bridge src/static_bridge.cpp)
-ament_target_dependencies(bridge
+set(exec_name bridge)
+add_executable(${exec_name} src/static_bridge.cpp)
+ament_target_dependencies(${exec_name}
   rclcpp
   ros_gz_bridge
   ignition-transport${GZ_TRANSPORT_VER}
@@ -65,17 +69,12 @@ ament_target_dependencies(bridge
   nav_msgs
   hippo_msgs
 )
-
-install(TARGETS bridge
-  DESTINATION lib/${PROJECT_NAME}
-)
+list(APPEND exec_targets ${exec_name})
 
 set(exec_name fake_state_estimator)
 add_executable(${exec_name} src/fake_state_estimator.cpp)
 ament_target_dependencies(${exec_name} rclcpp nav_msgs)
-install (TARGETS ${exec_name}
-  DESTINATION lib/${PROJECT_NAME}
-)
+list(APPEND exec_targets ${exec_name})
 
 set(exec_name simulated_baro)
 add_executable(${exec_name} src/simulated_baro.cpp)
@@ -89,9 +88,7 @@ ament_target_dependencies(${exec_name}
   geometry_msgs
   hippo_common
 )
-install(TARGETS ${exec_name}
-  DESTINATION lib/${PROJECT_NAME}
-)
+list(APPEND exec_targets ${exec_name})
 
 install(
   DIRECTORY launch models
@@ -103,6 +100,11 @@ install(PROGRAMS
   scripts/create_robot_description.py
   scripts/generate_tag_poses.py
   scripts/generate_pool.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS
+  ${exec_targets}
   DESTINATION lib/${PROJECT_NAME}
 )
 

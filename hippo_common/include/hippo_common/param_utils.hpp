@@ -43,5 +43,13 @@ bool AssignIfMatch(const rclcpp::Parameter &_param, const std::string &_name,
 rcl_interfaces::msg::ParameterDescriptor Description(
     const std::string &_description, const bool &_read_only = false);
 
+rcl_interfaces::msg::ParameterDescriptor DescriptionLimit(
+    const std::string &_description, const double _lower, const double _upper,
+    const bool &_read_only = false);
+
+rcl_interfaces::msg::ParameterDescriptor DescriptionLimit(
+    const std::string &_description, const int _lower, const int _upper,
+    const bool &_read_only = false);
+
 }  // namespace param_utils
 }  // namespace hippo_common
