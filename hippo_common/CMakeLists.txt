@@ -57,9 +57,7 @@ ament_target_dependencies(${exec_name}
   tf2_ros
 )
 target_link_libraries(${exec_name}
-  param_utils
-  convert
-  tf2_utils
+  hippo_common
 )
 
 install(TARGETS
