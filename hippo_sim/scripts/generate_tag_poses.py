@@ -49,10 +49,10 @@ def generate_standalone_tags(n_tags: int, size: float):
 
 
 def generate_tag_bundle(tag_poses, name: str):
-    data = {f'{name}': dict(ids=[])}
+    layout = {'ids': []}
     for tag in tag_poses['tag_poses']:
-        data[name]['ids'].append(tag['id'])
-        data[name][tag["id"]] = dict(
+        layout['ids'].append(tag['id'])
+        layout[tag["id"]] = dict(
             size=tag['size'],
             x=tag['x'],
             y=tag['y'],
@@ -62,6 +62,7 @@ def generate_tag_bundle(tag_poses, name: str):
             qy=0.0,
             qz=0.0,
         )
+    data = {f'{name}': dict(layout=layout)}
     return data
 
 
