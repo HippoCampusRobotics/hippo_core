@@ -37,9 +37,8 @@ class ESC : public rclcpp::Node {
         std::bind(&ESC::onSetParameters, this, _1));
     InitParams();
 
-    esc_voltage_pub_ =
-        this->create_publisher<hippo_msgs::msg::EscVoltages>(
-            "esc_voltages", 50);
+    esc_voltage_pub_ = this->create_publisher<hippo_msgs::msg::EscVoltages>(
+        "esc_voltages", 50);
 
     esc_rpm_pub_ =
         this->create_publisher<hippo_msgs::msg::EscRpms>("esc_rpms", 50);
@@ -66,12 +65,12 @@ class ESC : public rclcpp::Node {
     for (auto &esc : escs_) {
       esc.SetThrottle(0.0);
     }
-    SendThrusts(true);
+    SendThrottle(true);
     timed_out_ = true;
     control_timeout_timer_->cancel();
   }
 
-  void OnSendThrusts() { SendThrusts(); }
+  void OnSendThrusts() { SendThrottle(); }
 
   void OnReadBattery() {
     auto msg = hippo_msgs::msg::EscVoltages();
@@ -95,11 +94,12 @@ class ESC : public rclcpp::Node {
 
   void OnThrusterCommand(
       const hippo_msgs::msg::ActuatorControls::SharedPtr msg) {
+    // reset/restart the timeout timer since we got a message
     control_timeout_timer_->reset();
     if (timed_out_) {
       timed_out_ = false;
       SetAllThrusts(0.0);
-      SendThrusts(true);
+      SendThrottle(true);
     }
     for (int i = 0; i < static_cast<int>(msg->control.size()); i++) {
       if (msg->control[i] != 0 && !escs_[i].InUse()) {
@@ -116,34 +116,43 @@ class ESC : public rclcpp::Node {
     }
   }
 
-  int SendThrusts(bool force = false) {
+  /**
+   * @brief Send throttle commands to the ESCs.
+   *
+   * @param force If true the command is sent even when timed_out_ is true.
+   * @return int
+   */
+  int SendThrottle(bool force = false) {
     int ret = 0;
-    auto msg = hippo_msgs::msg::EscRpms();
-    int i=0;
+    hippo_msgs::msg::EscRpms rpm_msg;
+    int i = 0;
     if (timed_out_ && !force) {
       return 0;
     }
     for (auto &esc : escs_) {
       if (esc.available()) {
         if (esc.WriteThrottle() != EscRetCode::kOk) {
-        RCLCPP_ERROR(get_logger(),
-                     "Failed to set motor speed for thruster %d at address %X",
-                     esc.index(), esc.address());
-        ret = -1;
+          RCLCPP_ERROR(
+              get_logger(),
+              "Failed to set motor speed for thruster %d at address %X",
+              esc.index(), esc.address());
+          ret = -1;
         }
         if (esc.UpdateRevolutionCount() != EscRetCode::kOk) {
-            RCLCPP_ERROR(get_logger(), "Failed to read rpm from thruster %d at address %X", esc.index(), esc.address());
-            msg.rpms[i] = std::numeric_limits<double>::quiet_NaN();
-            msg.commutations[i] = std::numeric_limits<int64_t>::quiet_NaN();
-            msg.revolutions[i] = std::numeric_limits<double>::quiet_NaN();
-        }else {
-          msg.revolutions[i] = esc.GetRevolutionCount();
-          msg.commutations[i] = esc.GetCommutationCount();
+          RCLCPP_ERROR(get_logger(),
+                       "Failed to read rpm from thruster %d at address %X",
+                       esc.index(), esc.address());
+          rpm_msg.rpms[i] = std::numeric_limits<double>::quiet_NaN();
+          rpm_msg.commutations[i] = std::numeric_limits<int64_t>::quiet_NaN();
+          rpm_msg.revolutions[i] = std::numeric_limits<double>::quiet_NaN();
+        } else {
+          rpm_msg.revolutions[i] = esc.GetRevolutionCount();
+          rpm_msg.commutations[i] = esc.GetCommutationCount();
         }
       }
       ++i;
     }
-    esc_rpm_pub_->publish(msg);
+    esc_rpm_pub_->publish(rpm_msg);
     return ret;
   }
 
@@ -166,8 +175,8 @@ class ESC : public rclcpp::Node {
     descriptor.integer_range[0].to_value = 127;
     descriptor.integer_range[0].step = 1;
     std::vector<int64_t> default_value = {41, 42, 43, 44, -1, -1, -1, -1};
-    this->declare_parameter<std::vector<int64_t>>(param_name, default_value,
-                                                  descriptor);
+    declare_parameter<std::vector<int64_t>>(param_name, default_value,
+                                            descriptor);
   }
 
   rcl_interfaces::msg::SetParametersResult onSetParameters(
@@ -175,7 +184,8 @@ class ESC : public rclcpp::Node {
     rcl_interfaces::msg::SetParametersResult result;
     result.successful = true;
     for (const auto &param : parameters) {
-      RCLCPP_INFO(get_logger(), "Received parameter: %s", param.get_name().c_str());
+      RCLCPP_INFO(get_logger(), "Received parameter: %s",
+                  param.get_name().c_str());
       if (param.get_name() == "i2c_addresses") {
         bool param_valid;
         param_valid = true;
@@ -242,7 +252,8 @@ class ESC : public rclcpp::Node {
       EscRetCode status;
       status = esc.VerifyID(ok);
       if (!((status == EscRetCode::kOk) && ok)) {
-        RCLCPP_ERROR(get_logger(), "Could not find ESC at address %X. Error code %d",
+        RCLCPP_ERROR(get_logger(),
+                     "Could not find ESC at address %X. Error code %d",
                      esc.address(), static_cast<int>(status));
         esc.SetAvailable(false);
         failed = true;
