@@ -22,48 +22,17 @@ inline Eigen::Vector3d QuaternionToEuler(const Eigen::Quaterniond &_q) {
 /// @return
 Eigen::Quaterniond RotationBetweenNormalizedVectors(const Eigen::Vector3d &_v1,
                                                     const Eigen::Vector3d &_v2);
-geometry_msgs::msg::Transform ENUtoNED() {
-  geometry_msgs::msg::Transform t;
-  auto q = EulerToQuaternion(kPi, 0, 0.5 * kPi);
-  hippo_common::convert::EigenToRos(q, t.rotation);
-  return t;
-}
+geometry_msgs::msg::Transform ENUtoNED();
 
-geometry_msgs::msg::Transform NEDtoENU() {
-  geometry_msgs::msg::Transform t;
-  Eigen::Quaterniond q = EulerToQuaternion(kPi, 0.0, 0.5 * kPi).inverse();
-  hippo_common::convert::EigenToRos(q, t.rotation);
-  return t;
-}
+geometry_msgs::msg::Transform NEDtoENU();
 
-geometry_msgs::msg::Transform FLUtoFRD() {
-  geometry_msgs::msg::Transform t;
-  Eigen::Quaterniond q = EulerToQuaternion(kPi, 0.0, 0.0);
-  hippo_common::convert::EigenToRos(q, t.rotation);
-  return t;
-}
+geometry_msgs::msg::Transform FLUtoFRD();
 
-geometry_msgs::msg::Transform FRDtoFLU() {
-  geometry_msgs::msg::Transform t;
-  Eigen::Quaterniond q = EulerToQuaternion(kPi, 0.0, 0.0).inverse();
-  hippo_common::convert::EigenToRos(q, t.rotation);
-  return t;
-}
+geometry_msgs::msg::Transform FRDtoFLU();
 
-geometry_msgs::msg::Transform CameraLinkToCameraFrame() {
-  geometry_msgs::msg::Transform t;
-  Eigen::Quaternion q = EulerToQuaternion(-0.5 * kPi, 0.0, -0.5 * kPi);
-  hippo_common::convert::EigenToRos(q, t.rotation);
-  return t;
-}
+geometry_msgs::msg::Transform CameraLinkToCameraFrame();
 
-geometry_msgs::msg::Transform CameraFrameToCameraLink() {
-  geometry_msgs::msg::Transform t;
-  Eigen::Quaternion q =
-      EulerToQuaternion(-0.5 * kPi, 0.0, -0.5 * kPi).inverse();
-  hippo_common::convert::EigenToRos(q, t.rotation);
-  return t;
-}
+geometry_msgs::msg::Transform CameraFrameToCameraLink();
 
 namespace frame_id {
 static constexpr char kBarometerName[] = "barometer";

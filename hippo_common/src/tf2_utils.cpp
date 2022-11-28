@@ -21,6 +21,50 @@ Eigen::Quaterniond RotationBetweenNormalizedVectors(
   q.normalize();
   return q;
 }
+
+geometry_msgs::msg::Transform ENUtoNED() {
+  geometry_msgs::msg::Transform t;
+  auto q = EulerToQuaternion(kPi, 0, 0.5 * kPi);
+  hippo_common::convert::EigenToRos(q, t.rotation);
+  return t;
+}
+
+geometry_msgs::msg::Transform NEDtoENU() {
+  geometry_msgs::msg::Transform t;
+  Eigen::Quaterniond q = EulerToQuaternion(kPi, 0.0, 0.5 * kPi).inverse();
+  hippo_common::convert::EigenToRos(q, t.rotation);
+  return t;
+}
+
+geometry_msgs::msg::Transform FLUtoFRD() {
+  geometry_msgs::msg::Transform t;
+  Eigen::Quaterniond q = EulerToQuaternion(kPi, 0.0, 0.0);
+  hippo_common::convert::EigenToRos(q, t.rotation);
+  return t;
+}
+
+geometry_msgs::msg::Transform FRDtoFLU() {
+  geometry_msgs::msg::Transform t;
+  Eigen::Quaterniond q = EulerToQuaternion(kPi, 0.0, 0.0).inverse();
+  hippo_common::convert::EigenToRos(q, t.rotation);
+  return t;
+}
+
+geometry_msgs::msg::Transform CameraLinkToCameraFrame() {
+  geometry_msgs::msg::Transform t;
+  Eigen::Quaternion q = EulerToQuaternion(-0.5 * kPi, 0.0, -0.5 * kPi);
+  hippo_common::convert::EigenToRos(q, t.rotation);
+  return t;
+}
+
+geometry_msgs::msg::Transform CameraFrameToCameraLink() {
+  geometry_msgs::msg::Transform t;
+  Eigen::Quaternion q =
+      EulerToQuaternion(-0.5 * kPi, 0.0, -0.5 * kPi).inverse();
+  hippo_common::convert::EigenToRos(q, t.rotation);
+  return t;
+}
+
 namespace frame_id {}  // namespace frame_id
 }  // namespace tf2_utils
 }  // namespace hippo_common
