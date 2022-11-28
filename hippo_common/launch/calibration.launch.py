@@ -38,28 +38,22 @@ def generate_launch_description():
         launch.substitutions.LaunchConfiguration('square_size'),
         '-k',
         launch.substitutions.LaunchConfiguration('radial_distortion_coeffs'),
+        '--no-service-check',
     ]
 
     calibration_node = launch_ros.actions.Node(package='camera_calibration',
                                                executable='cameracalibrator',
                                                arguments=calibration_args,
                                                remappings=[('image',
-                                                            'image_offboard')])
-    republish_node = launch_ros.actions.Node(package='image_transport',
-                                             executable='republish',
-                                             arguments=['compressed', 'raw'],
-                                             remappings=[
-                                                 ('in/compressed',
-                                                  'image_raw/compressed'),
-                                                 ('out', 'image_offboard'),
-                                             ])
+                                                            'image_raw')],
+                                               output='screen')
 
     nodes_group = launch.actions.GroupAction([
         launch_ros.actions.PushRosNamespace(
             launch.substitutions.LaunchConfiguration('vehicle_name')),
         launch_ros.actions.PushRosNamespace(
             launch.substitutions.LaunchConfiguration('camera_name')),
-        republish_node, calibration_node
+        calibration_node,
     ])
 
     return launch.LaunchDescription(launch_args + [

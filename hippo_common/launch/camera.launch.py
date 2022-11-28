@@ -40,9 +40,9 @@ def generate_launch_description():
             name='cropper',
             parameters=[
                 {
-                    'width': 960,
+                    'width': 800,
                     'height': 600,
-                    'offset_x': 160,
+                    'offset_x': 240,
                     'offset_y': 100
                 },
             ],
