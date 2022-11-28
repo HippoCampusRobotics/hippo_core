@@ -49,7 +49,7 @@ def generate_launch_description():
             remappings=[
                 ('out/image_raw', 'cropped/image_raw'),
                 ('in/camera_info', 'camera_info'),
-                ('out/camera_info', 'cropped/camera_info')
+                ('out/camera_info', 'cropped/camera_info'),
                 ('in/image_raw', 'image_raw'),
             ],
             extra_arguments=[
