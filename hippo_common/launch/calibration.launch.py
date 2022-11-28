@@ -24,6 +24,11 @@ def generate_launch_description():
             name='vehicle_name',
             default_value='uuv00',
             description='Vehicle name used as top level namespace.'),
+        launch.actions.DeclareLaunchArgument(
+            name='radial_distortion_coeffs',
+            default_value='3',
+            description=(
+                'Number of radial distortion coefficients. Between 2 and 6')),
     ]
 
     calibration_args = [
@@ -31,7 +36,8 @@ def generate_launch_description():
         launch.substitutions.LaunchConfiguration('grid_size'),
         '-q',
         launch.substitutions.LaunchConfiguration('square_size'),
-        '-k 2',
+        '-k',
+        launch.substitutions.LaunchConfiguration('radial_distortion_coeffs'),
     ]
 
     calibration_node = launch_ros.actions.Node(package='camera_calibration',
