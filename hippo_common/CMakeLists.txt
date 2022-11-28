@@ -13,9 +13,11 @@ set(CXX_FLAGS -Wall -Wextra -Wpedantic -Wshadow -std=c++17)
 add_compile_options(${CXX_FLAGS})
 
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -60,6 +62,25 @@ target_link_libraries(${exec_name}
   hippo_common
 )
 
+install(TARGETS
+  ${exec_name}
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+################################################################################
+## tf_publisher
+################################################################################
+set(exec_name tf_publisher)
+add_executable(${exec_name} src/nodes/tf_publisher.cpp)
+ament_target_dependencies(${exec_name}
+  rclcpp
+  geometry_msgs
+  nav_msgs
+  tf2_ros
+)
+target_link_libraries(${exec_name}
+  hippo_common
+)
 install(TARGETS
   ${exec_name}
   DESTINATION lib/${PROJECT_NAME}
