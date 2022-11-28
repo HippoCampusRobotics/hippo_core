@@ -1,4 +1,5 @@
 #include "hippo_common/tf2_utils.hpp"
+
 namespace hippo_common {
 namespace tf2_utils {
 Eigen::Quaterniond EulerToQuaternion(double _roll, double _pitch, double _yaw) {
@@ -63,6 +64,38 @@ geometry_msgs::msg::Transform CameraFrameToCameraLink() {
       EulerToQuaternion(-0.5 * kPi, 0.0, -0.5 * kPi).inverse();
   hippo_common::convert::EigenToRos(q, t.rotation);
   return t;
+}
+
+geometry_msgs::msg::Quaternion RotateByQuaternion(
+    const geometry_msgs::msg::Quaternion &_orientation,
+    const geometry_msgs::msg::Quaternion &_rotation) {
+  Eigen::Quaterniond q_orig{_orientation.w, _orientation.x, _orientation.y,
+                            _orientation.z};
+  Eigen::Quaterniond q_rot{_rotation.w, _rotation.x, _rotation.y, _rotation.z};
+  geometry_msgs::msg::Quaternion q_new;
+  hippo_common::convert::EigenToRos(q_orig * q_rot, q_new);
+  return q_new;
+}
+
+geometry_msgs::msg::Pose PoseFLUtoFRD(
+    geometry_msgs::msg::Pose::ConstSharedPtr _pose) {
+  geometry_msgs::msg::Transform t{FLUtoFRD()};
+
+  geometry_msgs::msg::Pose new_pose;
+  new_pose.orientation = RotateByQuaternion(_pose->orientation, t.rotation);
+  // no difference in position between FLU and FRD.
+  new_pose.position = _pose->position;
+  return new_pose;
+}
+
+geometry_msgs::msg::Pose PoseFRDtoFLU(
+    geometry_msgs::msg::Pose::ConstSharedPtr _pose) {
+  geometry_msgs::msg::Transform t{FRDtoFLU()};
+  geometry_msgs::msg::Pose new_pose;
+  new_pose.orientation = RotateByQuaternion(_pose->orientation, t.rotation);
+  // no difference in position between FLU and FRD.
+  new_pose.position = _pose->position;
+  return new_pose;
 }
 
 namespace frame_id {}  // namespace frame_id

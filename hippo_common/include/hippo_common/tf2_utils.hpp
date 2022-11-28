@@ -1,11 +1,14 @@
 #pragma once
 #include <eigen3/Eigen/Dense>
+#include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <hippo_common/convert.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <string>
+
 namespace hippo_common {
 namespace tf2_utils {
+
 static constexpr double kPi = 3.141592653589793238463;
 Eigen::Quaterniond EulerToQuaternion(double _roll, double _pitch, double _yaw);
 /// @brief Computes euler angles as roll, pitch, yaw from quaternion.
@@ -33,6 +36,16 @@ geometry_msgs::msg::Transform FRDtoFLU();
 geometry_msgs::msg::Transform CameraLinkToCameraFrame();
 
 geometry_msgs::msg::Transform CameraFrameToCameraLink();
+
+geometry_msgs::msg::Quaternion RotateByQuaternion(
+    const geometry_msgs::msg::Quaternion &_orientation,
+    const geometry_msgs::msg::Quaternion &_rotation);
+
+geometry_msgs::msg::Pose PoseFLUtoFRD(
+    geometry_msgs::msg::Pose::ConstSharedPtr _pose);
+
+geometry_msgs::msg::Pose PoseFRDtoFLU(
+    geometry_msgs::msg::Pose::ConstSharedPtr _pose);
 
 namespace frame_id {
 static constexpr char kBarometerName[] = "barometer";

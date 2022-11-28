@@ -17,6 +17,7 @@ find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(px4_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
@@ -46,6 +47,47 @@ install(TARGETS hippo_common
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib
 )
+################################################################################
+## tf_publisher composable node
+################################################################################
+add_library(tf_publisher
+  SHARED
+  src/tf_publisher.cpp
+)
+rclcpp_components_register_nodes(tf_publisher "hippo_common::TfPublisher")
+target_include_directories(tf_publisher
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(tf_publisher 
+  hippo_common
+)
+ament_target_dependencies(tf_publisher
+  rclcpp
+  geometry_msgs
+  px4_msgs
+  nav_msgs
+  tf2_ros
+)
+install(
+  TARGETS tf_publisher
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+add_executable(tf_publisher_node src/nodes/tf_publisher_node.cpp)
+target_include_directories(tf_publisher
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(tf_publisher_node tf_publisher)
+install(TARGETS tf_publisher_node
+  EXPORT export_${PROJECT_NAME}
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ################################################################################
 ## rviz_mesh_publisher
@@ -62,25 +104,6 @@ target_link_libraries(${exec_name}
   hippo_common
 )
 
-install(TARGETS
-  ${exec_name}
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-################################################################################
-## tf_publisher
-################################################################################
-set(exec_name tf_publisher)
-add_executable(${exec_name} src/nodes/tf_publisher.cpp)
-ament_target_dependencies(${exec_name}
-  rclcpp
-  geometry_msgs
-  nav_msgs
-  tf2_ros
-)
-target_link_libraries(${exec_name}
-  hippo_common
-)
 install(TARGETS
   ${exec_name}
   DESTINATION lib/${PROJECT_NAME}
