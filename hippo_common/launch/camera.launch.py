@@ -47,7 +47,9 @@ def generate_launch_description():
                 },
             ],
             remappings=[
-                ('out/image_raw', 'image_cropped'),
+                ('out/image_raw', 'cropped/image_raw'),
+                ('in/camera_info', 'camera_info'),
+                ('out/camera_info', 'cropped/camera_info')
                 ('in/image_raw', 'image_raw'),
             ],
             extra_arguments=[
@@ -61,8 +63,8 @@ def generate_launch_description():
             name='rectifier',
             # Remap subscribers and publishers
             remappings=[
-                ('image', 'image_cropped'),
-                ('camera_info', 'camera_info'),
+                ('image', 'cropped/image_raw'),
+                ('camera_info', 'cropped/camera_info'),
                 ('image_rect', 'image_rect'),
             ],
             extra_arguments=[
