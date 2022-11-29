@@ -27,18 +27,17 @@ find_package(apriltag_ros REQUIRED)
 ################################################################################
 ## tf_publisher composable node
 ################################################################################
-set(node_name vision_apriltag_simple)
-add_library(${node_name}
+set(component_name apriltag_simple)
+add_library(${component_name}
   SHARED
   src/vision_apriltag_simple.cpp
 )
-rclcpp_components_register_nodes(${node_name} "vision::AprilTagSimple")
-target_include_directories(${node_name}
+target_include_directories(${component_name}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(${node_name}
+ament_target_dependencies(${component_name}
   rclcpp
   rclcpp_components
   hippo_common
@@ -49,23 +48,13 @@ ament_target_dependencies(${node_name}
   tf2
   apriltag_ros
 )
-install(
-  TARGETS ${node_name}
+rclcpp_components_register_node(${component_name} PLUGIN "vision::AprilTagSimple" EXECUTABLE ${component_name}_node)
+
+install(TARGETS ${component_name}
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
-)
-add_executable(${node_name}_node src/nodes/vision_apriltag_simple_node.cpp)
-target_include_directories(${node_name}
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(${node_name}_node ${node_name})
-install(TARGETS ${node_name}_node
-  EXPORT export_${PROJECT_NAME}
-  DESTINATION lib/${PROJECT_NAME}
 )
 
 install(

@@ -1,8 +1,12 @@
 #include <tf2/time.h>
 
+#include <chrono>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <hippo_common/tf2_utils.hpp>
+#include <rclcpp_components/register_node_macro.hpp>
 #include <vision/vision_apriltag_simple.hpp>
+
+RCLCPP_COMPONENTS_REGISTER_NODE(vision::AprilTagSimple)
 
 namespace vision {
 AprilTagSimple::AprilTagSimple(rclcpp::NodeOptions const &_options)
@@ -33,6 +37,10 @@ AprilTagSimple::AprilTagSimple(rclcpp::NodeOptions const &_options)
   px4_attitude_sub_ = create_subscription<px4_msgs::msg::VehicleAttitude>(
       "fmu/out/vehicle_atttiude", px4_qos,
       std::bind(&AprilTagSimple::OnAttitude, this, std::placeholders::_1));
+
+  update_timer_ =
+      rclcpp::create_timer(this, get_clock(), std::chrono::milliseconds(20),
+                           std::bind(&AprilTagSimple::OnUpdateOdometry, this));
 }
 
 void AprilTagSimple::OnAprilTagDetections(

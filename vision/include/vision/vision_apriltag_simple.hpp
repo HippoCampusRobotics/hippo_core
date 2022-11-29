@@ -54,5 +54,6 @@ class AprilTagSimple : public rclcpp::Node {
   Eigen::Vector3d velocity_px4_;
   bool px4_position_update_{false};
   bool px4_attitude_update_{false};
+  rclcpp::TimerBase::SharedPtr update_timer_;
 };
 }  // namespace vision
