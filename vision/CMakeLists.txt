@@ -46,6 +46,7 @@ ament_target_dependencies(${node_name}
   px4_msgs
   nav_msgs
   tf2_ros
+  tf2
   apriltag_ros
 )
 install(
