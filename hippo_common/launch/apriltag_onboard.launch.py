@@ -25,11 +25,16 @@ def generate_launch_description():
         package='apriltag_ros',
         executable='apriltag_ros_continuous_detector_node',
         name='apriltag_node',
-        remappings=[
-            ('~/image_rect', 'image_rect'),
-            ('~/camera_info', 'cropped/camera_info'),
+        remappings=[('~/image_rect', 'image_rect'),
+                    ('~/camera_info', 'cropped/camera_info'),
+                    ('~/tag_detections', 'tag_detections')],
+        parameters=[
+            apriltag_settings,
+            tags,
+            { # TODO: set this by parameters
+                'camera_frame': '/uuv00/vertical_camera_frame'
+            },
         ],
-        parameters=[apriltag_settings, tags],
         output='screen')
 
     nodes_group = launch.actions.GroupAction([
