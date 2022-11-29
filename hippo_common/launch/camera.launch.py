@@ -27,7 +27,8 @@ def generate_launch_description():
                 'video_device': '/dev/video0',
                 'pixel_format': 'YUYV',
                 'output_encoding': 'mono8',
-                'image_size': [1280, 800]
+                'image_size': [1280, 800],
+                'camera_frame_id': 'uuv00/vertical_camera_frame',
             }],
             extra_arguments=[
                 {

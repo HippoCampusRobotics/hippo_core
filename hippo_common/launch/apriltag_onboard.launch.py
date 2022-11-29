@@ -31,9 +31,6 @@ def generate_launch_description():
         parameters=[
             apriltag_settings,
             tags,
-            { # TODO: set this by parameters
-                'camera_frame': '/uuv00/vertical_camera_frame'
-            },
         ],
         output='screen')
 
