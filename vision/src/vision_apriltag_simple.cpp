@@ -59,40 +59,42 @@ void AprilTagSimple::OnAprilTagDetections(
                  params_.bundle_frame.c_str());
     return;
   }
-  geometry_msgs::msg::PoseWithCovarianceStamped vision_pose;
-  vision_pose.header.frame_id =
-      hippo_common::tf2_utils::frame_id::InertialFrame();
-  vision_pose.header.stamp = _msg->header.stamp;
-  vision_pose.pose.pose.position.x = t.transform.translation.x;
-  vision_pose.pose.pose.position.y = t.transform.translation.y;
-  vision_pose.pose.pose.position.z = t.transform.translation.z;
-  vision_pose.pose.pose.orientation = t.transform.rotation;
-  vision_pose_pub_->publish(vision_pose);
+  // TODO(lennartalff): fix this commented stuff!
+  
+  // geometry_msgs::msg::PoseWithCovarianceStamped vision_pose;
+  // vision_pose.header.frame_id =
+  //     hippo_common::tf2_utils::frame_id::InertialFrame();
+  // vision_pose.header.stamp = _msg->header.stamp;
+  // vision_pose.pose.pose.position.x = t.transform.translation.x;
+  // vision_pose.pose.pose.position.y = t.transform.translation.y;
+  // vision_pose.pose.pose.position.z = t.transform.translation.z;
+  // vision_pose.pose.pose.orientation = t.transform.rotation;
+  // vision_pose_pub_->publish(vision_pose);
 
-  // two steps:
-  //   - convert enu to ned inertial frame
-  //   - change target frame of pose from flu to frd
-  geometry_msgs::msg::PoseStamped enu_pose;
-  enu_pose.pose = _msg->detections.at(0).pose.pose.pose;
-  enu_pose.header.stamp = _msg->header.stamp;
-  enu_pose.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
-  geometry_msgs::msg::PoseStamped px4_pose = tf_buffer_->transform(
-      enu_pose, hippo_common::tf2_utils::frame_id::InertialFramePX4());
-  px4_pose.pose = hippo_common::tf2_utils::PoseFLUtoFRD(px4_pose.pose);
+  // // two steps:
+  // //   - convert enu to ned inertial frame
+  // //   - change target frame of pose from flu to frd
+  // geometry_msgs::msg::PoseStamped enu_pose;
+  // enu_pose.pose = _msg->detections.at(0).pose.pose.pose;
+  // enu_pose.header.stamp = _msg->header.stamp;
+  // enu_pose.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
+  // geometry_msgs::msg::PoseStamped px4_pose = tf_buffer_->transform(
+  //     enu_pose, hippo_common::tf2_utils::frame_id::InertialFramePX4());
+  // px4_pose.pose = hippo_common::tf2_utils::PoseFLUtoFRD(px4_pose.pose);
 
-  px4_msgs::msg::VehicleOdometry visual_odometry;
-  visual_odometry.pose_frame = px4_msgs::msg::VehicleOdometry::POSE_FRAME_NED;
-  visual_odometry.position = {(float)px4_pose.pose.position.x,
-                              (float)px4_pose.pose.position.y,
-                              (float)px4_pose.pose.position.z};
-  visual_odometry.q = {
-      (float)px4_pose.pose.orientation.w, (float)px4_pose.pose.orientation.x,
-      (float)px4_pose.pose.orientation.y, (float)px4_pose.pose.orientation.z};
-  visual_odometry.timestamp = now().nanoseconds() * 1e-3;
-  visual_odometry.timestamp_sample =
-      px4_pose.header.stamp.nanosec * 1e-3 + px4_pose.header.stamp.sec * 1e6;
+  // px4_msgs::msg::VehicleOdometry visual_odometry;
+  // visual_odometry.pose_frame = px4_msgs::msg::VehicleOdometry::POSE_FRAME_NED;
+  // visual_odometry.position = {(float)px4_pose.pose.position.x,
+  //                             (float)px4_pose.pose.position.y,
+  //                             (float)px4_pose.pose.position.z};
+  // visual_odometry.q = {
+  //     (float)px4_pose.pose.orientation.w, (float)px4_pose.pose.orientation.x,
+  //     (float)px4_pose.pose.orientation.y, (float)px4_pose.pose.orientation.z};
+  // visual_odometry.timestamp = now().nanoseconds() * 1e-3;
+  // visual_odometry.timestamp_sample =
+  //     px4_pose.header.stamp.nanosec * 1e-3 + px4_pose.header.stamp.sec * 1e6;
 
-  visual_odometry_pub_->publish(visual_odometry);
+  // visual_odometry_pub_->publish(visual_odometry);
 }
 
 void AprilTagSimple::OnUpdateOdometry() {
