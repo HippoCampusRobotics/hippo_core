@@ -5,10 +5,10 @@
 
 namespace hippo_common {
 
-TfPublisher::TfPublisher(rclcpp::NodeOptions const &_options) : Node("tf_publisher", _options) {
+TfPublisher::TfPublisher(rclcpp::NodeOptions const &_options)
+    : Node("tf_publisher", _options) {
   static_broadcaster_ =
       std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
-  dynamic_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
   DeclareParameters();
   BroadCastStatic();
 }
@@ -111,3 +111,6 @@ void TfPublisher::BroadCastStatic() {
   static_broadcaster_->sendTransform(transforms);
 }
 }  // namespace hippo_common
+
+#include "rclcpp_components/register_node_macro.hpp"
+RCLCPP_COMPONENTS_REGISTER_NODE(hippo_common::TfPublisher)

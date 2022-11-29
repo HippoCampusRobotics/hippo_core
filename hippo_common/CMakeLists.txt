@@ -17,8 +17,6 @@ find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(px4_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -65,9 +63,8 @@ target_link_libraries(tf_publisher
 )
 ament_target_dependencies(tf_publisher
   rclcpp
+  rclcpp_components
   geometry_msgs
-  px4_msgs
-  nav_msgs
   tf2_ros
 )
 install(
