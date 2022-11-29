@@ -41,11 +41,9 @@ geometry_msgs::msg::Quaternion RotateByQuaternion(
     const geometry_msgs::msg::Quaternion &_orientation,
     const geometry_msgs::msg::Quaternion &_rotation);
 
-geometry_msgs::msg::Pose PoseFLUtoFRD(
-    geometry_msgs::msg::Pose::ConstSharedPtr _pose);
+geometry_msgs::msg::Pose PoseFLUtoFRD(const geometry_msgs::msg::Pose &_pose);
 
-geometry_msgs::msg::Pose PoseFRDtoFLU(
-    geometry_msgs::msg::Pose::ConstSharedPtr _pose);
+geometry_msgs::msg::Pose PoseFRDtoFLU(const geometry_msgs::msg::Pose &_pose);
 
 namespace frame_id {
 static constexpr char kBarometerName[] = "barometer";
@@ -74,6 +72,10 @@ inline std::string VerticalCameraFrame(rclcpp::Node *_node) {
 }
 
 inline std::string InertialFrame() { return kInertialName; }
+
+inline std::string InertialFramePX4() {
+  return std::string{kInertialName} + "_ned";
+}
 
 }  // namespace frame_id
 }  // namespace tf2_utils
