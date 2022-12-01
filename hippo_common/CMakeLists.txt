@@ -52,7 +52,6 @@ add_library(tf_publisher
   SHARED
   src/tf_publisher.cpp
 )
-rclcpp_components_register_nodes(tf_publisher "hippo_common::TfPublisher")
 target_include_directories(tf_publisher
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -67,23 +66,14 @@ ament_target_dependencies(tf_publisher
   geometry_msgs
   tf2_ros
 )
+rclcpp_components_register_node(tf_publisher PLUGIN "hippo_common::TfPublisher" EXECUTABLE tf_publisher_node)
+
 install(
   TARGETS tf_publisher
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
-)
-add_executable(tf_publisher_node src/nodes/tf_publisher_node.cpp)
-target_include_directories(tf_publisher
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(tf_publisher_node tf_publisher)
-install(TARGETS tf_publisher_node
-  EXPORT export_${PROJECT_NAME}
-  DESTINATION lib/${PROJECT_NAME}
 )
 
 ################################################################################
