@@ -41,9 +41,9 @@ geometry_msgs::msg::Quaternion RotateByQuaternion(
     const geometry_msgs::msg::Quaternion &_orientation,
     const geometry_msgs::msg::Quaternion &_rotation);
 
-geometry_msgs::msg::Pose PoseFLUtoFRD(const geometry_msgs::msg::Pose &_pose);
+geometry_msgs::msg::Pose PoseRosToPx4(const geometry_msgs::msg::Pose &_pose);
 
-geometry_msgs::msg::Pose PoseFRDtoFLU(const geometry_msgs::msg::Pose &_pose);
+geometry_msgs::msg::Pose PosePx4ToRos(const geometry_msgs::msg::Pose &_pose);
 
 namespace frame_id {
 static constexpr char kBarometerName[] = "barometer";
@@ -63,6 +63,15 @@ inline std::string Barometer(rclcpp::Node *_node) {
 }
 inline std::string BaseLink(rclcpp::Node *_node) {
   return Prefix(_node) + "/" + kBaseLinkName;
+}
+inline std::string BaseLinkFrd(rclcpp::Node *_node) {
+  return BaseLink(_node) + "_frd";
+}
+inline std::string VisionBaseLink(rclcpp::Node *_node) {
+  return Prefix(_node) + "/vision_" + kBaseLinkName;
+}
+inline std::string VisionBaseLinkFrd(rclcpp::Node *_node) {
+  return VisionBaseLink(_node) + "_frd";
 }
 inline std::string VerticalCameraLink(rclcpp::Node *_node) {
   return Prefix(_node) + "/" + kVerticalCameraLinkName;

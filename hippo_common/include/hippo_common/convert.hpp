@@ -31,13 +31,23 @@ void RosToEigen(const In &, Out &) {
   static_assert(always_false<In>, "This conversion is not implemented");
 };
 
-template<>
+template <>
 void RosToEigen(const geometry_msgs::msg::Point &_ros, Eigen::Vector3d &_eigen);
 
-template<>
-void RosToEigen(const geometry_msgs::msg::Vector3 &_ros, Eigen::Vector3d &_eigen);
+template <>
+void RosToEigen(const geometry_msgs::msg::Vector3 &_ros,
+                Eigen::Vector3d &_eigen);
 
-template<>
-void RosToEigen(const geometry_msgs::msg::Quaternion &_ros, Eigen::Quaterniond &_eigen);
+template <>
+void RosToEigen(const geometry_msgs::msg::Quaternion &_ros,
+                Eigen::Quaterniond &_eigen);
+
+template <typename In, typename Out>
+Out VectorPoint(const In &in, Out &out) {
+  out.x = in.x;
+  out.y = in.y;
+  out.z = in.z;
+  return out;
+}
 }  // namespace convert
 }  // namespace hippo_common

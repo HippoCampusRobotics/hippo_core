@@ -72,7 +72,7 @@ void TfPublisher::BroadCastStatic() {
     geometry_msgs::msg::TransformStamped t;
     t.transform = hippo_common::tf2_utils::ENUtoNED();
     std::string child_frame =
-        hippo_common::tf2_utils::frame_id::InertialFrame() + "_ned";
+        hippo_common::tf2_utils::frame_id::InertialFramePX4();
     t.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
     t.child_frame_id = child_frame;
     transforms.push_back(t);
@@ -81,9 +81,17 @@ void TfPublisher::BroadCastStatic() {
     geometry_msgs::msg::TransformStamped t;
     t.transform = hippo_common::tf2_utils::FLUtoFRD();
     std::string child_frame =
-        hippo_common::tf2_utils::frame_id::BaseLink(this) + "_frd";
+        hippo_common::tf2_utils::frame_id::BaseLinkFrd(this);
     t.header.frame_id = hippo_common::tf2_utils::frame_id::BaseLink(this);
     t.child_frame_id = child_frame;
+    transforms.push_back(t);
+  }
+  {
+    geometry_msgs::msg::TransformStamped t;
+    t.transform = hippo_common::tf2_utils::FLUtoFRD();
+    t.header.frame_id = hippo_common::tf2_utils::frame_id::VisionBaseLink(this);
+    t.child_frame_id =
+        hippo_common::tf2_utils::frame_id::VisionBaseLinkFrd(this);
     transforms.push_back(t);
   }
   {

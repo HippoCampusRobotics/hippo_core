@@ -2,6 +2,11 @@
 
 namespace hippo_common {
 namespace tf2_utils {
+
+static const Eigen::Quaterniond q_enu_ned{
+    EulerToQuaternion(kPi, 0.0, kPi / 2.0)};
+static const Eigen::Quaterniond q_flu_frd{EulerToQuaternion(kPi, 0.0, 0.0)};
+
 Eigen::Quaterniond EulerToQuaternion(double _roll, double _pitch, double _yaw) {
   Eigen::Quaterniond q;
   q = Eigen::AngleAxisd(_yaw, Eigen::Vector3d::UnitZ()) *
@@ -94,6 +99,29 @@ geometry_msgs::msg::Pose PoseFRDtoFLU(const geometry_msgs::msg::Pose &_pose) {
   // no difference in position between FLU and FRD.
   new_pose.position = _pose.position;
   return new_pose;
+}
+
+geometry_msgs::msg::Pose PoseRosToPx4(const geometry_msgs::msg::Pose &_pose) {
+  geometry_msgs::msg::Pose out;
+  out.position.x = _pose.position.y;
+  out.position.y = _pose.position.x;
+  out.position.z = -_pose.position.z;
+  Eigen::Quaterniond q;
+  convert::RosToEigen(_pose.orientation, q);
+  q = q_enu_ned * (q * q_flu_frd);
+  convert::EigenToRos(q, out.orientation);
+  return out;
+}
+geometry_msgs::msg::Pose PosePx4ToRos(const geometry_msgs::msg::Pose &_pose) {
+  geometry_msgs::msg::Pose out;
+  out.position.x = _pose.position.y;
+  out.position.y = _pose.position.x;
+  out.position.z = -_pose.position.z;
+  Eigen::Quaterniond q;
+  convert::RosToEigen(_pose.orientation, q);
+  q = (q_enu_ned * q) * q_flu_frd;
+  convert::EigenToRos(q, out.orientation);
+  return out;
 }
 
 namespace frame_id {}  // namespace frame_id

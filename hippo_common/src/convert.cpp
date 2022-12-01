@@ -52,5 +52,6 @@ void RosToEigen(const geometry_msgs::msg::Quaternion &_ros,
   _eigen.y() = _ros.y;
   _eigen.z() = _ros.z;
 }
+
 }  // namespace convert
 }  // namespace hippo_common
