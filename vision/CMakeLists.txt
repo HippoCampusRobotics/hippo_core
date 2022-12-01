@@ -22,6 +22,7 @@ find_package(px4_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(apriltag_ros REQUIRED)
 
 ################################################################################
@@ -46,6 +47,7 @@ ament_target_dependencies(${component_name}
   nav_msgs
   tf2_ros
   tf2
+  tf2_geometry_msgs
   apriltag_ros
 )
 rclcpp_components_register_node(${component_name} PLUGIN "vision::AprilTagSimple" EXECUTABLE ${component_name}_node)
