@@ -26,6 +26,7 @@
   <depend>rclpy</depend>
   <depend>python3-smbus2-pip</depend>
   <depend>hippo_msgs</depend>
+  <depend>std_srvs</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

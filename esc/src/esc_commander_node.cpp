@@ -10,10 +10,12 @@
 #include <rclcpp/create_timer.hpp>
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <std_srvs/srv/set_bool.hpp>
 
 #include "afro_esc.h"
 
 using std::placeholders::_1;
+using std::placeholders::_2;
 
 class ESC : public rclcpp::Node {
  public:
@@ -43,9 +45,12 @@ class ESC : public rclcpp::Node {
     esc_rpm_pub_ =
         this->create_publisher<hippo_msgs::msg::EscRpms>("esc_rpms", 50);
 
+    arming_servie_ = create_service<std_srvs::srv::SetBool>(
+        "arm", std::bind(&ESC::ServeArming, this, _1, _2));
+
     control_timeout_timer_ =
         rclcpp::create_timer(this, get_clock(), std::chrono::seconds(1),
-                             std::bind(&ESC::OnTimeout, this));
+                             std::bind(&ESC::OnInputTimeout, this));
 
     send_thrust_timer_ =
         rclcpp::create_timer(this, get_clock(), std::chrono::milliseconds(20),
@@ -60,7 +65,42 @@ class ESC : public rclcpp::Node {
             "thruster_command", 10,
             std::bind(&ESC::OnThrusterCommand, this, _1));
   }
-  void OnTimeout() {
+
+  void SetAllThrottle(double _throttle) {
+    for (auto &esc : escs_) {
+      esc.SetThrottle(_throttle);
+    }
+  }
+
+  void ServeArming(const std_srvs::srv::SetBool_Request::SharedPtr _request,
+                   std_srvs::srv::SetBool_Response::SharedPtr _response) {
+    if (_request->data) {
+      if (armed_) {
+        _response->message = "Already armed.";
+        _response->success = false;
+        return;
+      } else {
+        armed_ = _request->data;
+        RCLCPP_INFO(get_logger(), "Arming the thrusters.");
+        _response->message = "Armed";
+        _response->success = false;
+      }
+    } else {
+      if (armed_) {
+        RCLCPP_INFO(get_logger(), "Disarming the thrusters.");
+        armed_ = _request->data;
+        SetAllThrottle(0.0);
+        SendThrottle(true);
+        _response->message = "Disarmed";
+        _response->success = false;
+      } else {
+        _response->message = "Already disarmed.";
+        _response->success = false;
+      }
+    }
+  }
+
+  void OnInputTimeout() {
     RCLCPP_WARN(get_logger(), "Thruster controls timed out.");
     for (auto &esc : escs_) {
       esc.SetThrottle(0.0);
@@ -126,7 +166,7 @@ class ESC : public rclcpp::Node {
     int ret = 0;
     hippo_msgs::msg::EscRpms rpm_msg;
     int i = 0;
-    if (timed_out_ && !force) {
+    if ((timed_out_ && !armed_) && !force) {
       return 0;
     }
     for (auto &esc : escs_) {
@@ -271,6 +311,7 @@ class ESC : public rclcpp::Node {
   std::vector<int64_t> i2c_addresses_;
   bool esc_config_valid_;
   bool timed_out_;
+  bool armed_{false};
   std::array<AfroESC, kNumEscs> escs_;
   std::string i2c_device_;
   int i2c_handle_;
@@ -283,6 +324,7 @@ class ESC : public rclcpp::Node {
       paramter_callback_handle_;
   rclcpp::Publisher<hippo_msgs::msg::EscVoltages>::SharedPtr esc_voltage_pub_;
   rclcpp::Publisher<hippo_msgs::msg::EscRpms>::SharedPtr esc_rpm_pub_;
+  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr arming_servie_;
 };
 
 int main(int argc, char **argv) {
