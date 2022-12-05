@@ -34,6 +34,11 @@ class SingleTrackerNode : public rclcpp::Node {
     double damping{5.4};
     double t_final{10.0};
     double timestep_min{0.02};
+    struct WallDistance {
+      double x{0.3};
+      double y{0.6};
+      double z{0.5};
+    } min_wall_distance;
   } trajectory_params_;
 
  private:
@@ -44,6 +49,8 @@ class SingleTrackerNode : public rclcpp::Node {
   void UpdateTrajectories();
   void OnOdometry(const Odometry::SharedPtr _msg);
   void OnTarget(const TargetState::SharedPtr _msg);
+  RapidTrajectoryGenerator::StateFeasibilityResult CheckWallCollision(
+      RapidTrajectoryGenerator &_trajectory);
   rcl_interfaces::msg::SetParametersResult OnSetTrajectoryParams(
       const std::vector<rclcpp::Parameter> &_parameters);
   void GenerateTrajectories(

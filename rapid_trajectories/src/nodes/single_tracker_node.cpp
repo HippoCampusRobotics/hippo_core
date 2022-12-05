@@ -1,7 +1,7 @@
 #include "single_tracker_node.hpp"
 
-#include <hippo_common/tf2_utils.hpp>
 #include <hippo_common/convert.hpp>
+#include <hippo_common/tf2_utils.hpp>
 
 namespace rapid_trajectories {
 namespace single_tracking {
@@ -113,6 +113,36 @@ void SingleTrackerNode::DeclareParams() {
   descr = hippo_common::param_utils::Description(descr_text, false);
   {
     auto &param = trajectory_params_.timestep_min;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "min_wall_distance.x";
+  descr_text =
+      "Minimum required distance to walls in x-direction for a trajectory to "
+      "be feasible.";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.min_wall_distance.x;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "min_wall_distance.y";
+  descr_text =
+      "Minimum required distance to walls in y-direction for a trajectory to "
+      "be feasible.";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.min_wall_distance.y;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "min_wall_distance.z";
+  descr_text =
+      "Minimum required distance to walls in z-direction for a trajectory to "
+      "be feasible.";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.min_wall_distance.z;
     param = declare_parameter(name, param, descr);
   }
 
@@ -244,8 +274,55 @@ SingleTrackerNode::OnSetTrajectoryParams(
       // nothing else to do but to assign the value;
       continue;
     }
+    if (hippo_common::param_utils::AssignIfMatch(
+            parameter, "min_wall_distance.x",
+            trajectory_params_.min_wall_distance.x)) {
+      result.reason = "Set min_wall_distance.x";
+      continue;
+    }
+    if (hippo_common::param_utils::AssignIfMatch(
+            parameter, "min_wall_distance.y",
+            trajectory_params_.min_wall_distance.y)) {
+      result.reason = "Set min_wall_distance.y";
+      continue;
+    }
+    if (hippo_common::param_utils::AssignIfMatch(
+            parameter, "min_wall_distance.y",
+            trajectory_params_.min_wall_distance.y)) {
+      result.reason = "Set min_wall_distance.y";
+      continue;
+    }
   }
   return result;
+}
+
+RapidTrajectoryGenerator::StateFeasibilityResult
+SingleTrackerNode::CheckWallCollision(RapidTrajectoryGenerator &_trajectory) {
+  static constexpr size_t n_walls = 6;
+  std::array<Eigen::Vector3d, n_walls> boundary_points = {
+      Eigen::Vector3d{0 + trajectory_params_.min_wall_distance.x, 0.0, 0.0},
+      Eigen::Vector3d{2.0 - trajectory_params_.min_wall_distance.x, 0.0, 0.0},
+      Eigen::Vector3d{0.0, 0.0 + trajectory_params_.min_wall_distance.y, 0.0},
+      Eigen::Vector3d{0.0, 4.0 - trajectory_params_.min_wall_distance.y, 0.0},
+      Eigen::Vector3d{0.0, 0.0, -1.5 + trajectory_params_.min_wall_distance.z},
+      Eigen::Vector3d{0.0, 0.0, 0.0 - trajectory_params_.min_wall_distance.y}};
+  std::array<Eigen::Vector3d, n_walls> boundary_normals = {
+      Eigen::Vector3d{1.0, 0.0, 0.0}, Eigen::Vector3d{-1.0, 0.0, 0.0},
+      Eigen::Vector3d{0.0, 1.0, 0.0}, Eigen::Vector3d{0.0, -1.0, 0.0},
+      Eigen::Vector3d{0.0, 0.0, 1.0}, Eigen::Vector3d{0.0, 0.0, -1.0}};
+
+  // check for collision with all six walls. If a single check fails, the
+  // trajectory is invalid.
+  for (size_t i = 0; i < n_walls; ++i) {
+    RapidTrajectoryGenerator::StateFeasibilityResult result;
+    result = _trajectory.CheckPositionFeasibility(boundary_points.at(i),
+                                                  boundary_normals.at(i));
+    if (result ==
+        RapidTrajectoryGenerator::StateFeasibilityResult::StateInfeasible) {
+      return RapidTrajectoryGenerator::StateFeasibilityResult::StateInfeasible;
+    }
+  }
+  return RapidTrajectoryGenerator::StateFeasibilityResult::StateFeasible;
 }
 
 void SingleTrackerNode::GenerateTrajectories(
@@ -257,6 +334,7 @@ void SingleTrackerNode::GenerateTrajectories(
          _target_positions.size() == _target_accelerations.size());
 
   RapidTrajectoryGenerator::InputFeasibilityResult input_feasibility;
+  RapidTrajectoryGenerator::StateFeasibilityResult position_feasibility;
 
   for (unsigned int i = 0; i < _target_positions.size(); ++i) {
     RapidTrajectoryGenerator trajectory{
@@ -266,15 +344,28 @@ void SingleTrackerNode::GenerateTrajectories(
     trajectory.SetGoalVelocity(_target_velocities[i]);
     trajectory.SetGoalAcceleration(_target_accelerations[i]);
     trajectory.Generate(_duration);
+
+
+    // check for collision with any wall.
+    position_feasibility = CheckWallCollision(trajectory);
+    if (!(position_feasibility ==
+          RapidTrajectoryGenerator::StateFeasibilityResult::StateFeasible)) {
+      RCLCPP_WARN(get_logger(), "Generated trajectory collides with walls.");
+      continue;
+    }
+
+    // check if required vehicle inputs are valid.
     input_feasibility = trajectory.CheckInputFeasibility(
         trajectory_params_.thrust_min, trajectory_params_.thrust_max,
         trajectory_params_.body_rate_max, trajectory_params_.timestep_min);
-    if (input_feasibility ==
-        RapidTrajectoryGenerator::InputFeasibilityResult::InputFeasible) {
-      generators_.push_back(trajectory);
-    } else {
+    if (!(input_feasibility ==
+          RapidTrajectoryGenerator::InputFeasibilityResult::InputFeasible)) {
       RCLCPP_WARN(get_logger(), "Infeasible reason: %d", input_feasibility);
+      continue;
     }
+
+    // if we come here, all checks have been passed
+    generators_.push_back(trajectory);
   }
 }
 }  // namespace single_tracking
