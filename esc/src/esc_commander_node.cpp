@@ -1,4 +1,3 @@
-
 #include <fcntl.h>
 
 #include <hippo_msgs/msg/actuator_controls.hpp>
@@ -10,6 +9,7 @@
 #include <rclcpp/create_timer.hpp>
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 
 #include "afro_esc.h"
@@ -45,6 +45,9 @@ class ESC : public rclcpp::Node {
     esc_rpm_pub_ =
         this->create_publisher<hippo_msgs::msg::EscRpms>("esc_rpms", 50);
 
+    arming_state_pub_ =
+        this->create_publisher<std_msgs::msg::Bool>("arming_state", 10);
+
     arming_servie_ = create_service<std_srvs::srv::SetBool>(
         "arm", std::bind(&ESC::ServeArming, this, _1, _2));
 
@@ -59,6 +62,10 @@ class ESC : public rclcpp::Node {
     read_battery_timer_ =
         rclcpp::create_timer(this, get_clock(), std::chrono::milliseconds(1000),
                              std::bind(&ESC::OnReadBattery, this));
+
+    send_arming_state_timer_ =
+        rclcpp::create_timer(this, get_clock(), std::chrono::milliseconds(200),
+                             std::bind(&ESC::OnArmingStateTimer, this));
 
     actuator_controls_sub_ =
         create_subscription<hippo_msgs::msg::ActuatorControls>(
@@ -98,6 +105,12 @@ class ESC : public rclcpp::Node {
         _response->success = false;
       }
     }
+  }
+
+  void OnArmingStateTimer() {
+    std_msgs::msg::Bool msg;
+    msg.data = armed_;
+    arming_state_pub_->publish(msg);
   }
 
   void OnInputTimeout() {
@@ -318,12 +331,14 @@ class ESC : public rclcpp::Node {
   rclcpp::TimerBase::SharedPtr control_timeout_timer_;
   rclcpp::TimerBase::SharedPtr send_thrust_timer_;
   rclcpp::TimerBase::SharedPtr read_battery_timer_;
+  rclcpp::TimerBase::SharedPtr send_arming_state_timer_;
   rclcpp::Subscription<hippo_msgs::msg::ActuatorControls>::SharedPtr
       actuator_controls_sub_;
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr
       paramter_callback_handle_;
   rclcpp::Publisher<hippo_msgs::msg::EscVoltages>::SharedPtr esc_voltage_pub_;
   rclcpp::Publisher<hippo_msgs::msg::EscRpms>::SharedPtr esc_rpm_pub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr arming_state_pub_;
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr arming_servie_;
 };
 
