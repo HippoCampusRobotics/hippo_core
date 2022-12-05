@@ -82,25 +82,6 @@ geometry_msgs::msg::Quaternion RotateByQuaternion(
   return q_new;
 }
 
-geometry_msgs::msg::Pose PoseFLUtoFRD(const geometry_msgs::msg::Pose &_pose) {
-  geometry_msgs::msg::Transform t{FLUtoFRD()};
-
-  geometry_msgs::msg::Pose new_pose;
-  new_pose.orientation = RotateByQuaternion(_pose.orientation, t.rotation);
-  // no difference in position between FLU and FRD.
-  new_pose.position = _pose.position;
-  return new_pose;
-}
-
-geometry_msgs::msg::Pose PoseFRDtoFLU(const geometry_msgs::msg::Pose &_pose) {
-  geometry_msgs::msg::Transform t{FRDtoFLU()};
-  geometry_msgs::msg::Pose new_pose;
-  new_pose.orientation = RotateByQuaternion(_pose.orientation, t.rotation);
-  // no difference in position between FLU and FRD.
-  new_pose.position = _pose.position;
-  return new_pose;
-}
-
 geometry_msgs::msg::Pose PoseRosToPx4(const geometry_msgs::msg::Pose &_pose) {
   geometry_msgs::msg::Pose out;
   out.position.x = _pose.position.y;

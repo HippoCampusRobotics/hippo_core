@@ -210,19 +210,4 @@ bool AprilTagSimple::PublishVisualOdometry(
   visual_odometry_pub_->publish(visual_odometry);
   return true;
 }
-
-bool AprilTagSimple::ToPX4Pose(const geometry_msgs::msg::PoseStamped &_pose_in,
-                               geometry_msgs::msg::PoseStamped &_pose_out) {
-  try {
-    _pose_out = tf_buffer_->transform(
-        _pose_in, hippo_common::tf2_utils::frame_id::InertialFramePX4());
-  } catch (const tf2::TransformException &e) {
-    RCLCPP_ERROR(get_logger(), "Could not lookup transform %s to %s",
-                 hippo_common::tf2_utils::frame_id::BaseLink(this).c_str(),
-                 params_.bundle_frame.c_str());
-    return false;
-  }
-  _pose_out.pose = hippo_common::tf2_utils::PoseFLUtoFRD(_pose_out.pose);
-  return true;
-}
 }  // namespace vision
