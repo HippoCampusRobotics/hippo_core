@@ -10,6 +10,7 @@
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/float64.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 
 #include "afro_esc.h"
@@ -137,7 +138,8 @@ class ESC : public rclcpp::Node {
   void OnReadBattery() {
     auto msg = hippo_msgs::msg::EscVoltages();
     int i = 0;
-
+    double voltage_sum{0.0};
+    int n_voltages = 0;
     // either fill data with valid voltages or NaN if communication failed
     for (auto &esc : escs_) {
       if (esc.available() && (esc.UpdateBatteryAdc() != EscRetCode::kOk)) {
@@ -147,10 +149,18 @@ class ESC : public rclcpp::Node {
         msg.data[i] = std::numeric_limits<double>::quiet_NaN();
       } else {
         msg.data[i] = esc.GetBatteryVoltage();
+        voltage_sum += msg.data[i];
+        n_voltages++;
       }
       ++i;
     }
-
+    std_msgs::msg::Float64 voltage_msg;
+    if (n_voltages > 0) {
+      voltage_msg.data = voltage_sum / n_voltages;
+    } else {
+      voltage_msg.data = std::numeric_limits<double>::quiet_NaN();
+    }
+    battery_voltage_pub_->publish(voltage_msg);
     esc_voltage_pub_->publish(msg);
   }
 
@@ -342,6 +352,7 @@ class ESC : public rclcpp::Node {
   bool esc_config_valid_;
   bool timed_out_;
   bool armed_{false};
+  double battery_voltage_{0.0};
   std::array<AfroESC, kNumEscs> escs_;
   std::string i2c_device_;
   int i2c_handle_;
@@ -354,6 +365,7 @@ class ESC : public rclcpp::Node {
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr
       paramter_callback_handle_;
   rclcpp::Publisher<hippo_msgs::msg::EscVoltages>::SharedPtr esc_voltage_pub_;
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr battery_voltage_pub_;
   rclcpp::Publisher<hippo_msgs::msg::EscRpms>::SharedPtr esc_rpm_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr arming_state_pub_;
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr arming_servie_;
