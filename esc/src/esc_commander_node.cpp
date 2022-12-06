@@ -181,7 +181,7 @@ class ESC : public rclcpp::Node {
     int ret = 0;
     hippo_msgs::msg::EscRpms rpm_msg;
     int i = 0;
-    if ((timed_out_ && !armed_) && !force) {
+    if ((timed_out_ || !armed_) && !force) {
       return 0;
     }
     for (auto &esc : escs_) {
