@@ -22,10 +22,10 @@ class AfroESC : public ESCBase {
   int i2c_handle_;
   int i2c_address_;
   int pole_pairs_;
-  bool available_;
+  bool available_{false};
   int index_;
   double throttle_;
-  bool in_use_;
+  bool in_use_{false};
   double revolution_count_;
   int commutation_count_;
   int battery_adc_;

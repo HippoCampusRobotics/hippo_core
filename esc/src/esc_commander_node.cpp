@@ -145,15 +145,17 @@ class ESC : public rclcpp::Node {
     int n_voltages = 0;
     // either fill data with valid voltages or NaN if communication failed
     for (auto &esc : escs_) {
-      if (esc.available() && (esc.UpdateBatteryAdc() != EscRetCode::kOk)) {
-        RCLCPP_ERROR(get_logger(),
-                     "Failed to read voltage from thruster %d at address %X",
-                     esc.index(), esc.address());
-        msg.data[i] = std::numeric_limits<double>::quiet_NaN();
-      } else {
-        msg.data[i] = esc.GetBatteryVoltage();
-        voltage_sum += msg.data[i];
-        n_voltages++;
+      if (esc.available()) {
+        if (esc.UpdateBatteryAdc() != EscRetCode::kOk) {
+          RCLCPP_ERROR(get_logger(),
+                       "Failed to read voltage from thruster %d at address %X",
+                       esc.index(), esc.address());
+          msg.data[i] = std::numeric_limits<double>::quiet_NaN();
+        } else {
+          msg.data[i] = esc.GetBatteryVoltage();
+          voltage_sum += msg.data[i];
+          n_voltages++;
+        }
       }
       ++i;
     }
