@@ -48,6 +48,9 @@ class ESC : public rclcpp::Node {
     esc_voltage_pub_ = this->create_publisher<hippo_msgs::msg::EscVoltages>(
         "esc_voltages", 50);
 
+    battery_voltage_pub_ =
+        create_publisher<std_msgs::msg::Float64>("battery_voltage", 50);
+
     esc_rpm_pub_ =
         this->create_publisher<hippo_msgs::msg::EscRpms>("esc_rpms", 50);
 
