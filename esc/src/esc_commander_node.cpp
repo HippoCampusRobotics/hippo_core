@@ -17,6 +17,11 @@
 using std::placeholders::_1;
 using std::placeholders::_2;
 
+static constexpr int kArmingStatePeriodMs = 200;
+static constexpr int kVoltagePeriodMs = 500;
+static constexpr int kThrottleInputTimeoutMs = 500;
+static constexpr int kSendThrottlePeriodMs = 20;
+
 class ESC : public rclcpp::Node {
  public:
   ESC()
@@ -51,21 +56,21 @@ class ESC : public rclcpp::Node {
     arming_servie_ = create_service<std_srvs::srv::SetBool>(
         "arm", std::bind(&ESC::ServeArming, this, _1, _2));
 
-    control_timeout_timer_ =
-        rclcpp::create_timer(this, get_clock(), std::chrono::seconds(1),
-                             std::bind(&ESC::OnInputTimeout, this));
+    control_timeout_timer_ = rclcpp::create_timer(
+        this, get_clock(), std::chrono::milliseconds(kThrottleInputTimeoutMs),
+        std::bind(&ESC::OnInputTimeout, this));
 
-    send_thrust_timer_ =
-        rclcpp::create_timer(this, get_clock(), std::chrono::milliseconds(20),
-                             std::bind(&ESC::OnSendThrusts, this));
+    send_throttle_timer_ = rclcpp::create_timer(
+        this, get_clock(), std::chrono::milliseconds(kSendThrottlePeriodMs),
+        std::bind(&ESC::OnSendThrottle, this));
 
-    read_battery_timer_ =
-        rclcpp::create_timer(this, get_clock(), std::chrono::milliseconds(500),
-                             std::bind(&ESC::OnReadBattery, this));
+    read_battery_timer_ = rclcpp::create_timer(
+        this, get_clock(), std::chrono::milliseconds(kVoltagePeriodMs),
+        std::bind(&ESC::OnReadBattery, this));
 
-    send_arming_state_timer_ =
-        rclcpp::create_timer(this, get_clock(), std::chrono::milliseconds(200),
-                             std::bind(&ESC::OnArmingStateTimer, this));
+    send_arming_state_timer_ = rclcpp::create_timer(
+        this, get_clock(), std::chrono::milliseconds(kArmingStatePeriodMs),
+        std::bind(&ESC::OnArmingStateTimer, this));
 
     actuator_controls_sub_ =
         create_subscription<hippo_msgs::msg::ActuatorControls>(
@@ -92,13 +97,14 @@ class ESC : public rclcpp::Node {
         _response->message = "Armed";
         _response->success = false;
         // sending zero throttle initially is required for the ESCs.
-        SetAllThrusts(0.0);
+        SetThrottleAll(0.0);
         SendThrottle(true);
       }
     } else {
       if (armed_) {
         RCLCPP_INFO(get_logger(), "Disarming the thrusters.");
         armed_ = _request->data;
+        // make sure to stop motors immediately
         SetAllThrottle(0.0);
         SendThrottle(true);
         _response->message = "Disarmed";
@@ -126,7 +132,7 @@ class ESC : public rclcpp::Node {
     control_timeout_timer_->cancel();
   }
 
-  void OnSendThrusts() { SendThrottle(); }
+  void OnSendThrottle() { SendThrottle(); }
 
   void OnReadBattery() {
     auto msg = hippo_msgs::msg::EscVoltages();
@@ -156,11 +162,11 @@ class ESC : public rclcpp::Node {
       timed_out_ = false;
       RCLCPP_INFO(get_logger(),
                   "Received thruster controls. Not timed out anymore");
-      SetAllThrusts(0.0);
+      SetThrottleAll(0.0);
       SendThrottle(true);
     }
     if (!armed_) {
-      SetAllThrusts(0.0);
+      SetThrottleAll(0.0);
       return;
     }
     for (int i = 0; i < static_cast<int>(msg->control.size()); i++) {
@@ -172,7 +178,7 @@ class ESC : public rclcpp::Node {
     }
   }
 
-  void SetAllThrusts(double _thrust) {
+  void SetThrottleAll(double _thrust) {
     for (auto &esc : escs_) {
       esc.SetThrottle(_thrust);
     }
@@ -209,6 +215,8 @@ class ESC : public rclcpp::Node {
           rpm_msg.revolutions[i] = std::numeric_limits<double>::quiet_NaN();
         } else {
           rpm_msg.revolutions[i] = esc.GetRevolutionCount();
+          rpm_msg.rpms[i] =
+              esc.GetRevolutionCount() / kSendThrottlePeriodMs * 1e3;
           rpm_msg.commutations[i] = esc.GetCommutationCount();
         }
       }
@@ -338,7 +346,7 @@ class ESC : public rclcpp::Node {
   std::string i2c_device_;
   int i2c_handle_;
   rclcpp::TimerBase::SharedPtr control_timeout_timer_;
-  rclcpp::TimerBase::SharedPtr send_thrust_timer_;
+  rclcpp::TimerBase::SharedPtr send_throttle_timer_;
   rclcpp::TimerBase::SharedPtr read_battery_timer_;
   rclcpp::TimerBase::SharedPtr send_arming_state_timer_;
   rclcpp::Subscription<hippo_msgs::msg::ActuatorControls>::SharedPtr
