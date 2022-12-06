@@ -60,7 +60,7 @@ class ESC : public rclcpp::Node {
                              std::bind(&ESC::OnSendThrusts, this));
 
     read_battery_timer_ =
-        rclcpp::create_timer(this, get_clock(), std::chrono::milliseconds(1000),
+        rclcpp::create_timer(this, get_clock(), std::chrono::milliseconds(500),
                              std::bind(&ESC::OnReadBattery, this));
 
     send_arming_state_timer_ =
@@ -151,6 +151,8 @@ class ESC : public rclcpp::Node {
     control_timeout_timer_->reset();
     if (timed_out_) {
       timed_out_ = false;
+      RCLCPP_INFO(get_logger(),
+                  "Received thruster controls. Not timed out anymore");
       SetAllThrusts(0.0);
       SendThrottle(true);
     }
