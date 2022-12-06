@@ -91,6 +91,9 @@ class ESC : public rclcpp::Node {
         RCLCPP_INFO(get_logger(), "Arming the thrusters.");
         _response->message = "Armed";
         _response->success = false;
+        // sending zero throttle initially is required for the ESCs.
+        SetAllThrusts(0.0);
+        SendThrottle(true);
       }
     } else {
       if (armed_) {
@@ -155,6 +158,10 @@ class ESC : public rclcpp::Node {
                   "Received thruster controls. Not timed out anymore");
       SetAllThrusts(0.0);
       SendThrottle(true);
+    }
+    if (!armed_) {
+      SetAllThrusts(0.0);
+      return;
     }
     for (int i = 0; i < static_cast<int>(msg->control.size()); i++) {
       if (msg->control[i] != 0 && !escs_[i].InUse()) {
