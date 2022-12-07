@@ -345,14 +345,13 @@ void SingleTrackerNode::GenerateTrajectories(
     trajectory.SetGoalAcceleration(_target_accelerations[i]);
     trajectory.Generate(_duration);
 
-
     // check for collision with any wall.
-    position_feasibility = CheckWallCollision(trajectory);
-    if (!(position_feasibility ==
-          RapidTrajectoryGenerator::StateFeasibilityResult::StateFeasible)) {
-      RCLCPP_WARN(get_logger(), "Generated trajectory collides with walls.");
-      continue;
-    }
+    // position_feasibility = CheckWallCollision(trajectory);
+    // if (!(position_feasibility ==
+    //       RapidTrajectoryGenerator::StateFeasibilityResult::StateFeasible)) {
+    //   RCLCPP_WARN(get_logger(), "Generated trajectory collides with walls.");
+    //   continue;
+    // }
 
     // check if required vehicle inputs are valid.
     input_feasibility = trajectory.CheckInputFeasibility(

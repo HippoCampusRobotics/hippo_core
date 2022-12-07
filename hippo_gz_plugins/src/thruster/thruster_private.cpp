@@ -9,10 +9,14 @@
 #include "common.hpp"
 
 namespace thruster {
-namespace direction {
+namespace motor_direction {
 static constexpr int CCW = -1;
 static constexpr int CW = 1;
 }  // namespace direction
+namespace propeller_direction {
+  static constexpr int CCW = 1;
+  static constexpr int CW = -1;
+}
 
 void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf) {
   AssignSdfParam(_sdf, "link", sdf_params_.link);
@@ -29,15 +33,15 @@ void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf) {
   AssignSdfParam(_sdf, "thruster_number", sdf_params_.thruster_number);
   AssignSdfParam(_sdf, "turning_direction", sdf_params_.turning_direction);
   if (sdf_params_.turning_direction == "cw") {
-    turning_direction_ = direction::CW;
+    turning_direction_ = motor_direction::CW;
   } else {
-    turning_direction_ = direction::CCW;
+    turning_direction_ = motor_direction::CCW;
   }
   AssignSdfParam(_sdf, "propeller_direction", sdf_params_.propeller_direction);
   if (sdf_params_.propeller_direction == "cw") {
-    propeller_direction_ = direction::CW;
+    propeller_direction_ = propeller_direction::CW;
   } else {
-    propeller_direction_ = direction::CCW;
+    propeller_direction_ = propeller_direction::CCW;
   }
   AssignSdfParam(_sdf, "timeconstant_up", sdf_params_.timeconstant_up);
   AssignSdfParam(_sdf, "timeconstant_down", sdf_params_.timeconstant_down);
@@ -105,7 +109,7 @@ ignition::math::Vector3d PluginPrivate::ThrusterForce() {
 }
 
 ignition::math::Vector3d PluginPrivate::Torque() {
-  return -turning_direction_ * propeller_direction_ * ThrusterForce() *
+  return turning_direction_ * propeller_direction_ * ThrusterForce() *
          sdf_params_.torque_coeff;
 }
 

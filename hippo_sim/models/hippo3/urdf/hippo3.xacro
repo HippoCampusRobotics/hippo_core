@@ -109,9 +109,9 @@
         </visual>
     </gazebo>
 
-    <xacro:thruster parent="base_link" suffix="port_top" xyz="0 ${thruster_r / 2**0.5} ${thruster_r / 2**0.5}" axis="1 0 0" turning_direction="cw" propeller_direction="cw" color="red" number="0" />
-    <xacro:thruster parent="base_link" suffix="starboard_top" xyz="0 -${thruster_r / 2**0.5} ${thruster_r / 2**0.5}" axis="1 0 0" turning_direction="cw" propeller_direction="ccw" color="green" number="1" />
-    <xacro:thruster parent="base_link" suffix="starboard_bot" xyz="0 -${thruster_r / 2**0.5} -${thruster_r / 2**0.5}" axis="1 0 0" turning_direction="cw" propeller_direction="cw" color="grey" number="2" />
+    <xacro:thruster parent="base_link" suffix="port_top" xyz="0 ${thruster_r / 2**0.5} ${thruster_r / 2**0.5}" axis="1 0 0" turning_direction="ccw" propeller_direction="ccw" color="red" number="0" />
+    <xacro:thruster parent="base_link" suffix="starboard_top" xyz="0 -${thruster_r / 2**0.5} ${thruster_r / 2**0.5}" axis="1 0 0" turning_direction="ccw" propeller_direction="cw" color="green" number="1" />
+    <xacro:thruster parent="base_link" suffix="starboard_bot" xyz="0 -${thruster_r / 2**0.5} -${thruster_r / 2**0.5}" axis="1 0 0" turning_direction="ccw" propeller_direction="ccw" color="grey" number="2" />
     <xacro:thruster parent="base_link" suffix="port_bot" xyz="0 ${thruster_r / 2**0.5} -${thruster_r / 2**0.5}" axis="1 0 0" turning_direction="cw" propeller_direction="ccw" color="grey" number="3" />
 
     <xacro:mount parent="base_link" suffix="port_top" xyz="0 ${thruster_r / 2**0.5} ${thruster_r / 2**0.5}" rpy="${radians(-45)} 0 0" />
