@@ -35,12 +35,21 @@ AprilTagSimple::AprilTagSimple(rclcpp::NodeOptions const &_options)
           "tag_detections", rclcpp::SystemDefaultsQoS(),
           std::bind(&AprilTagSimple::OnAprilTagDetections, this,
                     std::placeholders::_1));
-  px4_position_sub_ = create_subscription<px4_msgs::msg::VehicleLocalPosition>(
-      "fmu/out/vehicle_local_position", px4_qos,
-      std::bind(&AprilTagSimple::OnLocalPosition, this, std::placeholders::_1));
-  px4_attitude_sub_ = create_subscription<px4_msgs::msg::VehicleAttitude>(
-      "fmu/out/vehicle_attitude", px4_qos,
-      std::bind(&AprilTagSimple::OnAttitude, this, std::placeholders::_1));
+
+  // px4_position_sub_ =
+  // create_subscription<px4_msgs::msg::VehicleLocalPosition>(
+  //     "fmu/out/vehicle_local_position", px4_qos,
+  //     std::bind(&AprilTagSimple::OnLocalPosition, this,
+  //     std::placeholders::_1));
+
+  // px4_attitude_sub_ = create_subscription<px4_msgs::msg::VehicleAttitude>(
+  //     "fmu/out/vehicle_attitude", px4_qos,
+  //     std::bind(&AprilTagSimple::OnAttitude, this, std::placeholders::_1));
+
+  px4_vehicle_odometry_sub_ =
+      create_subscription<px4_msgs::msg::VehicleOdometry>(
+          "fmu/out/vehicle_odometry", px4_qos,
+          std::bind(&AprilTagSimple::OnOdometry, this, std::placeholders::_1));
 
   update_timer_ =
       rclcpp::create_timer(this, get_clock(), std::chrono::milliseconds(20),
@@ -72,17 +81,23 @@ void AprilTagSimple::OnAprilTagDetections(
 }
 
 void AprilTagSimple::OnUpdateOdometry() {
-  if (!px4_attitude_update_) {
-    RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 2000,
-                          "No attitude received from px4.");
-    return;
+  // if (!px4_attitude_update_) {
+  //   RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 2000,
+  //                         "No attitude received from px4.");
+  //   return;
+  // }
+  // if (!px4_position_updated_) {
+  //   RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 2000,
+  //                         "No position received from px4.");
+  //   return;
+  // }
+  if (!px4_odometry_updated_) {
+    RCLCPP_ERROR_THROTTLE(
+        get_logger(), *get_clock(), 2000,
+        "No odometry received from px4. Cannot publish odometry.");
   }
-  if (!px4_position_update_) {
-    RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 2000,
-                          "No position received from px4.");
-    return;
-  }
-  px4_position_update_ = px4_attitude_update_ = false;
+  px4_position_updated_ = px4_attitude_update_ = false;
+  px4_odometry_updated_ = false;
 
   rclcpp::Time stamp = now();
   geometry_msgs::msg::PoseStamped pose;
@@ -105,12 +120,18 @@ void AprilTagSimple::OnUpdateOdometry() {
     return;
   }
 
+  geometry_msgs::msg::Vector3 angular_velocity;
+  angular_velocity.x = body_rates_px4_.x();
+  angular_velocity.y = -body_rates_px4_.y();
+  angular_velocity.z = -body_rates_px4_.z();
+
   nav_msgs::msg::Odometry odometry;
   odometry.header.stamp = stamp;
   odometry.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
   odometry.child_frame_id = hippo_common::tf2_utils::frame_id::BaseLink(this);
   odometry.pose.pose = pose.pose;
   odometry.twist.twist.linear = velocity.vector;
+  odometry.twist.twist.angular = angular_velocity;
   odometry_pub_->publish(odometry);
 
   // publish transformation for vehicle pose
@@ -123,9 +144,23 @@ void AprilTagSimple::OnUpdateOdometry() {
   tf_broadcaster_->sendTransform(t);
 }
 
+void AprilTagSimple::OnOdometry(
+    px4_msgs::msg::VehicleOdometry::ConstSharedPtr _msg) {
+  px4_odometry_updated_ = true;
+  for (size_t i = 0; i < 3; ++i) {
+    velocity_px4_(i) = _msg->velocity.at(i);
+    position_px4_(i) = _msg->position.at(i);
+    body_rates_px4_(i) = _msg->angular_velocity.at(i);
+  }
+  orientation_px4_.w() = _msg->q.at(0);
+  orientation_px4_.x() = _msg->q.at(1);
+  orientation_px4_.y() = _msg->q.at(2);
+  orientation_px4_.z() = _msg->q.at(3);
+}
+
 void AprilTagSimple::OnLocalPosition(
     px4_msgs::msg::VehicleLocalPosition::ConstSharedPtr _msg) {
-  px4_position_update_ = true;
+  px4_position_updated_ = true;
   position_px4_.x() = _msg->x;
   position_px4_.y() = _msg->y;
   position_px4_.z() = _msg->z;

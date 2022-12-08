@@ -26,6 +26,7 @@ class AprilTagSimple : public rclcpp::Node {
   struct Params {
     std::string bundle_frame{"map_bundle"};
   };
+  void OnOdometry(px4_msgs::msg::VehicleOdometry::ConstSharedPtr _msg);
   void OnAprilTagDetections(
       apriltag_ros::msg::AprilTagDetectionArray::ConstSharedPtr _msg);
   void OnLocalPosition(
@@ -34,10 +35,7 @@ class AprilTagSimple : public rclcpp::Node {
   void OnUpdateOdometry();
   bool PublishVisionPose(const geometry_msgs::msg::PoseStamped _pose);
   bool PublishVisualOdometry(const geometry_msgs::msg::PoseStamped _pose);
-  bool ToPX4Pose(const geometry_msgs::msg::PoseStamped &_pose_in,
-                 geometry_msgs::msg::PoseStamped &_pose_out);
-  bool GetVisionPose(
-      geometry_msgs::msg::PoseStamped &_vision_pose);
+  bool GetVisionPose(geometry_msgs::msg::PoseStamped &_vision_pose);
 
   Params params_;
 
@@ -50,10 +48,12 @@ class AprilTagSimple : public rclcpp::Node {
 
   rclcpp::Subscription<apriltag_ros::msg::AprilTagDetectionArray>::SharedPtr
       apriltag_sub_;
-  rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr
-      px4_position_sub_;
-  rclcpp::Subscription<px4_msgs::msg::VehicleAttitude>::SharedPtr
-      px4_attitude_sub_;
+  // rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr
+  //     px4_position_sub_;
+  // rclcpp::Subscription<px4_msgs::msg::VehicleAttitude>::SharedPtr
+  //     px4_attitude_sub_;
+  rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr
+      px4_vehicle_odometry_sub_;
 
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -62,8 +62,10 @@ class AprilTagSimple : public rclcpp::Node {
   Eigen::Vector3d position_px4_;
   Eigen::Quaterniond orientation_px4_;
   Eigen::Vector3d velocity_px4_;
-  bool px4_position_update_{false};
+  Eigen::Vector3d body_rates_px4_;
+  bool px4_position_updated_{false};
   bool px4_attitude_update_{false};
+  bool px4_odometry_updated_{false};
   rclcpp::TimerBase::SharedPtr update_timer_;
   px4_msgs::msg::VehicleOdometry px4_odometry_;
 };
