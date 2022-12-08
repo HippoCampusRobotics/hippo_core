@@ -18,11 +18,24 @@ SingleTrackerNode::SingleTrackerNode()
   InitSubscribers();
   DeclareParams();
   t_start_ = now();
-  target_positions_ = {Eigen::Vector3d{0.5, 2.0, -1.0},
-                       Eigen::Vector3d{1.5, 2.0, -1.0}};
-  target_velocities_ = {Eigen::Vector3d{0.0, 0.5, 0.0},
-                        Eigen::Vector3d{0.0, -0.5, 0.0}};
-  target_accelerations_ = {Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
+  // circular shape
+  // target_positions_ = {Eigen::Vector3d{0.5, 2.0, -1.0},
+  //                      Eigen::Vector3d{1.5, 2.0, -1.0}};
+  // target_velocities_ = {Eigen::Vector3d{0.0, 0.5, 0.0},
+  //                       Eigen::Vector3d{0.0, -0.5, 0.0}};
+  // target_accelerations_ = {Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
+
+  // s-curve shape
+  target_positions_ = {
+      Eigen::Vector3d{1.0, 3.0, -0.75}, Eigen::Vector3d{1.0, 2.0, -1.0},
+      Eigen::Vector3d{1.0, 1.0, -0.75}, Eigen::Vector3d{1.0, 2.0, -0.5}};
+  target_velocities_ = {
+      Eigen::Vector3d{0.3, 0.0, 0.0}, Eigen::Vector3d{-0.3, -0.5, 0.0},
+      Eigen::Vector3d{0.3, 0.0, 0.0}, Eigen::Vector3d{-0.3, 0.5, 0.0}};
+
+  target_accelerations_ = {
+      Eigen::Vector3d{0.0, 0.0, 0.0}, Eigen::Vector3d{0.0, 0.0, 0.0},
+      Eigen::Vector3d{0.0, 0.0, 0.0}, Eigen::Vector3d{0.0, 0.0, 0.0}};
 
   update_timer_ =
       create_wall_timer(20ms, std::bind(&SingleTrackerNode::Update, this));

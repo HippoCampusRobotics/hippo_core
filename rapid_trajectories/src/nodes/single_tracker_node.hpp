@@ -32,7 +32,7 @@ class SingleTrackerNode : public rclcpp::Node {
     double body_rate_max{3.0};
     double mass{2.6};
     double damping{5.4};
-    double t_final{10.0};
+    double t_final{5.0};
     double timestep_min{0.02};
     struct WallDistance {
       double x{0.3};
