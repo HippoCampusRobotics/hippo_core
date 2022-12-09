@@ -22,7 +22,13 @@ class AttitudeControlNode : public rclcpp::Node {
     RCLCPP_INFO(get_logger(), "Declaring parameters.");
     DeclareParams();
     InitPublishers();
+    InitTimers();
     InitSubscriptions();
+  }
+  void InitTimers() {
+    setpoint_timeout_timer_ = rclcpp::create_timer(
+        this, get_clock(), std::chrono::milliseconds(500),
+        std::bind(&AttitudeControlNode::OnSetpointTimeout, this));
   }
   void DeclareParams() {
     std::string name;
@@ -131,13 +137,39 @@ class AttitudeControlNode : public rclcpp::Node {
         topic, qos, std::bind(&AttitudeControlNode::OnOdometry, this, _1));
   }
 
+  ActuatorControls ZeroMsg(rclcpp::Time _stamp) {
+    ActuatorControls msg;
+    msg.header.stamp = _stamp;
+    for (size_t i = 0; i < msg.control.size(); ++i) {
+      msg.control[i] = 0.0;
+    }
+    return msg;
+  }
+
+  void OnSetpointTimeout() {
+    if (setpoint_timed_out_) {
+      return;
+    }
+    RCLCPP_WARN(get_logger(), "Setpoint timed out. Sending zero commands.");
+    setpoint_timed_out_ = true;
+    ActuatorControls msg = ZeroMsg(now());
+    control_output_pub_->publish(msg);
+  }
+
   void OnAttitudeTarget(const AttitudeTarget::SharedPtr _msg) {
+    setpoint_timeout_timer_->reset();
+    if (setpoint_timed_out_) {
+      RCLCPP_INFO(get_logger(),
+                  "Received setpoint. Setpoint not timed out anymore.");
+    }
+    setpoint_timed_out_ = false;
+
     if (_msg->header.frame_id != "map") {
       RCLCPP_WARN_THROTTLE(
           get_logger(), *get_clock(), 1000,
           "AttitudeTarget frame is [%s] but only [map] is handled. Ignoring...",
           _msg->header.frame_id.c_str());
-          return;
+      return;
     }
     std::lock_guard<std::mutex> lock(mutex_);
     if (!(_msg->mask & _msg->IGNORE_ROLL_ANGLE)) {
@@ -170,11 +202,15 @@ class AttitudeControlNode : public rclcpp::Node {
     setpoint_pub_->publish(attitude_target_);
     if (feedthrough_) {
       ActuatorControls msg;
-      msg.header.stamp = now();
-      msg.control[msg.INDEX_ROLL] = attitude_target_.body_rate.x;
-      msg.control[msg.INDEX_PITCH] = attitude_target_.body_rate.y;
-      msg.control[msg.INDEX_YAW] = attitude_target_.body_rate.z;
-      msg.control[msg.INDEX_THRUST] = attitude_target_.thrust;
+      if (setpoint_timed_out_) {
+        msg = ZeroMsg(now());
+      } else {
+        msg.header.stamp = now();
+        msg.control[msg.INDEX_THRUST] = attitude_target_.thrust;
+        msg.control[msg.INDEX_ROLL] = attitude_target_.body_rate.x;
+        msg.control[msg.INDEX_PITCH] = attitude_target_.body_rate.y;
+        msg.control[msg.INDEX_YAW] = attitude_target_.body_rate.z;
+      }
       control_output_pub_->publish(msg);
     }
   }
@@ -192,12 +228,16 @@ class AttitudeControlNode : public rclcpp::Node {
     ActuatorControls msg;
     {
       std::lock_guard<std::mutex> lock(mutex_);
-      Eigen::Vector3d u =
-          controller_.Update(orientation, v_angular);
-      msg.control[ActuatorControls::INDEX_ROLL] = u.x();
-      msg.control[ActuatorControls::INDEX_PITCH] = u.y();
-      msg.control[ActuatorControls::INDEX_YAW] = u.z();
-      msg.control[ActuatorControls::INDEX_THRUST] = attitude_target_.thrust;
+      if (setpoint_timed_out_) {
+        msg = ZeroMsg(now());
+      } else {
+        msg.header.stamp = now();
+        Eigen::Vector3d u = controller_.Update(orientation, v_angular);
+        msg.control[ActuatorControls::INDEX_ROLL] = u.x();
+        msg.control[ActuatorControls::INDEX_PITCH] = u.y();
+        msg.control[ActuatorControls::INDEX_YAW] = u.z();
+        msg.control[ActuatorControls::INDEX_THRUST] = attitude_target_.thrust;
+      }
     }
     control_output_pub_->publish(msg);
   }
@@ -261,8 +301,11 @@ class AttitudeControlNode : public rclcpp::Node {
 
   GeometricAttitudeControl controller_;
   AttitudeTarget attitude_target_;
+  bool setpoint_timed_out_{false};
 
   bool feedthrough_;
+
+  rclcpp::TimerBase::SharedPtr setpoint_timeout_timer_;
 
   //////////////////////////////////////////////////////////////////////////////
   // publisher
