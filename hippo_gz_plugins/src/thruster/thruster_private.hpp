@@ -55,9 +55,12 @@ class PluginPrivate {
   void UpdateRotorVelocity(ignition::gazebo::EntityComponentManager &_ecm,
                            double dt);
   void ApplyWrench(ignition::gazebo::EntityComponentManager &_ecm);
+  void ThrottleCmdTimedOut();
 
   std::chrono::steady_clock::duration update_period_{0};
   std::chrono::steady_clock::duration last_pub_time_{0};
+  std::chrono::steady_clock::duration last_command_time_{0};
+  bool throttle_cmd_updated_{false};
 
  private:
   struct SdfParams {

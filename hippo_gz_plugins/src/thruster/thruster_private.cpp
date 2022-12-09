@@ -12,11 +12,11 @@ namespace thruster {
 namespace motor_direction {
 static constexpr int CCW = -1;
 static constexpr int CW = 1;
-}  // namespace direction
+}  // namespace motor_direction
 namespace propeller_direction {
-  static constexpr int CCW = 1;
-  static constexpr int CW = -1;
-}
+static constexpr int CCW = 1;
+static constexpr int CW = -1;
+}  // namespace propeller_direction
 
 void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf) {
   AssignSdfParam(_sdf, "link", sdf_params_.link);
@@ -155,11 +155,17 @@ void PluginPrivate::PublishThrust() {
   ignition::msgs::Double msg;
   msg.set_data(f.X());
   thrust_publisher_.Publish(msg);
-} 
+}
+
+void PluginPrivate::ThrottleCmdTimedOut() {
+  std::lock_guard<std::mutex> lock(thrust_cmd_mutex_);
+  rotor_velocity_setpoint_ = 0.0;
+}
 
 void PluginPrivate::OnThrottleCmd(const ignition::msgs::Double &_msg) {
   std::lock_guard<std::mutex> lock(thrust_cmd_mutex_);
   rotor_velocity_setpoint_ = ThrottleToVelocity(_msg.data());
+  throttle_cmd_updated_ = true;
 }
 
 void PluginPrivate::InitComponents(
