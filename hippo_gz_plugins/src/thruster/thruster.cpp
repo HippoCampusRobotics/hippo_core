@@ -30,6 +30,14 @@ void Plugin::PreUpdate(const ignition::gazebo::UpdateInfo &_info,
   if (_info.paused) {
     return;
   }
+  if (private_->throttle_cmd_updated_) {
+    private_->last_command_time_ = _info.simTime;
+    private_->throttle_cmd_updated_ = false;
+  }
+  if (_info.simTime - private_->last_command_time_ >
+      std::chrono::milliseconds(500)) {
+    private_->ThrottleCmdTimedOut();
+  }
   // Apply forces/moments in each step
   private_->UpdateRotorVelocity(
       _ecm, std::chrono::duration<double>(_info.dt).count());
