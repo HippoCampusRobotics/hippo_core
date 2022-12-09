@@ -34,6 +34,9 @@ class SingleTrackerNode : public rclcpp::Node {
     double damping{5.4};
     double t_final{5.0};
     double timestep_min{0.02};
+    bool continuous{false};
+    double open_loop_threshold_time{0.5};
+    double lookahead_time{0.5};
     struct WallDistance {
       double x{0.3};
       double y{0.6};
@@ -46,7 +49,7 @@ class SingleTrackerNode : public rclcpp::Node {
   void InitSubscribers();
   void DeclareParams();
   void Update();
-  void UpdateTrajectories();
+  void UpdateTrajectories(double _t_final);
   void OnOdometry(const Odometry::SharedPtr _msg);
   void OnTarget(const TargetState::SharedPtr _msg);
   RapidTrajectoryGenerator::StateFeasibilityResult CheckWallCollision(
@@ -79,12 +82,15 @@ class SingleTrackerNode : public rclcpp::Node {
   RapidTrajectoryGenerator selected_trajectory_;
   Eigen::Vector3d position_{0.0, 0.0, 0.0};
   Eigen::Vector3d velocity_{0.0, 0.0, 0.0};
+  Eigen::Vector3d acceleration_{0.0, 0.0, 0.0};
+  rclcpp::Time t_last_odometry_;
 
   OnSetParametersCallbackHandle::SharedPtr trajectory_params_cb_handle_;
 
   rclcpp::TimerBase::SharedPtr update_timer_;
 
-  rclcpp::Time t_start_;
+  rclcpp::Time t_start_section_;
+  rclcpp::Time t_final_section_;
   bool trajectory_finished_{true};
   std::vector<Eigen::Vector3d>::size_type target_index_;
   std::vector<Eigen::Vector3d> target_positions_;

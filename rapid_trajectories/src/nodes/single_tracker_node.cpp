@@ -17,25 +17,26 @@ SingleTrackerNode::SingleTrackerNode()
   InitPublishers();
   InitSubscribers();
   DeclareParams();
-  t_start_ = now();
+  t_start_section_ = t_final_section_ = now();
+  t_last_odometry_ = now();
   // circular shape
-  // target_positions_ = {Eigen::Vector3d{0.5, 2.0, -1.0},
-  //                      Eigen::Vector3d{1.5, 2.0, -1.0}};
-  // target_velocities_ = {Eigen::Vector3d{0.0, 0.5, 0.0},
-  //                       Eigen::Vector3d{0.0, -0.5, 0.0}};
-  // target_accelerations_ = {Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
+  target_positions_ = {Eigen::Vector3d{0.5, 2.0, -1.0},
+                       Eigen::Vector3d{1.5, 2.0, -1.0}};
+  target_velocities_ = {Eigen::Vector3d{0.0, 0.5, 0.0},
+                        Eigen::Vector3d{0.0, -0.5, 0.0}};
+  target_accelerations_ = {Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
 
   // s-curve shape
-  target_positions_ = {
-      Eigen::Vector3d{1.0, 3.0, -0.75}, Eigen::Vector3d{1.0, 2.0, -1.0},
-      Eigen::Vector3d{1.0, 1.0, -0.75}, Eigen::Vector3d{1.0, 2.0, -0.5}};
-  target_velocities_ = {
-      Eigen::Vector3d{0.3, 0.0, 0.0}, Eigen::Vector3d{-0.3, -0.5, 0.0},
-      Eigen::Vector3d{0.3, 0.0, 0.0}, Eigen::Vector3d{-0.3, 0.5, 0.0}};
+  // target_positions_ = {
+  //     Eigen::Vector3d{1.0, 3.0, -0.75}, Eigen::Vector3d{1.0, 2.0, -1.0},
+  //     Eigen::Vector3d{1.0, 1.0, -0.75}, Eigen::Vector3d{1.0, 2.0, -0.5}};
+  // target_velocities_ = {
+  //     Eigen::Vector3d{0.3, 0.0, 0.0}, Eigen::Vector3d{-0.3, -0.5, 0.0},
+  //     Eigen::Vector3d{0.3, 0.0, 0.0}, Eigen::Vector3d{-0.3, 0.5, 0.0}};
 
-  target_accelerations_ = {
-      Eigen::Vector3d{0.0, 0.0, 0.0}, Eigen::Vector3d{0.0, 0.0, 0.0},
-      Eigen::Vector3d{0.0, 0.0, 0.0}, Eigen::Vector3d{0.0, 0.0, 0.0}};
+  // target_accelerations_ = {
+  //     Eigen::Vector3d{0.0, 0.0, 0.0}, Eigen::Vector3d{0.0, 0.0, 0.0},
+  //     Eigen::Vector3d{0.0, 0.0, 0.0}, Eigen::Vector3d{0.0, 0.0, 0.0}};
 
   update_timer_ =
       create_wall_timer(20ms, std::bind(&SingleTrackerNode::Update, this));
@@ -129,6 +130,40 @@ void SingleTrackerNode::DeclareParams() {
     param = declare_parameter(name, param, descr);
   }
 
+  name = "continuous";
+  descr_text = "Should the trajectory be recalculated in each time step?";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.continuous;
+    param = declare_parameter(name, param, descr);
+    if (trajectory_params_.continuous) {
+      RCLCPP_INFO(get_logger(),
+                  "Starting in continuous trajectory recalculation mode.");
+    } else {
+      RCLCPP_INFO(get_logger(),
+                  "Starting in NON-continuous trajectory recalculation mode.");
+    }
+  }
+
+  name = "open_loop_threshold_time";
+  descr_text =
+      "Time threshold under which the closed-loop continuous mode switches to "
+      "open loop to avoid infeasibilities caused by the small timespan left "
+      "for the trajectory.";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.open_loop_threshold_time;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "lookahead_time";
+  descr_text = "Time to look ahead in current newly calculated trajectory.";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.lookahead_time;
+    param = declare_parameter(name, param, descr);
+  }
+
   name = "min_wall_distance.x";
   descr_text =
       "Minimum required distance to walls in x-direction for a trajectory to "
@@ -164,9 +199,11 @@ void SingleTrackerNode::DeclareParams() {
 }
 
 void SingleTrackerNode::Update() {
+  static int update_counter = 0;
+  update_counter++;
   rclcpp::Time t_now = now();
-  double t = (t_now - t_start_).nanoseconds() * 1e-9;
-  if (t > selected_trajectory_.GetFinalTime()) {
+  double t_since_start = (t_now - t_start_section_).nanoseconds() * 1e-9;
+  if (t_now >= t_final_section_) {
     trajectory_finished_ = true;
   }
   // TODO(lennartalff): does trajectory_finished need to be a class member?
@@ -179,7 +216,7 @@ void SingleTrackerNode::Update() {
     target_position_ = target_positions_.at(target_index_);
     target_velocity_ = target_velocities_.at(target_index_);
     target_acceleration_ = target_accelerations_.at(target_index_);
-    UpdateTrajectories();
+    UpdateTrajectories(trajectory_params_.t_final);
 
     try {
       selected_trajectory_ = generators_.at(0);
@@ -188,11 +225,37 @@ void SingleTrackerNode::Update() {
       trajectory_finished_ = true;
       return;
     }
-    t_start_ = t_now;
+    t_start_section_ = t_now;
+    t_final_section_ =
+        t_start_section_ + rclcpp::Duration(std::chrono::milliseconds(
+                               int(trajectory_params_.t_final * 1000.0)));
   }
-  t = (t_now - t_start_).nanoseconds() * 1e-9;
+  double t_left = (t_final_section_ - t_now).nanoseconds() * 1e-9;
 
-  Eigen::Vector3d trajectory_axis = selected_trajectory_.GetNormalVector(t);
+  // only update the trajectory, if we assume that enough time is left to expect
+  // a feasible trajectory.
+  // TODO(lenanrtalff): better idea. try to update the trajectory nonetheless.
+  // if it won't yield a feasible solution, just continue with the old one for
+  // the time left after we passed the open_loop_threshold_time.
+  double t_trajectory;
+  if (trajectory_params_.continuous &&
+      (t_left > trajectory_params_.open_loop_threshold_time)) {
+    // compute new trajectory with the timespan left in this section
+    UpdateTrajectories(t_left);
+    try {
+      selected_trajectory_ = generators_.at(0);
+    } catch (const std::exception &e) {
+      RCLCPP_WARN_STREAM(get_logger(), e.what() << '\n');
+      trajectory_finished_ = true;
+      return;
+    }
+    t_trajectory = std::min(trajectory_params_.lookahead_time, t_left);
+  } else {
+    t_trajectory =
+        (t_final_section_ - t_start_section_).nanoseconds() * 1e-9 - t_left;
+  }
+  Eigen::Vector3d trajectory_axis =
+      selected_trajectory_.GetNormalVector(t_trajectory);
   Eigen::Vector3d unit_x = Eigen::Vector3d::UnitX();
   Eigen::Quaterniond q =
       hippo_common::tf2_utils::RotationBetweenNormalizedVectors(
@@ -202,7 +265,7 @@ void SingleTrackerNode::Update() {
   AttitudeTarget msg;
   msg.header.frame_id = "map";
   msg.header.stamp = t_now;
-  msg.thrust = selected_trajectory_.GetThrust(t);
+  msg.thrust = selected_trajectory_.GetThrust(t_trajectory);
   msg.mask = msg.IGNORE_RATES;
   hippo_common::convert::EigenToRos(rpy, msg.attitude);
   attitude_target_pub_->publish(msg);
@@ -210,16 +273,17 @@ void SingleTrackerNode::Update() {
   rviz_helper_->PublishTrajectory(selected_trajectory_);
   rviz_helper_->PublishTarget(target_position_);
   rviz_helper_->PublishStart(position_);
-  rviz_helper_->PublishHeading(selected_trajectory_.GetPosition(t), q);
+  rviz_helper_->PublishHeading(selected_trajectory_.GetPosition(t_trajectory),
+                               q);
 }
 
-void SingleTrackerNode::UpdateTrajectories() {
+void SingleTrackerNode::UpdateTrajectories(double _t_final) {
   std::vector<Eigen::Vector3d> target_positions{target_position_};
   std::vector<Eigen::Vector3d> target_velocities{target_velocity_};
   std::vector<Eigen::Vector3d> target_accelerations{target_acceleration_};
   DeleteTrajectories();
-  GenerateTrajectories(trajectory_params_.t_final, target_positions,
-                       target_velocities, target_accelerations);
+  GenerateTrajectories(_t_final, target_positions, target_velocities,
+                       target_accelerations);
 }
 
 void SingleTrackerNode::OnOdometry(const Odometry::SharedPtr _msg) {
@@ -231,6 +295,7 @@ void SingleTrackerNode::OnOdometry(const Odometry::SharedPtr _msg) {
     return;
   }
   hippo_common::convert::RosToEigen(_msg->pose.pose.position, position_);
+  auto v_last = velocity_;
   hippo_common::convert::RosToEigen(_msg->twist.twist.linear, velocity_);
 }
 
@@ -286,6 +351,15 @@ SingleTrackerNode::OnSetTrajectoryParams(
       result.reason = "Set timestep_min.";
       // nothing else to do but to assign the value;
       continue;
+    }
+    if (hippo_common::param_utils::AssignIfMatch(
+            parameter, "open_loop_threshold_time",
+            trajectory_params_.open_loop_threshold_time)) {
+      result.reason = "Set open_loop_threshold_time";
+    }
+    if (hippo_common::param_utils::AssignIfMatch(
+            parameter, "lookahead_time", trajectory_params_.lookahead_time)) {
+      result.reason = "Set lookahead_time.";
     }
     if (hippo_common::param_utils::AssignIfMatch(
             parameter, "min_wall_distance.x",
@@ -350,9 +424,9 @@ void SingleTrackerNode::GenerateTrajectories(
   RapidTrajectoryGenerator::StateFeasibilityResult position_feasibility;
 
   for (unsigned int i = 0; i < _target_positions.size(); ++i) {
-    RapidTrajectoryGenerator trajectory{
-        position_, velocity_, Eigen::Vector3d::Zero(), trajectory_params_.mass,
-        trajectory_params_.damping};
+    RapidTrajectoryGenerator trajectory{position_, velocity_, acceleration_,
+                                        trajectory_params_.mass,
+                                        trajectory_params_.damping};
     trajectory.SetGoalPosition(_target_positions[i]);
     trajectory.SetGoalVelocity(_target_velocities[i]);
     trajectory.SetGoalAcceleration(_target_accelerations[i]);
