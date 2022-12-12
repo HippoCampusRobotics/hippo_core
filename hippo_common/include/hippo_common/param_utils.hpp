@@ -33,6 +33,9 @@ bool AssignIfMatch(const rclcpp::Parameter &_param, const std::string &_name,
   return false;
 }
 
+bool AssignIfMatch(const rclcpp::Parameter &_param, const std::string &_name,
+                   double &_var, std::string &_log_text);
+
 /**
  * @brief Simplifying the construction a parameter descriptor.
  *

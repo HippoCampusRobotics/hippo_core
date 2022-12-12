@@ -3,6 +3,16 @@
 namespace hippo_common {
 namespace param_utils {
 
+bool AssignIfMatch(const rclcpp::Parameter &_param, const std::string &_name,
+                   double &_var, std::string &_log_text) {
+  if (_param.get_name() == _name) {
+    Assign(_param, _var);
+    _log_text = "Set [" + _name + "]=" + std::to_string(_var);
+    return true;
+  }
+  return false;
+}
+
 rcl_interfaces::msg::ParameterDescriptor Description(
     const std::string &_description, const bool &read_only) {
   rcl_interfaces::msg::ParameterDescriptor d;
