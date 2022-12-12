@@ -17,8 +17,9 @@ SingleTrackerNode::SingleTrackerNode()
   InitPublishers();
   InitSubscribers();
   DeclareParams();
-  t_start_section_ = t_final_section_ = now();
+  t_start_section_ = t_final_section_ = t_start_current_trajectory_ = now();
   t_last_odometry_ = now();
+
   // circular shape
   target_positions_ = {Eigen::Vector3d{0.5, 2.0, -1.0},
                        Eigen::Vector3d{1.5, 2.0, -1.0}};
@@ -50,6 +51,10 @@ void SingleTrackerNode::InitPublishers() {
 
   topic = "~/target_trajectory";
   target_trajectory_pub_ = create_publisher<TrajectoryStamped>(topic, qos);
+
+  topic = "~/target_pose";
+  target_pose_pub_ =
+      create_publisher<geometry_msgs::msg::PoseStamped>(topic, qos);
 }
 
 void SingleTrackerNode::InitSubscribers() {
@@ -63,6 +68,12 @@ void SingleTrackerNode::InitSubscribers() {
   topic = "~/setpoint";
   target_sub_ = create_subscription<TargetState>(
       topic, qos, std::bind(&SingleTrackerNode::OnTarget, this, _1));
+
+  topic = "acceleration";
+  linear_acceleration_sub_ =
+      create_subscription<geometry_msgs::msg::Vector3Stamped>(
+          topic, qos,
+          std::bind(&SingleTrackerNode::OnLinearAcceleration, this, _1));
 }
 
 void SingleTrackerNode::DeclareParams() {
@@ -225,6 +236,7 @@ void SingleTrackerNode::Update() {
       trajectory_finished_ = true;
       return;
     }
+    t_start_current_trajectory_ = t_now;
     t_start_section_ = t_now;
     t_final_section_ =
         t_start_section_ + rclcpp::Duration(std::chrono::milliseconds(
@@ -244,15 +256,14 @@ void SingleTrackerNode::Update() {
     UpdateTrajectories(t_left);
     try {
       selected_trajectory_ = generators_.at(0);
+      t_trajectory = std::min(trajectory_params_.lookahead_time, t_left);
+      t_start_current_trajectory_ = t_now;
     } catch (const std::exception &e) {
-      RCLCPP_WARN_STREAM(get_logger(), e.what() << '\n');
-      trajectory_finished_ = true;
-      return;
+      t_trajectory = (t_now - t_start_current_trajectory_).nanoseconds() * 1e-9;
     }
-    t_trajectory = std::min(trajectory_params_.lookahead_time, t_left);
+
   } else {
-    t_trajectory =
-        (t_final_section_ - t_start_section_).nanoseconds() * 1e-9 - t_left;
+    t_trajectory = (t_now - t_start_current_trajectory_).nanoseconds() * 1e-9;
   }
   Eigen::Vector3d trajectory_axis =
       selected_trajectory_.GetNormalVector(t_trajectory);
@@ -275,6 +286,12 @@ void SingleTrackerNode::Update() {
   rviz_helper_->PublishStart(position_);
   rviz_helper_->PublishHeading(selected_trajectory_.GetPosition(t_trajectory),
                                q);
+  geometry_msgs::msg::PoseStamped pose_msg;
+  pose_msg.header = msg.header;
+  hippo_common::convert::EigenToRos(q, pose_msg.pose.orientation);
+  hippo_common::convert::EigenToRos(
+      selected_trajectory_.GetPosition(t_trajectory), pose_msg.pose.position);
+  target_pose_pub_->publish(pose_msg);
 }
 
 void SingleTrackerNode::UpdateTrajectories(double _t_final) {
@@ -301,6 +318,11 @@ void SingleTrackerNode::OnOdometry(const Odometry::SharedPtr _msg) {
 
 void SingleTrackerNode::OnTarget(const TargetState::SharedPtr _msg) {
   // TODO(lennartalff): implement
+}
+
+void SingleTrackerNode::OnLinearAcceleration(
+    const geometry_msgs::msg::Vector3Stamped::ConstSharedPtr _msg) {
+  hippo_common::convert::RosToEigen(_msg->vector, acceleration_);
 }
 
 rcl_interfaces::msg::SetParametersResult
@@ -446,7 +468,6 @@ void SingleTrackerNode::GenerateTrajectories(
         trajectory_params_.body_rate_max, trajectory_params_.timestep_min);
     if (!(input_feasibility ==
           RapidTrajectoryGenerator::InputFeasibilityResult::InputFeasible)) {
-      RCLCPP_WARN(get_logger(), "Infeasible reason: %d", input_feasibility);
       continue;
     }
 
