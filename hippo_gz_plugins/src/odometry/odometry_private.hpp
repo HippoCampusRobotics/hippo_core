@@ -31,13 +31,18 @@ class PluginPrivate {
 
   void InitHeader();
   void InitComponents(ignition::gazebo::EntityComponentManager &_ecm);
-  std::string TopicName();
+  std::string OdometryTopicName();
+  std::string AccelerationTopicName();
+
+  void PublishAcceleration(const ignition::gazebo::EntityComponentManager &_ecm,
+                           const ignition::msgs::Time &_stamp);
 
   ignition::gazebo::Model model_{ignition::gazebo::kNullEntity};
   std::string model_name_ = "unknown_model_name";
   ignition::gazebo::Link link_{ignition::gazebo::kNullEntity};
   ignition::transport::Node node_;
-  ignition::transport::Node::Publisher publisher_;
+  ignition::transport::Node::Publisher odometry_pub_;
+  ignition::transport::Node::Publisher linear_acceleration_pub_;
   ignition::msgs::Odometry msg_;
 };
 }  // namespace odometry

@@ -1,3 +1,4 @@
+#include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <hippo_msgs/msg/actuator_controls.hpp>
 #include <hippo_msgs/msg/esc_rpms.hpp>
 #include <hippo_msgs/msg/thruster_forces.hpp>
@@ -28,12 +29,24 @@ class Bridge {
     CreateImuBridge();
     CreateThrusterBridge();
     CreateBarometerBridge();
+    CreateLinearAccelerationBridge();
+  }
+
+  void CreateLinearAccelerationBridge() {
+    std::string name;
+    name = node_topics->resolve_topic_name("acceleration");
+    linear_acceleration_pub_ =
+        ros_node_->create_publisher<geometry_msgs::msg::Vector3Stamped>(
+            name, rclcpp::SystemDefaultsQoS());
+    gz_node_->Subscribe(name, &Bridge::OnLinearAcceleration, this);
   }
 
   void CreateBarometerBridge() {
     std::string name;
     name = node_topics->resolve_topic_name("pressure");
-    pressure_pub_ = ros_node_->create_publisher<sensor_msgs::msg::FluidPressure>(name, rclcpp::SystemDefaultsQoS());
+    pressure_pub_ =
+        ros_node_->create_publisher<sensor_msgs::msg::FluidPressure>(
+            name, rclcpp::SystemDefaultsQoS());
     gz_node_->Subscribe(name, &Bridge::OnPressure, this);
   }
 
@@ -96,6 +109,13 @@ class Bridge {
     thrust_sub_ = ros_node_->create_subscription<ActuatorControls>(
         "thruster_command", qos,
         std::bind(&Bridge::OnThrusterCommand, this, _1));
+  }
+
+  void OnLinearAcceleration(const gz_msgs::Vector3d &_msg) {
+    geometry_msgs::msg::Vector3Stamped ros_msg;
+    ros_gz_bridge::convert_gz_to_ros(_msg, ros_msg.vector);
+    ros_gz_bridge::convert_gz_to_ros(_msg.header(), ros_msg.header);
+    linear_acceleration_pub_->publish(ros_msg);
   }
 
   void OnPressure(const gz_msgs::FluidPressure &_msg) {
@@ -182,6 +202,8 @@ class Bridge {
   rclcpp::Publisher<Odometry>::SharedPtr odometry_pub_;
   rclcpp::Publisher<ThrusterForces>::SharedPtr thruster_forces_pub_;
   rclcpp::Publisher<sensor_msgs::msg::FluidPressure>::SharedPtr pressure_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
+      linear_acceleration_pub_;
   std::map<int, transport::Node::Publisher> throttle_cmd_pubs_;
   rclcpp::Publisher<EscRpms>::SharedPtr rpm_pub_;
   rclcpp::Subscription<ActuatorControls>::SharedPtr thrust_sub_;
