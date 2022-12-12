@@ -19,13 +19,20 @@ class PluginPrivate {
                const ignition::msgs::Time &stamp);
   void Advertise();
 
+  void PublishAngularVelocity(
+      const ignition::gazebo::EntityComponentManager &_ecm,
+      const std::chrono::steady_clock::duration &_sim_time);
+
   std::chrono::steady_clock::duration update_period_{0};
+  std::chrono::steady_clock::duration angular_velocity_update_period_{0};
   std::chrono::steady_clock::duration last_pub_time_{0};
+  std::chrono::steady_clock::duration last_angular_velocity_pub_time_{0};
 
  private:
   struct SdfParams {
     std::string link{"base_link"};
     double update_rate{10.0};
+    double angular_velocity_update_rate{250.0};
     std::string base_topic{"odometry"};
   } sdf_params_;
 
@@ -33,6 +40,7 @@ class PluginPrivate {
   void InitComponents(ignition::gazebo::EntityComponentManager &_ecm);
   std::string OdometryTopicName();
   std::string AccelerationTopicName();
+  std::string AngularVelocityTopicName();
 
   void PublishAcceleration(const ignition::gazebo::EntityComponentManager &_ecm,
                            const ignition::msgs::Time &_stamp);
@@ -43,6 +51,7 @@ class PluginPrivate {
   ignition::transport::Node node_;
   ignition::transport::Node::Publisher odometry_pub_;
   ignition::transport::Node::Publisher linear_acceleration_pub_;
+  ignition::transport::Node::Publisher angular_velocity_pub_;
   ignition::msgs::Odometry msg_;
 };
 }  // namespace odometry

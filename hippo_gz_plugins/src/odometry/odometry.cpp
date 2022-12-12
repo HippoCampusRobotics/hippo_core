@@ -29,6 +29,8 @@ void Plugin::PostUpdate(const ignition::gazebo::UpdateInfo &_info,
     return;
   }
 
+  private_->PublishAngularVelocity(_ecm, _info.simTime);
+
   auto dt = _info.simTime - private_->last_pub_time_;
   if ((dt > std::chrono::steady_clock::duration::zero()) &&
       (dt < private_->update_period_)) {

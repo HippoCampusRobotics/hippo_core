@@ -1,5 +1,6 @@
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <hippo_msgs/msg/actuator_controls.hpp>
+#include <hippo_msgs/msg/angular_velocity.hpp>
 #include <hippo_msgs/msg/esc_rpms.hpp>
 #include <hippo_msgs/msg/thruster_forces.hpp>
 #include <ignition/transport/Node.hh>
@@ -30,6 +31,16 @@ class Bridge {
     CreateThrusterBridge();
     CreateBarometerBridge();
     CreateLinearAccelerationBridge();
+    CreateAngularVelocityBridge();
+  }
+
+  void CreateAngularVelocityBridge() {
+    std::string name;
+    name = node_topics->resolve_topic_name("angular_velocity");
+    angular_velocity_pub_ =
+        ros_node_->create_publisher<hippo_msgs::msg::AngularVelocity>(
+            name, rclcpp::SystemDefaultsQoS());
+    gz_node_->Subscribe(name, &Bridge::OnAngularVelocity, this);
   }
 
   void CreateLinearAccelerationBridge() {
@@ -109,6 +120,18 @@ class Bridge {
     thrust_sub_ = ros_node_->create_subscription<ActuatorControls>(
         "thruster_command", qos,
         std::bind(&Bridge::OnThrusterCommand, this, _1));
+  }
+
+  void OnAngularVelocity(const gz_msgs::Twist &_msg) {
+    hippo_msgs::msg::AngularVelocity ros_msg;
+    ros_msg.header.stamp = ros_node_->now();
+    ros_msg.body_rates[0] = _msg.angular().x();
+    ros_msg.body_rates[1] = _msg.angular().y();
+    ros_msg.body_rates[2] = _msg.angular().z();
+    ros_msg.body_rates_derivative[0] = _msg.linear().x();
+    ros_msg.body_rates_derivative[1] = _msg.linear().y();
+    ros_msg.body_rates_derivative[2] = _msg.linear().z();
+    angular_velocity_pub_->publish(ros_msg);
   }
 
   void OnLinearAcceleration(const gz_msgs::Vector3d &_msg) {
@@ -204,6 +227,9 @@ class Bridge {
   rclcpp::Publisher<sensor_msgs::msg::FluidPressure>::SharedPtr pressure_pub_;
   rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
       linear_acceleration_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::AngularVelocity>::SharedPtr
+      angular_velocity_pub_;
+
   std::map<int, transport::Node::Publisher> throttle_cmd_pubs_;
   rclcpp::Publisher<EscRpms>::SharedPtr rpm_pub_;
   rclcpp::Subscription<ActuatorControls>::SharedPtr thrust_sub_;

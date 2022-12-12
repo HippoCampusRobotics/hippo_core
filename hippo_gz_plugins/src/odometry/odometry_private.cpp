@@ -1,18 +1,33 @@
 #include "odometry_private.hpp"
 
+#include <ignition/gazebo/Conversions.hh>
+#include <ignition/gazebo/components/AngularAcceleration.hh>
 #include <ignition/gazebo/components/LinearAcceleration.hh>
 
 namespace odometry {
 
 void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf) {
   sdf_params_.link = _sdf->Get<std::string>("link", sdf_params_.link).first;
+
   sdf_params_.base_topic =
       _sdf->Get<std::string>("base_topic", sdf_params_.base_topic).first;
+
   sdf_params_.update_rate =
       _sdf->Get<double>("update_rate", sdf_params_.update_rate).first;
   if (sdf_params_.update_rate > 0.0) {
     std::chrono::duration<double> period{1.0 / sdf_params_.update_rate};
     update_period_ =
+        std::chrono::duration_cast<std::chrono::steady_clock::duration>(period);
+  }
+
+  sdf_params_.angular_velocity_update_rate =
+      _sdf->Get<double>("angular_velocity_update_rate",
+                        sdf_params_.angular_velocity_update_rate)
+          .first;
+  if (sdf_params_.update_rate > 0.0) {
+    std::chrono::duration<double> period{
+        1.0 / sdf_params_.angular_velocity_update_rate};
+    angular_velocity_update_period_ =
         std::chrono::duration_cast<std::chrono::steady_clock::duration>(period);
   }
 }
@@ -70,11 +85,44 @@ void PluginPrivate::PublishAcceleration(
   linear_acceleration_pub_.Publish(msg);
 }
 
+void PluginPrivate::PublishAngularVelocity(
+    const ignition::gazebo::EntityComponentManager &_ecm,
+    const std::chrono::steady_clock::duration &_sim_time) {
+  auto dt = _sim_time - last_angular_velocity_pub_time_;
+  if (dt > std::chrono::steady_clock::duration::zero() &&
+      dt < angular_velocity_update_period_) {
+    return;
+  }
+  last_angular_velocity_pub_time_ = _sim_time;
+  
+  ignition::msgs::Twist msg;
+
+  auto header = msg.mutable_header();
+  auto stamp = ignition::gazebo::convert<ignition::msgs::Time>(_sim_time);
+  header->mutable_stamp()->CopyFrom(stamp);
+  auto frame = header->add_data();
+  frame->set_key("frame_id");
+  frame->add_value(model_name_ + "/base_link");
+
+  auto pose = link_.WorldPose(_ecm);
+  auto angular_velocity = link_.WorldAngularVelocity(_ecm);
+  auto angular_velocity_local =
+      pose->Rot().Inverse().RotateVector(*angular_velocity);
+  auto angular_acceleration = link_.WorldAngularAcceleration(_ecm);
+  auto angular_acceleration_local =
+      pose->Rot().Inverse().RotateVector(*angular_acceleration);
+  ignition::msgs::Set(msg.mutable_angular(), angular_velocity_local);
+  ignition::msgs::Set(msg.mutable_linear(), angular_acceleration_local);
+  angular_velocity_pub_.Publish(msg);
+}
+
 void PluginPrivate::Advertise() {
   odometry_pub_ =
       node_.Advertise<ignition::msgs::Odometry>(OdometryTopicName());
   linear_acceleration_pub_ =
       node_.Advertise<ignition::msgs::Vector3d>(AccelerationTopicName());
+  angular_velocity_pub_ =
+      node_.Advertise<ignition::msgs::Twist>(AngularVelocityTopicName());
 }
 
 std::string PluginPrivate::OdometryTopicName() {
@@ -83,6 +131,10 @@ std::string PluginPrivate::OdometryTopicName() {
 
 std::string PluginPrivate::AccelerationTopicName() {
   return "/" + model_name_ + "/acceleration";
+}
+
+std::string PluginPrivate::AngularVelocityTopicName() {
+  return "/" + model_name_ + "/angular_velocity";
 }
 
 void PluginPrivate::InitHeader() {
@@ -124,5 +176,12 @@ void PluginPrivate::InitComponents(
                          ignition::gazebo::components::LinearAcceleration());
   }
   link_.EnableAccelerationChecks(_ecm, true);
+
+  // create component for angular acceleration
+  if (!_ecm.Component<ignition::gazebo::components::AngularAcceleration>(
+          link_.Entity())) {
+    _ecm.CreateComponent(link_.Entity(),
+                         ignition::gazebo::components::AngularAcceleration());
+  }
 }
 }  // namespace odometry
