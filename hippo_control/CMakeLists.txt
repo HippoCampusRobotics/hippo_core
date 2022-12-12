@@ -14,6 +14,7 @@ add_compile_options(${CXX_FLAGS})
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(hippo_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -42,6 +43,57 @@ install(TARGETS ${lib_name}
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
   INCLUDES DESTINATION include
+)
+
+
+################################################################################
+# rate_control library
+################################################################################
+set(lib_name rate_control)
+add_library(${lib_name} src/rate_control/rate_control.cpp)
+target_include_directories(${lib_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${lib_name} rclcpp Eigen3)
+ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
+ament_export_dependencies(rclcpp Eigen3)
+
+install(TARGETS ${lib_name}
+  EXPORT ${lib_name}Target
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
+
+################################################################################
+# rate_control component
+################################################################################
+set(component_name rate_controller)
+add_library(${component_name}
+  SHARED
+  src/rate_control/rate_controller.cpp
+)
+target_link_libraries(${component_name} rate_control)
+target_include_directories(${component_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${component_name}
+  rclcpp
+  rclcpp_components
+  hippo_common
+  geometry_msgs
+)
+rclcpp_components_register_node(${component_name} PLUGIN "hippo_control::rate_control::RateController" EXECUTABLE ${component_name}_node)
+install(TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
 ################################################################################

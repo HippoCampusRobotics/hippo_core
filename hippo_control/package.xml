@@ -21,6 +21,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
   <depend>hippo_msgs</depend>
   <depend>hippo_common</depend>
   <depend>eigen</depend>
