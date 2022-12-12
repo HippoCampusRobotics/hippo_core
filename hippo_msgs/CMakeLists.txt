@@ -21,6 +21,7 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ActuatorControls.msg"
+  "msg/AngularVelocity.msg"
   "msg/AttitudeTarget.msg"
   "msg/EscRpms.msg"
   "msg/EscVoltages.msg"
@@ -28,6 +29,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/EstimatorSensorBias.msg"
   "msg/EstimatorState.msg"
   "msg/Float64Stamped.msg"
+  "msg/RatesTarget.msg"
   "msg/ThrusterForces.msg"
   DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
 )
