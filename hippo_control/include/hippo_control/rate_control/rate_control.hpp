@@ -24,6 +24,8 @@ class Controller {
   void SetYawFeedForwardGain(double _gain) { feed_forward_gain_.z() = _gain; }
   void SetYawIntegralLimit(double _limit) { integral_limit_.z() = _limit; }
 
+  void SetZeroIntegralThreshold(double _v) { zero_integral_threshold_ = _v; }
+
   void ResetIntegral() { integral_.setZero(); }
 
   Eigen::Vector3d Update(const Eigen::Vector3d &_rate,
@@ -38,9 +40,9 @@ class Controller {
   Eigen::Vector3d d_gain_;
   Eigen::Vector3d integral_limit_;
   Eigen::Vector3d feed_forward_gain_;
+  double zero_integral_threshold_;
 
   Eigen::Vector3d integral_;
-  double zero_integral_threshold_;
 };
 }  // namespace rate_control
 }  // namespace hippo_control

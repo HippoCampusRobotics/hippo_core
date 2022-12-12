@@ -19,6 +19,7 @@ find_package(hippo_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 include_directories(
   include
@@ -75,6 +76,7 @@ set(component_name rate_controller)
 add_library(${component_name}
   SHARED
   src/rate_control/rate_controller.cpp
+  src/rate_control/rate_controller_params.cpp
 )
 target_link_libraries(${component_name} rate_control)
 target_include_directories(${component_name}
@@ -86,6 +88,7 @@ ament_target_dependencies(${component_name}
   rclcpp
   rclcpp_components
   hippo_common
+  hippo_msgs
   geometry_msgs
 )
 rclcpp_components_register_node(${component_name} PLUGIN "hippo_control::rate_control::RateController" EXECUTABLE ${component_name}_node)

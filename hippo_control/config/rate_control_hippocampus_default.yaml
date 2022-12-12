@@ -1,0 +1,24 @@
+/**: # wildcard for the node name
+  ros__parameters:
+    feedthrough: false
+    gains:
+      roll:
+        p: 0.5
+        i: 0.5
+        d: 0.001
+        feed_forward: 0.0
+      pitch:
+        p: 0.5
+        i: 0.5
+        d: 0.001
+        feed_forward: 0.0
+      yaw:
+        p: 0.5
+        i: 0.5
+        d: 0.001
+        feed_forward: 0.0
+    integral_limits:
+      roll: 0.5
+      pitch: 0.5
+      yaw: 0.5
+    zero_integral_treshold: 2.0
