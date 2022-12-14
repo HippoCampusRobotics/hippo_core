@@ -9,6 +9,6 @@
     <xacro:property name="torque_constant" value="1e-2" />
     <xacro:property name="rpm_scaler" value="1" />
     <xacro:property name="max_rpm" value="3000" />
-    <xacro:property name="timeconstant_up" value="0.05" />
-    <xacro:property name="timeconstant_down" value="0.05" />
+    <xacro:property name="timeconstant_up" value="0.00" />
+    <xacro:property name="timeconstant_down" value="0.00" />
 </robot>
