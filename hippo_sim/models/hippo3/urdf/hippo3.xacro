@@ -125,7 +125,7 @@
         <plugin filename="buoyancy" name="hippo_gz_plugins::buoyancy">
             <buoyancy>
                 <link_name>base_link</link_name>
-                <origin>0 0 0.000</origin>
+                <origin>0 0 0.01</origin>
                 <force_added>0</force_added>
                 <compensation>1.01</compensation>
                 <height_scale_limit>0.1</height_scale_limit>
