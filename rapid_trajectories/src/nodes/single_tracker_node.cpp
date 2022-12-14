@@ -6,6 +6,9 @@
 namespace rapid_trajectories {
 namespace single_tracking {
 
+static constexpr int kUpdatePeriodMs = 20;
+static constexpr int kTrajectoryGenerationPeriodMs = 20;
+
 SingleTrackerNode::SingleTrackerNode()
     : Node("single_tracker"),
       selected_trajectory_(target_position_, target_velocity_,
@@ -24,7 +27,7 @@ SingleTrackerNode::SingleTrackerNode()
   target_positions_ = {Eigen::Vector3d{0.5, 2.0, -1.0},
                        Eigen::Vector3d{1.5, 2.0, -1.0}};
   target_velocities_ = {Eigen::Vector3d{0.0, 0.5, 0.0},
-                        Eigen::Vector3d{0.0, -0.5, 0.0}};
+                        Eigen::Vector3d{0.0, -0.25, 0.0}};
   target_accelerations_ = {Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()};
 
   // s-curve shape
@@ -40,7 +43,8 @@ SingleTrackerNode::SingleTrackerNode()
   //     Eigen::Vector3d{0.0, 0.0, 0.0}, Eigen::Vector3d{0.0, 0.0, 0.0}};
 
   update_timer_ =
-      create_wall_timer(20ms, std::bind(&SingleTrackerNode::Update, this));
+      create_wall_timer(std::chrono::milliseconds(kUpdatePeriodMs),
+                        std::bind(&SingleTrackerNode::Update, this));
 }
 void SingleTrackerNode::InitPublishers() {
   std::string topic;
@@ -55,6 +59,14 @@ void SingleTrackerNode::InitPublishers() {
   topic = "~/target_pose";
   target_pose_pub_ =
       create_publisher<geometry_msgs::msg::PoseStamped>(topic, qos);
+
+  topic = "rates_setpoint";
+  rates_target_pub_ =
+      create_publisher<hippo_msgs::msg::RatesTarget>(topic, qos);
+
+  topic = "thrust_setpoint";
+  thrust_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(
+      topic, rclcpp::SensorDataQoS());
 }
 
 void SingleTrackerNode::InitSubscribers() {
@@ -209,62 +221,84 @@ void SingleTrackerNode::DeclareParams() {
       std::bind(&SingleTrackerNode::OnSetTrajectoryParams, this, _1));
 }
 
+bool SingleTrackerNode::ShouldGenerateNewTrajectory(
+    const rclcpp::Time &_t_now) {
+  if (section_finished_) {
+    return true;
+  }
+  if (!trajectory_params_.continuous) {
+    if (_t_now > t_final_section_) {
+      return true;
+    }
+    return false;
+  }
+
+  // we are in continuous mode.
+  double dt_since_start = TimeOnTrajectory(_t_now);
+  if (TimeOnSectionLeft(_t_now) < trajectory_params_.open_loop_threshold_time) {
+    return false;
+  }
+  if ((dt_since_start > kTrajectoryGenerationPeriodMs * 1e-3)) {
+    return true;
+  }
+  return false;
+}
+
+bool SingleTrackerNode::SectionFinished(const rclcpp::Time &_t_now) {
+  section_finished_ = _t_now > t_final_section_;
+  return section_finished_;
+}
+
+void SingleTrackerNode::SwitchToNextTarget() {
+  ++target_index_;
+  if (target_index_ >= target_positions_.size()) {
+    target_index_ = 0;
+  }
+  target_position_ = target_positions_.at(target_index_);
+  target_velocity_ = target_velocities_.at(target_index_);
+  target_acceleration_ = target_accelerations_.at(target_index_);
+}
+
+void SingleTrackerNode::SwitchToPreviousTarget() {
+  if (target_index_ == 0) {
+    target_index_ = target_positions_.size() - 1;
+  } else {
+    --target_index_;
+  }
+  target_position_ = target_positions_.at(target_index_);
+  target_velocity_ = target_velocities_.at(target_index_);
+  target_acceleration_ = target_accelerations_.at(target_index_);
+}
+
 void SingleTrackerNode::Update() {
   static int update_counter = 0;
   update_counter++;
   rclcpp::Time t_now = now();
-  double t_since_start = (t_now - t_start_section_).nanoseconds() * 1e-9;
-  if (t_now >= t_final_section_) {
-    trajectory_finished_ = true;
-  }
-  // TODO(lennartalff): does trajectory_finished need to be a class member?
-  if (trajectory_finished_) {
-    trajectory_finished_ = false;
-    target_index_ =
-        (target_index_ + 1 >= target_positions_.size()) ? 0 : target_index_ + 1;
-    RCLCPP_INFO_STREAM(get_logger(), "Switching to next target: "
-                                         << std::to_string(target_index_));
-    target_position_ = target_positions_.at(target_index_);
-    target_velocity_ = target_velocities_.at(target_index_);
-    target_acceleration_ = target_accelerations_.at(target_index_);
-    UpdateTrajectories(trajectory_params_.t_final);
 
-    try {
-      selected_trajectory_ = generators_.at(0);
-    } catch (const std::exception &e) {
-      RCLCPP_WARN_STREAM(get_logger(), e.what() << '\n');
-      trajectory_finished_ = true;
+  if (SectionFinished(t_now)) {
+    section_finished_ = false;
+    SwitchToNextTarget();
+    if (!UpdateTrajectories(trajectory_params_.t_final, t_now)) {
+      RCLCPP_WARN(get_logger(),
+                  "Section finished, but no valid next trajectory.");
+      SwitchToPreviousTarget();
       return;
     }
-    t_start_current_trajectory_ = t_now;
     t_start_section_ = t_now;
-    t_final_section_ =
-        t_start_section_ + rclcpp::Duration(std::chrono::milliseconds(
-                               int(trajectory_params_.t_final * 1000.0)));
-  }
-  double t_left = (t_final_section_ - t_now).nanoseconds() * 1e-9;
+    std::chrono::milliseconds duration((int)(trajectory_params_.t_final * 1e3));
+    t_final_section_ = t_start_section_ + rclcpp::Duration(duration);
 
-  // only update the trajectory, if we assume that enough time is left to expect
-  // a feasible trajectory.
-  // TODO(lenanrtalff): better idea. try to update the trajectory nonetheless.
-  // if it won't yield a feasible solution, just continue with the old one for
-  // the time left after we passed the open_loop_threshold_time.
-  double t_trajectory;
-  if (trajectory_params_.continuous &&
-      (t_left > trajectory_params_.open_loop_threshold_time)) {
-    // compute new trajectory with the timespan left in this section
-    UpdateTrajectories(t_left);
-    try {
-      selected_trajectory_ = generators_.at(0);
-      t_trajectory = std::min(trajectory_params_.lookahead_time, t_left);
-      t_start_current_trajectory_ = t_now;
-    } catch (const std::exception &e) {
-      t_trajectory = (t_now - t_start_current_trajectory_).nanoseconds() * 1e-9;
-    }
-
-  } else {
-    t_trajectory = (t_now - t_start_current_trajectory_).nanoseconds() * 1e-9;
+    double t_trajectory = TimeOnTrajectory(t_now);
+    PublishControlInput(t_trajectory, t_now);
+    return;
   }
+
+  if (ShouldGenerateNewTrajectory(t_now)) {
+    UpdateTrajectories(TimeOnSectionLeft(t_now), t_now);
+  }
+  double t_trajectory = TimeOnTrajectory(t_now);
+  PublishControlInput(t_trajectory, t_now);
+
   Eigen::Vector3d trajectory_axis =
       selected_trajectory_.GetNormalVector(t_trajectory);
   Eigen::Vector3d unit_x = Eigen::Vector3d::UnitX();
@@ -273,13 +307,13 @@ void SingleTrackerNode::Update() {
           unit_x, trajectory_axis);
   Eigen::Vector3d rpy = hippo_common::tf2_utils::QuaternionToEuler(q);
 
-  AttitudeTarget msg;
-  msg.header.frame_id = "map";
-  msg.header.stamp = t_now;
-  msg.thrust = selected_trajectory_.GetThrust(t_trajectory);
-  msg.mask = msg.IGNORE_RATES;
-  hippo_common::convert::EigenToRos(rpy, msg.attitude);
-  attitude_target_pub_->publish(msg);
+  AttitudeTarget attitude_target_msg;
+  attitude_target_msg.header.frame_id = "map";
+  attitude_target_msg.header.stamp = t_now;
+  attitude_target_msg.thrust = selected_trajectory_.GetThrust(t_trajectory);
+  attitude_target_msg.mask = attitude_target_msg.IGNORE_RATES;
+  hippo_common::convert::EigenToRos(rpy, attitude_target_msg.attitude);
+  attitude_target_pub_->publish(attitude_target_msg);
 
   rviz_helper_->PublishTrajectory(selected_trajectory_);
   rviz_helper_->PublishTarget(target_position_);
@@ -287,20 +321,45 @@ void SingleTrackerNode::Update() {
   rviz_helper_->PublishHeading(selected_trajectory_.GetPosition(t_trajectory),
                                q);
   geometry_msgs::msg::PoseStamped pose_msg;
-  pose_msg.header = msg.header;
+  pose_msg.header = attitude_target_msg.header;
   hippo_common::convert::EigenToRos(q, pose_msg.pose.orientation);
   hippo_common::convert::EigenToRos(
       selected_trajectory_.GetPosition(t_trajectory), pose_msg.pose.position);
   target_pose_pub_->publish(pose_msg);
 }
 
-void SingleTrackerNode::UpdateTrajectories(double _t_final) {
+void SingleTrackerNode::PublishControlInput(double _t_trajectory,
+                                            const rclcpp::Time &_t_now) {
+  hippo_msgs::msg::RatesTarget rates_target_msg;
+  rates_target_msg.header.stamp = _t_now;
+  Eigen::Vector3d rates_world =
+      selected_trajectory_.GetOmega(_t_trajectory, kUpdatePeriodMs * 1e-3);
+  Eigen::Vector3d rates_local = orientation_.inverse() * rates_world;
+  rates_target_msg.roll = rates_local.x();
+  rates_target_msg.pitch = rates_local.y();
+  rates_target_msg.yaw = rates_local.z();
+  rates_target_pub_->publish(rates_target_msg);
+
+  hippo_msgs::msg::ActuatorSetpoint thrust_msg;
+  thrust_msg.header.stamp = _t_now;
+  thrust_msg.x = selected_trajectory_.GetThrust(_t_trajectory);
+  thrust_pub_->publish(thrust_msg);
+}
+
+bool SingleTrackerNode::UpdateTrajectories(double _duration,
+                                           const rclcpp::Time &_t_now) {
   std::vector<Eigen::Vector3d> target_positions{target_position_};
   std::vector<Eigen::Vector3d> target_velocities{target_velocity_};
   std::vector<Eigen::Vector3d> target_accelerations{target_acceleration_};
   DeleteTrajectories();
-  GenerateTrajectories(_t_final, target_positions, target_velocities,
+  GenerateTrajectories(_duration, target_positions, target_velocities,
                        target_accelerations);
+  if (!generators_.empty()) {
+    selected_trajectory_ = generators_.at(0);
+    t_start_current_trajectory_ = _t_now;
+    return true;
+  }
+  return false;
 }
 
 void SingleTrackerNode::OnOdometry(const Odometry::SharedPtr _msg) {
@@ -312,8 +371,8 @@ void SingleTrackerNode::OnOdometry(const Odometry::SharedPtr _msg) {
     return;
   }
   hippo_common::convert::RosToEigen(_msg->pose.pose.position, position_);
-  auto v_last = velocity_;
   hippo_common::convert::RosToEigen(_msg->twist.twist.linear, velocity_);
+  hippo_common::convert::RosToEigen(_msg->pose.pose.orientation, orientation_);
 }
 
 void SingleTrackerNode::OnTarget(const TargetState::SharedPtr _msg) {
@@ -468,6 +527,7 @@ void SingleTrackerNode::GenerateTrajectories(
         trajectory_params_.body_rate_max, trajectory_params_.timestep_min);
     if (!(input_feasibility ==
           RapidTrajectoryGenerator::InputFeasibilityResult::InputFeasible)) {
+      RCLCPP_INFO(get_logger(), "Infeasible: %d", input_feasibility);
       continue;
     }
 

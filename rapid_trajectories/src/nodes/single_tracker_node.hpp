@@ -4,7 +4,9 @@
 #include <geometry_msgs/msg/quaternion_stamped.hpp>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <hippo_common/param_utils.hpp>
+#include <hippo_msgs/msg/actuator_setpoint.hpp>
 #include <hippo_msgs/msg/attitude_target.hpp>
+#include <hippo_msgs/msg/rates_target.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rapid_trajectories/rviz_helper.hpp>
 #include <rapid_trajectories/trajectory_generator/generator.hpp>
@@ -37,7 +39,7 @@ class SingleTrackerNode : public rclcpp::Node {
     double t_final{10.0};
     double timestep_min{0.02};
     bool continuous{false};
-    double open_loop_threshold_time{0.0};
+    double open_loop_threshold_time{0.5};
     double lookahead_time{0.02};
     struct WallDistance {
       double x{0.3};
@@ -47,13 +49,24 @@ class SingleTrackerNode : public rclcpp::Node {
   } trajectory_params_;
 
  private:
+  inline double TimeOnTrajectory(const rclcpp::Time &_t_now) {
+    return (_t_now - t_start_current_trajectory_).nanoseconds() * 1e-9;
+  }
+  inline double TimeOnSectionLeft(const rclcpp::Time &_t_now) {
+    return (t_final_section_ - _t_now).nanoseconds() * 1e-9;
+  }
   void InitPublishers();
   void InitSubscribers();
   void DeclareParams();
   void Update();
-  void UpdateTrajectories(double _t_final);
+  bool UpdateTrajectories(double _duration, const rclcpp::Time &_t_now);
+  void PublishControlInput(double _t_trajectory, const rclcpp::Time &_t_now);
   void OnOdometry(const Odometry::SharedPtr _msg);
   void OnTarget(const TargetState::SharedPtr _msg);
+  bool ShouldGenerateNewTrajectory(const rclcpp::Time &t_now);
+  bool SectionFinished(const rclcpp::Time &t_now);
+  void SwitchToNextTarget();
+  void SwitchToPreviousTarget();
   void OnLinearAcceleration(
       const geometry_msgs::msg::Vector3Stamped::ConstSharedPtr _msg);
   RapidTrajectoryGenerator::StateFeasibilityResult CheckWallCollision(
@@ -76,6 +89,8 @@ class SingleTrackerNode : public rclcpp::Node {
   rclcpp::Publisher<TrajectoryStamped>::SharedPtr target_trajectory_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
       target_pose_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::RatesTarget>::SharedPtr rates_target_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr thrust_pub_;
 
   //////////////////////////////////////////////////////////////////////////////
   // subscriptions
@@ -91,6 +106,7 @@ class SingleTrackerNode : public rclcpp::Node {
   Eigen::Vector3d position_{0.0, 0.0, 0.0};
   Eigen::Vector3d velocity_{0.0, 0.0, 0.0};
   Eigen::Vector3d acceleration_{0.0, 0.0, 0.0};
+  Eigen::Quaterniond orientation_{1.0, 0.0, 0.0, 0.0};
   rclcpp::Time t_last_odometry_;
 
   OnSetParametersCallbackHandle::SharedPtr trajectory_params_cb_handle_;
@@ -100,7 +116,7 @@ class SingleTrackerNode : public rclcpp::Node {
   rclcpp::Time t_start_section_;
   rclcpp::Time t_final_section_;
   rclcpp::Time t_start_current_trajectory_;
-  bool trajectory_finished_{true};
+  bool section_finished_{true};
   std::vector<Eigen::Vector3d>::size_type target_index_;
   std::vector<Eigen::Vector3d> target_positions_;
   std::vector<Eigen::Vector3d> target_velocities_;

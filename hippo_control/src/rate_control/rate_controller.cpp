@@ -7,10 +7,10 @@ RateController::RateController(rclcpp::NodeOptions const &_options)
     : Node("rate_controller", _options) {
   DeclareParams();
   InitController();
-  t_last_update_ = now();
+  t_last_update_ = t_last_setpoint_ = now();
 
-  actuator_controls_pub_ = create_publisher<hippo_msgs::msg::ActuatorControls>(
-      "actuator_control", rclcpp::SystemDefaultsQoS());
+  torque_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(
+      "torque_setpoint", rclcpp::SensorDataQoS());
 
   rclcpp::SensorDataQoS qos;
 
@@ -68,19 +68,30 @@ void RateController::OnAngularVelocity(
   double dt = (t_now - t_last_update_).nanoseconds() * 1e-9;
   dt = std::clamp(dt, 1e-3, 0.02);
   t_last_update_ = t_now;
-  Eigen::Vector3d u_rpy = controller_.Update(
-      angular_velocity, body_rates_setpoint_, angular_acceleration, dt);
 
-  hippo_msgs::msg::ActuatorControls msg;
+  hippo_msgs::msg::ActuatorSetpoint msg;
   msg.header.stamp = t_now;
-  msg.control[msg.INDEX_ROLL] = u_rpy.x();
-  msg.control[msg.INDEX_PITCH] = u_rpy.y();
-  msg.control[msg.INDEX_YAW] = u_rpy.z();
-  actuator_controls_pub_->publish(msg);
+
+  double dt_setpoint = (t_now - t_last_setpoint_).nanoseconds() * 1e-9;
+  if (dt_setpoint > 0.3) {
+    controller_.ResetIntegral();
+    msg.x = 0;
+    msg.y = 0;
+    msg.z = 0;
+  } else {
+    Eigen::Vector3d u_rpy = controller_.Update(
+        angular_velocity, body_rates_setpoint_, angular_acceleration, dt);
+
+    msg.x = u_rpy.x();
+    msg.y = u_rpy.y();
+    msg.z = u_rpy.z();
+  }
+  torque_pub_->publish(msg);
 }
 
 void RateController::OnRatesSetpoint(
     hippo_msgs::msg::RatesTarget::ConstSharedPtr _msg) {
+  t_last_setpoint_ = now();
   body_rates_setpoint_.x() = _msg->roll;
   body_rates_setpoint_.y() = _msg->pitch;
   body_rates_setpoint_.z() = _msg->yaw;

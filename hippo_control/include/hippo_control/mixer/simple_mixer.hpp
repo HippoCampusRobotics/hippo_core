@@ -4,25 +4,25 @@
 
 namespace hippo_control {
 namespace mixer {
-static constexpr int kChannels = 8;
-enum class Channel {
-  kRoll,
-  kPitch,
-  kYaw,
-  kThrust,
-  kVerticalThrust,
-  kLateralThrust,
-  kMaxChannel,
-};
+static constexpr int kOutputChannels = 8;
+namespace InputChannels {
+static constexpr int kTorqueX = 0;
+static constexpr int kTorqueY = 1;
+static constexpr int kTorqueZ = 2;
+static constexpr int kThrustX = 3;
+static constexpr int kThrustY = 4;
+static constexpr int kThrustZ = 5;
+static constexpr int kCount = 6;
+}  // namespace InputChannels
 
 struct Mapping {
-  std::array<double, kChannels> limits{};
-  std::array<double, kChannels> scalings{};
+  std::array<double, InputChannels::kCount> limits{};
+  std::array<double, InputChannels::kCount> scalings{};
 };
 
 struct Output {
   double total = 0.0;
-  std::array<double, kChannels> channels{};
+  std::array<double, kOutputChannels> channels{};
 };
 
 class SimpleMixer {
@@ -38,16 +38,18 @@ class SimpleMixer {
   void SetMaxRotationsPerSecond(double _v) { max_rotations_per_second_ = _v; }
   double MaxRotationsPerSecond() const { return max_rotations_per_second_; }
 
-  std::array<double, kChannels> Mix(
-      const std::array<double, kChannels> &_actuator_controls);
+  std::array<double, kOutputChannels> Mix(
+      const std::array<double, InputChannels::kCount> &_actuator_controls);
 
  private:
-  Mapping mappings_[kChannels];
-  Output outputs_[kChannels];
+  /// @brief per motor mappings of torque/thrust
+  Mapping mappings_[kOutputChannels];
+  Output outputs_[kOutputChannels];
   double linear_coefficient_;
   double quadratic_coefficient_;
   double max_rotations_per_second_{1.0};
-  double ApplyInput(const std::array<double, kChannels> &_actuator_controls);
+  double ApplyInput(
+      const std::array<double, InputChannels::kCount> &_actuator_controls);
   void ScaleOutputs(double _scale);
   void ResetOutputs();
 };

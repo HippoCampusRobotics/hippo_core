@@ -1,7 +1,7 @@
 #pragma once
 
 #include <hippo_control/rate_control/rate_control.hpp>
-#include <hippo_msgs/msg/actuator_controls.hpp>
+#include <hippo_msgs/msg/actuator_setpoint.hpp>
 #include <hippo_msgs/msg/angular_velocity.hpp>
 #include <hippo_msgs/msg/rates_target.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -28,7 +28,7 @@ class RateController : public rclcpp::Node {
       const std::vector<rclcpp::Parameter> &_parameters);
 
   struct PidGains {
-    double p{0.5};
+    double p{2.0};
     double i{0.5};
     double d{0.001};
     double feed_forward{0.0};
@@ -48,8 +48,7 @@ class RateController : public rclcpp::Node {
     bool updated{false};
   } params_;
 
-  rclcpp::Publisher<hippo_msgs::msg::ActuatorControls>::SharedPtr
-      actuator_controls_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr torque_pub_;
 
   rclcpp::Subscription<hippo_msgs::msg::AngularVelocity>::SharedPtr
       angular_velocity_sub_;
@@ -58,6 +57,7 @@ class RateController : public rclcpp::Node {
 
   Eigen::Vector3d body_rates_setpoint_{0.0, 0.0, 0.0};
   rclcpp::Time t_last_update_;
+  rclcpp::Time t_last_setpoint_;
 
   hippo_control::rate_control::Controller controller_;
 

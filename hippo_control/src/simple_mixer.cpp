@@ -8,7 +8,7 @@ namespace mixer {
 SimpleMixer::SimpleMixer(){};
 
 void SimpleMixer::SetMapping(int _index, const Mapping &_mapping) {
-  if ((_index >= kChannels)) {
+  if ((_index >= kOutputChannels)) {
     return;
   }
   mappings_[_index] = _mapping;
@@ -22,11 +22,11 @@ void SimpleMixer::ResetOutputs() {
 }
 
 double SimpleMixer::ApplyInput(
-    const std::array<double, kChannels> &_actuator_controls) {
+    const std::array<double, InputChannels::kCount> &_actuator_controls) {
   ResetOutputs();
   double scaling = 1.0;
-  for (int i_out = 0; i_out < kChannels; ++i_out) {
-    for (int i_in = 0; i_in < kChannels; ++i_in) {
+  for (int i_out = 0; i_out < kOutputChannels; ++i_out) {
+    for (int i_in = 0; i_in < InputChannels::kCount; ++i_in) {
       double tmp = _actuator_controls[i_in] * mappings_[i_out].scalings[i_in];
       outputs_[i_out].total += tmp;
       outputs_[i_out].channels[i_in] += tmp;
@@ -68,14 +68,14 @@ void SimpleMixer::ScaleOutputs(double _scale) {
   }
 }
 
-std::array<double, kChannels> SimpleMixer::Mix(
-    const std::array<double, kChannels> &_actuator_controls) {
+std::array<double, kOutputChannels> SimpleMixer::Mix(
+    const std::array<double, InputChannels::kCount> &_actuator_controls) {
   double scale = ApplyInput(_actuator_controls);
   if (scale > 1.0) {
     ScaleOutputs(scale);
   }
-  std::array<double, kChannels> out;
-  for (int i = 0; i < kChannels; ++i) {
+  std::array<double, kOutputChannels> out;
+  for (int i = 0; i < kOutputChannels; ++i) {
     out[i] = outputs_[i].total;
   }
   return out;

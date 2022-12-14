@@ -1,6 +1,6 @@
 #include <eigen3/Eigen/Dense>
 #include <hippo_common/param_utils.hpp>
-#include <hippo_msgs/msg/actuator_controls.hpp>
+#include <hippo_msgs/msg/actuator_setpoint.hpp>
 #include <hippo_msgs/msg/attitude_target.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
@@ -116,8 +116,13 @@ class AttitudeControlNode : public rclcpp::Node {
     std::string topic;
     rclcpp::QoS qos = rclcpp::SystemDefaultsQoS();
 
-    topic = "actuator_control";
-    control_output_pub_ = create_publisher<ActuatorControls>(topic, qos);
+    topic = "thrust_setpoint";
+    thrust_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(
+        topic, rclcpp::SensorDataQoS());
+
+    topic = "torque_setpoint";
+    torque_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(
+        topic, rclcpp::SensorDataQoS());
 
     topic = "~/current_setpoint";
     setpoint_pub_ = create_publisher<AttitudeTarget>(topic, qos);
@@ -137,12 +142,12 @@ class AttitudeControlNode : public rclcpp::Node {
         topic, qos, std::bind(&AttitudeControlNode::OnOdometry, this, _1));
   }
 
-  ActuatorControls ZeroMsg(rclcpp::Time _stamp) {
-    ActuatorControls msg;
+  hippo_msgs::msg::ActuatorSetpoint ZeroMsg(rclcpp::Time _stamp) {
+    hippo_msgs::msg::ActuatorSetpoint msg;
     msg.header.stamp = _stamp;
-    for (size_t i = 0; i < msg.control.size(); ++i) {
-      msg.control[i] = 0.0;
-    }
+    msg.x = 0.0;
+    msg.y = 0.0;
+    msg.z = 0.0;
     return msg;
   }
 
@@ -152,8 +157,10 @@ class AttitudeControlNode : public rclcpp::Node {
     }
     RCLCPP_WARN(get_logger(), "Setpoint timed out. Sending zero commands.");
     setpoint_timed_out_ = true;
-    ActuatorControls msg = ZeroMsg(now());
-    control_output_pub_->publish(msg);
+    auto thrust_msg = ZeroMsg(now());
+    auto torque_msg = ZeroMsg(now());
+    thrust_pub_->publish(thrust_msg);
+    torque_pub_->publish(torque_msg);
   }
 
   void OnAttitudeTarget(const AttitudeTarget::SharedPtr _msg) {
@@ -201,17 +208,21 @@ class AttitudeControlNode : public rclcpp::Node {
                                      attitude_target_.attitude.z);
     setpoint_pub_->publish(attitude_target_);
     if (feedthrough_) {
-      ActuatorControls msg;
+      hippo_msgs::msg::ActuatorSetpoint thrust_msg;
+      hippo_msgs::msg::ActuatorSetpoint torque_msg;
       if (setpoint_timed_out_) {
-        msg = ZeroMsg(now());
+        thrust_msg = ZeroMsg(now());
+        torque_msg = ZeroMsg(now());
       } else {
-        msg.header.stamp = now();
-        msg.control[msg.INDEX_THRUST] = attitude_target_.thrust;
-        msg.control[msg.INDEX_ROLL] = attitude_target_.body_rate.x;
-        msg.control[msg.INDEX_PITCH] = attitude_target_.body_rate.y;
-        msg.control[msg.INDEX_YAW] = attitude_target_.body_rate.z;
+        thrust_msg.header.stamp = now();
+        torque_msg.header.stamp = thrust_msg.header.stamp;
+        thrust_msg.x = attitude_target_.thrust;
+        torque_msg.x = attitude_target_.body_rate.x;
+        torque_msg.y = attitude_target_.body_rate.y;
+        torque_msg.z = attitude_target_.body_rate.z;
       }
-      control_output_pub_->publish(msg);
+      thrust_pub_->publish(thrust_msg);
+      torque_pub_->publish(torque_msg);
     }
   }
 
@@ -225,21 +236,25 @@ class AttitudeControlNode : public rclcpp::Node {
     Eigen::Quaterniond orientation{q_ros.w, q_ros.x, q_ros.y, q_ros.z};
     Eigen::Vector3d v_angular{omega.x, omega.y, omega.z};
 
-    ActuatorControls msg;
+    hippo_msgs::msg::ActuatorSetpoint thrust_msg;
+    hippo_msgs::msg::ActuatorSetpoint torque_msg;
     {
       std::lock_guard<std::mutex> lock(mutex_);
       if (setpoint_timed_out_) {
-        msg = ZeroMsg(now());
+        thrust_msg = ZeroMsg(now());
+        torque_msg = ZeroMsg(now());
       } else {
-        msg.header.stamp = now();
+        thrust_msg.header.stamp = now();
+        torque_msg.header.stamp = thrust_msg.header.stamp;
         Eigen::Vector3d u = controller_.Update(orientation, v_angular);
-        msg.control[ActuatorControls::INDEX_ROLL] = u.x();
-        msg.control[ActuatorControls::INDEX_PITCH] = u.y();
-        msg.control[ActuatorControls::INDEX_YAW] = u.z();
-        msg.control[ActuatorControls::INDEX_THRUST] = attitude_target_.thrust;
+        torque_msg.x = u.x();
+        torque_msg.y = u.y();
+        torque_msg.z = u.z();
+        thrust_msg.x = attitude_target_.thrust;
       }
     }
-    control_output_pub_->publish(msg);
+    thrust_pub_->publish(thrust_msg);
+    torque_pub_->publish(torque_msg);
   }
 
   SetParametersResult OnSetPgains(
@@ -308,13 +323,14 @@ class AttitudeControlNode : public rclcpp::Node {
   rclcpp::TimerBase::SharedPtr setpoint_timeout_timer_;
 
   //////////////////////////////////////////////////////////////////////////////
-  // publisher
+  // publishers
   //////////////////////////////////////////////////////////////////////////////
-  rclcpp::Publisher<ActuatorControls>::SharedPtr control_output_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr thrust_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr torque_pub_;
   rclcpp::Publisher<AttitudeTarget>::SharedPtr setpoint_pub_;
 
   //////////////////////////////////////////////////////////////////////////////
-  // subscriber
+  // subscriptions
   //////////////////////////////////////////////////////////////////////////////
   rclcpp::Subscription<AttitudeTarget>::SharedPtr target_sub_;
   rclcpp::Subscription<Odometry>::SharedPtr odometry_sub_;
