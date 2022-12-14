@@ -198,8 +198,9 @@ class RapidTrajectoryGenerator {
   };
   //! Return the quadrocopter's thrust input along the trajectory at time _t
   double GetThrust(double _t) const {
-    return (GetAcceleration(_t) * mass_param_ + GetVelocity(_t) * damping_)
-        .norm();
+    // return (GetAcceleration(_t) * mass_param_ + GetVelocity(_t) * damping_)
+    //     .norm();
+    return Eigen::Vector3d{axis_[0].GetForce(_t), axis_[1].GetForce(_t), axis_[2].GetForce(_t)}.norm();
   };
   /*! Return the quadrocopter's body rates along the trajectory at time _t
    *
