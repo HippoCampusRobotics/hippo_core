@@ -20,6 +20,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/CurrentStateDebug.msg"
   "msg/SingleAxisTrajectory.msg"
   "msg/TargetState.msg"
   "msg/Trajectory.msg"
