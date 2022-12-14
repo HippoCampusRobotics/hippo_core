@@ -10,6 +10,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <rapid_trajectories/rviz_helper.hpp>
 #include <rapid_trajectories/trajectory_generator/generator.hpp>
+#include <rapid_trajectories_msgs/msg/current_state_debug.hpp>
 #include <rapid_trajectories_msgs/msg/target_state.hpp>
 #include <rapid_trajectories_msgs/msg/trajectory_stamped.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
@@ -39,6 +40,7 @@ class SingleTrackerNode : public rclcpp::Node {
     double t_final{10.0};
     double timestep_min{0.02};
     bool continuous{false};
+    double generation_update_period{0.5};
     double open_loop_threshold_time{0.5};
     double lookahead_time{0.02};
     struct WallDistance {
@@ -61,6 +63,7 @@ class SingleTrackerNode : public rclcpp::Node {
   void Update();
   bool UpdateTrajectories(double _duration, const rclcpp::Time &_t_now);
   void PublishControlInput(double _t_trajectory, const rclcpp::Time &_t_now);
+  void PublishCurrentStateDebug(double _t_trajectory, const rclcpp::Time &_t_now);
   void OnOdometry(const Odometry::SharedPtr _msg);
   void OnTarget(const TargetState::SharedPtr _msg);
   bool ShouldGenerateNewTrajectory(const rclcpp::Time &t_now);
@@ -91,6 +94,8 @@ class SingleTrackerNode : public rclcpp::Node {
       target_pose_pub_;
   rclcpp::Publisher<hippo_msgs::msg::RatesTarget>::SharedPtr rates_target_pub_;
   rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr thrust_pub_;
+  rclcpp::Publisher<rapid_trajectories_msgs::msg::CurrentStateDebug>::SharedPtr
+      state_debug_pub_;
 
   //////////////////////////////////////////////////////////////////////////////
   // subscriptions

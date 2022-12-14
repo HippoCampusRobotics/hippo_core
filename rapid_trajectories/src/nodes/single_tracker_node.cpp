@@ -7,7 +7,6 @@ namespace rapid_trajectories {
 namespace single_tracking {
 
 static constexpr int kUpdatePeriodMs = 20;
-static constexpr int kTrajectoryGenerationPeriodMs = 20;
 
 SingleTrackerNode::SingleTrackerNode()
     : Node("single_tracker"),
@@ -67,6 +66,11 @@ void SingleTrackerNode::InitPublishers() {
   topic = "thrust_setpoint";
   thrust_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(
       topic, rclcpp::SensorDataQoS());
+
+  topic = "~/state_debug";
+  state_debug_pub_ =
+      create_publisher<rapid_trajectories_msgs::msg::CurrentStateDebug>(
+          topic, rclcpp::SensorDataQoS());
 }
 
 void SingleTrackerNode::InitSubscribers() {
@@ -168,6 +172,16 @@ void SingleTrackerNode::DeclareParams() {
     }
   }
 
+  name = "generation_update_period";
+  descr_text =
+      "Time interval in which new trajectories get generated. "
+      "[generation_update_period] = s";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.generation_update_period;
+    param = declare_parameter(name, param, descr);
+  }
+
   name = "open_loop_threshold_time";
   descr_text =
       "Time threshold under which the closed-loop continuous mode switches to "
@@ -238,7 +252,7 @@ bool SingleTrackerNode::ShouldGenerateNewTrajectory(
   if (TimeOnSectionLeft(_t_now) < trajectory_params_.open_loop_threshold_time) {
     return false;
   }
-  if ((dt_since_start > kTrajectoryGenerationPeriodMs * 1e-3)) {
+  if ((dt_since_start > trajectory_params_.generation_update_period)) {
     return true;
   }
   return false;
@@ -362,6 +376,22 @@ bool SingleTrackerNode::UpdateTrajectories(double _duration,
   return false;
 }
 
+void SingleTrackerNode::PublishCurrentStateDebug(double _t_trajectory,
+                                                 const rclcpp::Time &_t_now) {
+  rapid_trajectories_msgs::msg::CurrentStateDebug msg;
+  msg.header.stamp = _t_now;
+  hippo_common::convert::EigenToRos(position_, msg.p_current);
+  hippo_common::convert::EigenToRos(velocity_, msg.v_current);
+  hippo_common::convert::EigenToRos(acceleration_, msg.a_current);
+  hippo_common::convert::EigenToRos(
+      selected_trajectory_.GetPosition(_t_trajectory), msg.p_desired);
+  hippo_common::convert::EigenToRos(
+      selected_trajectory_.GetVelocity(_t_trajectory), msg.v_desired);
+  hippo_common::convert::EigenToRos(
+      selected_trajectory_.GetAcceleration(_t_trajectory), msg.a_desired);
+  state_debug_pub_->publish(msg);
+}
+
 void SingleTrackerNode::OnOdometry(const Odometry::SharedPtr _msg) {
   if (_msg->header.frame_id != "map") {
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
@@ -373,6 +403,9 @@ void SingleTrackerNode::OnOdometry(const Odometry::SharedPtr _msg) {
   hippo_common::convert::RosToEigen(_msg->pose.pose.position, position_);
   hippo_common::convert::RosToEigen(_msg->twist.twist.linear, velocity_);
   hippo_common::convert::RosToEigen(_msg->pose.pose.orientation, orientation_);
+
+  auto t_now = now();
+  PublishCurrentStateDebug(TimeOnTrajectory(t_now), t_now);
 }
 
 void SingleTrackerNode::OnTarget(const TargetState::SharedPtr _msg) {
@@ -455,9 +488,15 @@ SingleTrackerNode::OnSetTrajectoryParams(
       continue;
     }
     if (hippo_common::param_utils::AssignIfMatch(
-            parameter, "min_wall_distance.y",
-            trajectory_params_.min_wall_distance.y)) {
-      result.reason = "Set min_wall_distance.y";
+            parameter, "min_wall_distance.z",
+            trajectory_params_.min_wall_distance.z)) {
+      result.reason = "Set min_wall_distance.z";
+      continue;
+    }
+    if (hippo_common::param_utils::AssignIfMatch(
+            parameter, "generation_update_period",
+            trajectory_params_.generation_update_period)) {
+      result.reason = "Set generation_update_period";
       continue;
     }
   }
