@@ -142,10 +142,10 @@ void SingleAxisTrajectory::GenerateTrajectory(const double Tf) {
           alpha_ * alpha_ * T4 / 20.0;
 }
 
-inline double SingleAxisTrajectory::GetForce(double _t) const {
+double SingleAxisTrajectory::GetForce(double _t) const {
   double result =
       mass_ * GetInitialAcceleration() + damping_ * GetInitialVelocity();
-  result += _t * mass_ * gamma_ + damping_;
+  result += _t * (mass_ * gamma_ + damping_ * GetInitialAcceleration());
   result += _t * _t * (mass_ * beta_ + damping_ * gamma_) / 2.0;
   result += _t * _t * _t * (mass_ * alpha_ + damping_ * beta_) / 6.0;
   result += _t * _t * _t * _t * damping_ * alpha_ / 24.0;
@@ -232,8 +232,8 @@ std::pair<double, double> SingleAxisTrajectory::GetMinMaxForce(double _t1,
             std::minmax_element(peak_candidates.begin(), peak_candidates.end());
         int index1 = std::distance(peak_candidates.begin(), it.first);
         int index2 = std::distance(peak_candidates.begin(), it.second);
-        force_peak_times_.t[0] = index1;
-        force_peak_times_.t[1] = index2;
+        force_peak_times_.t[0] = roots[index1];
+        force_peak_times_.t[1] = roots[index2];
         break;
       }
       default:

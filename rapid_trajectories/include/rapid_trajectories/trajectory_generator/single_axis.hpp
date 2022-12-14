@@ -100,7 +100,7 @@ class SingleAxisTrajectory {
            (1 / 6.0) * alpha_ * t * t * t;
   };
 
-  inline double GetForce(double _t) const;
+  double GetForce(double _t) const;
 
   //! Returns the velocity at time t
   double GetVelocity(double t) const {
