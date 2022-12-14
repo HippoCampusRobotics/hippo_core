@@ -1,11 +1,4 @@
-# equivalent to PX4's actuator_controls message
 std_msgs/Header header
-uint8 INDEX_ROLL = 0
-uint8 INDEX_PITCH = 1
-uint8 INDEX_YAW = 2
-uint8 INDEX_THRUST = 3
-uint8 INDEX_VERTICAL_THRUST = 4
-uint8 INDEX_LATERAL_THRUST = 5
 
 uint8 HIPPO_PORT_TOP = 0
 uint8 HIPPO_STARBOARD_TOP = 1

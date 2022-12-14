@@ -1,12 +1,11 @@
 std_msgs/Header header
 
-uint32 mask
-uint32 IGNORE_ROLL=1
-uint32 IGNORE_PITCH=2
-uint32 IGNORE_YAW=4
+bool ignore_roll
+bool ignore_pitch
+bool ignore_yaw
 
-float64 roll
-float64 pitch
-float64 yaw
+float64 roll    # [rad/s]
+float64 pitch   # [rad/s]
+float64 yaw     # [rad/s]
 
 bool reset_integral
