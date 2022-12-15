@@ -17,7 +17,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 namespace rapid_trajectories {
-namespace single_tracking {
+namespace tracking {
 
 using namespace trajectory_generator;
 using namespace hippo_msgs::msg;
@@ -26,9 +26,9 @@ using namespace rapid_trajectories_msgs::msg;
 using namespace std::chrono_literals;
 using std::placeholders::_1;
 
-class SingleTrackerNode : public rclcpp::Node {
+class SimpleTracker : public rclcpp::Node {
  public:
-  SingleTrackerNode();
+  explicit SimpleTracker(rclcpp::NodeOptions const &_options);
 
  private:
   struct TrajectorySettings {
@@ -63,7 +63,8 @@ class SingleTrackerNode : public rclcpp::Node {
   void Update();
   bool UpdateTrajectories(double _duration, const rclcpp::Time &_t_now);
   void PublishControlInput(double _t_trajectory, const rclcpp::Time &_t_now);
-  void PublishCurrentStateDebug(double _t_trajectory, const rclcpp::Time &_t_now);
+  void PublishCurrentStateDebug(double _t_trajectory,
+                                const rclcpp::Time &_t_now);
   void OnOdometry(const Odometry::SharedPtr _msg);
   void OnTarget(const TargetState::SharedPtr _msg);
   bool ShouldGenerateNewTrajectory(const rclcpp::Time &t_now);
@@ -135,5 +136,5 @@ class SingleTrackerNode : public rclcpp::Node {
   bool use_acceleration_{true};
   std::shared_ptr<RvizHelper> rviz_helper_;
 };
-}  // namespace single_tracking
+}  // namespace tracking
 }  // namespace rapid_trajectories

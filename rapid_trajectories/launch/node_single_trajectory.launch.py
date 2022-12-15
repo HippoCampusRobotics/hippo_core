@@ -7,7 +7,7 @@ def generate_launch_description():
 
     return launch.LaunchDescription([
         launch_ros.actions.Node(package=package_name,
-                                executable='single_tracker_node',
+                                executable='simple_tracker_node',
                                 output='screen',
                                 parameters=[
                                     {

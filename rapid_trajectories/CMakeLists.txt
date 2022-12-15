@@ -16,6 +16,7 @@ add_compile_options(${CXX_FLAGS})
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(hippo_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
 find_package(rapid_trajectories_msgs REQUIRED)
@@ -74,6 +75,8 @@ ament_target_dependencies(${lib_name} rclcpp visualization_msgs hippo_common)
 ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
 ament_export_dependencies(rclcpp visualization_msgs)
 
+set_property(TARGET ${lib_name} PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 install(TARGETS ${lib_name}
 EXPORT ${lib_name}Target
 LIBRARY DESTINATION lib
@@ -83,12 +86,23 @@ INCLUDES DESTINATION include
 )
 
 ################################################################################
-# single_tracker node
+# simple_tracker component
 ################################################################################
-set(exec_name single_tracker_node)
-add_executable(${exec_name} src/nodes/single_tracker_node.cpp)
-ament_target_dependencies(${exec_name}
+set(component_name simple_tracker)
+add_library(${component_name}
+  SHARED
+  src/tracking/simple_tracker.cpp
+  src/tracking/simple_tracker_params.cpp
+)
+target_link_libraries(${component_name} trajectory_generator rviz_helper)
+target_include_directories(${component_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${component_name}
   rclcpp
+  rclcpp_components
   hippo_msgs
   hippo_common
   nav_msgs
@@ -96,9 +110,12 @@ ament_target_dependencies(${exec_name}
   rapid_trajectories_msgs
   Eigen3
 )
-target_link_libraries(${exec_name} trajectory_generator rviz_helper)
-install(TARGETS ${exec_name}
-  DESTINATION lib/${PROJECT_NAME}
+rclcpp_components_register_node(${component_name} PLUGIN "rapid_trajectories::tracking::SimpleTracker" EXECUTABLE ${component_name}_node)
+install(TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
 ################################################################################
