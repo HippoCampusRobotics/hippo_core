@@ -119,6 +119,36 @@ install(TARGETS ${component_name}
 )
 
 ################################################################################
+# simulator component
+################################################################################
+set(component_name simulator)
+add_library(${component_name}
+  SHARED
+  src/simulator/simulator.cpp
+  src/simulator/simulator_params.cpp
+)
+# target_include_directories(${component_name}
+#   PUBLIC
+#     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#     $<INSTALL_INTERFACE:include>
+# )
+ament_target_dependencies(${component_name}
+  rclcpp
+  rclcpp_components
+  hippo_msgs
+  hippo_common
+  nav_msgs
+  Eigen3
+)
+rclcpp_components_register_node(${component_name} PLUGIN "rapid_trajectories::simulator::Simulator" EXECUTABLE ${component_name}_node)
+install(TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+################################################################################
 # install shared resources
 ################################################################################
 install(
