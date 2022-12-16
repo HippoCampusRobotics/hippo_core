@@ -1,0 +1,13 @@
+/**: # wildcard for the node name
+  ros__parameters:
+    thrust_min: 0.0
+    thrust_max: 18.0
+    body_rate_max: 3.0
+    mass: 2.6
+    damping: 5.4
+    t_final: 10.0
+    timestep_min: 0.02
+    continuous: true
+    generation_update_period: 0.5
+    open_loop_threshold_time: 1.0
+

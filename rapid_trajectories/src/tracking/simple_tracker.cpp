@@ -41,8 +41,12 @@ SimpleTracker::SimpleTracker(rclcpp::NodeOptions const &_options)
   //     Eigen::Vector3d{0.0, 0.0, 0.0}, Eigen::Vector3d{0.0, 0.0, 0.0},
   //     Eigen::Vector3d{0.0, 0.0, 0.0}, Eigen::Vector3d{0.0, 0.0, 0.0}};
 
-  update_timer_ = create_wall_timer(std::chrono::milliseconds(kUpdatePeriodMs),
-                                    std::bind(&SimpleTracker::Update, this));
+  update_timer_ = rclcpp::create_timer(
+      this, get_clock(), std::chrono::milliseconds(kUpdatePeriodMs),
+      std::bind(&SimpleTracker::Update, this));
+  // update_timer_ =
+  // create_wall_timer(std::chrono::milliseconds(kUpdatePeriodMs),
+  //                                   std::bind(&SimpleTracker::Update, this));
 }
 void SimpleTracker::InitPublishers() {
   std::string topic;
@@ -334,7 +338,10 @@ void SimpleTracker::GenerateTrajectories(
         trajectory_params_.thrust_min, trajectory_params_.thrust_max,
         trajectory_params_.body_rate_max, trajectory_params_.timestep_min);
     if (!(input_feasibility ==
-          RapidTrajectoryGenerator::InputFeasibilityResult::InputFeasible)) {
+              RapidTrajectoryGenerator::InputFeasibilityResult::InputFeasible ||
+          input_feasibility ==
+              RapidTrajectoryGenerator::InputFeasibilityResult::
+                  InputIndeterminable)) {
       RCLCPP_INFO(get_logger(), "Infeasible: %d", input_feasibility);
       continue;
     }
