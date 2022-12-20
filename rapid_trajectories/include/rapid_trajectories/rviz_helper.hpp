@@ -10,7 +10,7 @@ class RvizHelper {
  public:
   RvizHelper(rclcpp::Node::SharedPtr _node);
   void PublishTrajectory(
-      const trajectory_generator::RapidTrajectoryGenerator &_trajectory);
+      const minimum_jerk::Generator &_trajectory);
 
   void PublishTarget(const Eigen::Vector3d &_point);
 

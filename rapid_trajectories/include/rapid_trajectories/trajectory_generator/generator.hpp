@@ -23,7 +23,7 @@
 #include "rapid_trajectories/trajectory_generator/single_axis.hpp"
 
 namespace rapid_trajectories {
-namespace trajectory_generator {
+namespace minimum_jerk {
 
 //! A quadrocopter state interception trajectory.
 /*!
@@ -52,7 +52,7 @@ namespace trajectory_generator {
  * NOTE: in the publication, axes are 1-indexed, while here they are
  * zero-indexed.
  */
-class RapidTrajectoryGenerator {
+class Generator {
  public:
   enum InputFeasibilityResult {
     InputFeasible = 0,        //!< The trajectory is input feasible
@@ -72,10 +72,9 @@ class RapidTrajectoryGenerator {
   };
 
   //! Constructor, user must define initial state, and the direction of gravity.
-  RapidTrajectoryGenerator(const Eigen::Vector3d &_x0,
-                           const Eigen::Vector3d &_v0,
-                           const Eigen::Vector3d &_a0, const double _mass,
-                           const double _damping);
+  Generator(const Eigen::Vector3d &_x0, const Eigen::Vector3d &_v0,
+            const Eigen::Vector3d &_a0, const Eigen::Vector3d &_gravity,
+            const double _mass, const double _damping);
 
   inline std::array<double, SingleAxisTrajectory::kTrajectoryParamsCount>
   GetAxisParameters(int _i) const {
@@ -200,7 +199,10 @@ class RapidTrajectoryGenerator {
   double GetThrust(double _t) const {
     // return (GetAcceleration(_t) * mass_param_ + GetVelocity(_t) * damping_)
     //     .norm();
-    return Eigen::Vector3d{axis_[0].GetForce(_t), axis_[1].GetForce(_t), axis_[2].GetForce(_t)}.norm();
+    return (Eigen::Vector3d{axis_[0].GetForce(_t), axis_[1].GetForce(_t),
+                            axis_[2].GetForce(_t)} -
+            gravity_)
+        .norm();
   };
   /*! Return the quadrocopter's body rates along the trajectory at time _t
    *
@@ -246,11 +248,13 @@ class RapidTrajectoryGenerator {
                                                       double _dt_min);
 
   std::array<SingleAxisTrajectory, 3> axis_;
-  double t_final_;  //!< trajectory end time [s]
+  double t_final_{0.0};  //!< trajectory end time [s]
   double damping_{5.4};
   double mass_param_{2.6};
-  double thrust_max_;
-  double thrust_min_;
+  double thrust_max_{0.0};
+  double thrust_min_{0.0};
+
+  Eigen::Vector3d gravity_{0.0, 0.0, 0.0};
 };
-};  // namespace trajectory_generator
+};  // namespace minimum_jerk
 };  // namespace rapid_trajectories

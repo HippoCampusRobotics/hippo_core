@@ -25,7 +25,7 @@
 #include "rapid_trajectories/roots/quartic.hpp"
 
 namespace rapid_trajectories {
-namespace trajectory_generator {
+namespace minimum_jerk {
 template <typename T>
 int sgn(T value) {
   return (T(0) < value) - (value < T(0));
@@ -61,16 +61,17 @@ T min(T a, T b, T c) {
   }
 }
 
-RapidTrajectoryGenerator::RapidTrajectoryGenerator(const Eigen::Vector3d &_p0,
-                                                   const Eigen::Vector3d &_v0,
-                                                   const Eigen::Vector3d &_a0,
-                                                   const double _mass,
-                                                   const double _damping) {
+Generator::Generator(const Eigen::Vector3d &_p0, const Eigen::Vector3d &_v0,
+                     const Eigen::Vector3d &_a0,
+                     const Eigen::Vector3d &_gravity, const double _mass,
+                     const double _damping) {
   // initialise each axis:
   Reset();
   damping_ = _damping;
   mass_param_ = _mass;
+  gravity_ = _gravity;
   for (size_t i = 0; i < axis_.size(); i++) {
+    axis_[i].SetGravity(gravity_[i]);
     axis_[i].SetDamping(damping_);
     axis_[i].SetMass(mass_param_);
     axis_[i].SetInitialState(_p0[i], _v0[i], _a0[i]);
@@ -81,25 +82,25 @@ RapidTrajectoryGenerator::RapidTrajectoryGenerator(const Eigen::Vector3d &_p0,
  *
  * @param _in
  */
-void RapidTrajectoryGenerator::SetGoalPosition(const Eigen::Vector3d &_in) {
+void Generator::SetGoalPosition(const Eigen::Vector3d &_in) {
   for (unsigned i = 0; i < 3; i++) {
     SetGoalPositionInAxis(i, _in[i]);
   }
 }
 
-void RapidTrajectoryGenerator::SetGoalVelocity(const Eigen::Vector3d &_in) {
+void Generator::SetGoalVelocity(const Eigen::Vector3d &_in) {
   for (int i = 0; i < 3; i++) {
     SetGoalVelocityInAxis(i, _in[i]);
   }
 }
 
-void RapidTrajectoryGenerator::SetGoalAcceleration(const Eigen::Vector3d &_in) {
+void Generator::SetGoalAcceleration(const Eigen::Vector3d &_in) {
   for (int i = 0; i < 3; i++) {
     SetGoalAccelerationInAxis(i, _in[i]);
   }
 }
 
-void RapidTrajectoryGenerator::Reset(void) {
+void Generator::Reset(void) {
   for (int i = 0; i < 3; i++) {
     axis_[i].Reset();
   }
@@ -107,19 +108,16 @@ void RapidTrajectoryGenerator::Reset(void) {
 }
 
 // Generate the trajectory:
-void RapidTrajectoryGenerator::Generate(const double timeToFinish) {
+void Generator::Generate(const double timeToFinish) {
   t_final_ = timeToFinish;
   for (int i = 0; i < 3; i++) {
     axis_[i].GenerateTrajectory(t_final_);
   }
 }
 
-RapidTrajectoryGenerator::InputFeasibilityResult
-RapidTrajectoryGenerator::CheckInputFeasibilitySection(double _f_min_allowed,
-                                                       double _f_max_allowed,
-                                                       double _w_max_allowed,
-                                                       double _t1, double _t2,
-                                                       double _dt_min) {
+Generator::InputFeasibilityResult Generator::CheckInputFeasibilitySection(
+    double _f_min_allowed, double _f_max_allowed, double _w_max_allowed,
+    double _t1, double _t2, double _dt_min) {
   if (_t2 - _t1 < _dt_min) return InputIndeterminable;
   // test the acceleration at the two limits:
   if (std::max(GetThrust(_t1), GetThrust(_t2)) > _f_max_allowed)
@@ -208,11 +206,9 @@ RapidTrajectoryGenerator::CheckInputFeasibilitySection(double _f_min_allowed,
   return InputFeasible;
 }
 
-RapidTrajectoryGenerator::InputFeasibilityResult
-RapidTrajectoryGenerator::CheckInputFeasibility(double _f_max_allowed,
-                                                double _f_min_allowed,
-                                                double _w_max_allowed,
-                                                double _dt_min) {
+Generator::InputFeasibilityResult Generator::CheckInputFeasibility(
+    double _f_max_allowed, double _f_min_allowed, double _w_max_allowed,
+    double _dt_min) {
   // required thrust limits along trajectory
   double _t1 = 0;
   double _t2 = t_final_;
@@ -221,8 +217,7 @@ RapidTrajectoryGenerator::CheckInputFeasibility(double _f_max_allowed,
                                       _w_max_allowed, _t1, _t2, _dt_min);
 }
 
-RapidTrajectoryGenerator::StateFeasibilityResult
-RapidTrajectoryGenerator::CheckPositionFeasibility(
+Generator::StateFeasibilityResult Generator::CheckPositionFeasibility(
     Eigen::Vector3d &_boundary_point, Eigen::Vector3d &_boundary_normal) {
   // Ensure that the normal is a unit vector:
   _boundary_normal.normalize();
@@ -276,7 +271,7 @@ RapidTrajectoryGenerator::CheckPositionFeasibility(
   return StateFeasible;
 }
 
-Eigen::Vector3d RapidTrajectoryGenerator::GetOmega(double t, double _dt) const {
+Eigen::Vector3d Generator::GetOmega(double t, double _dt) const {
   // Calculates the body rates necessary at time t, to rotate the normal vector.
   // The result is coordinated in the world frame, i.e. would have to be rotated
   // into a body frame.
@@ -291,5 +286,5 @@ Eigen::Vector3d RapidTrajectoryGenerator::GetOmega(double t, double _dt) const {
   else
     return Eigen::Vector3d::Zero();
 }
-};  // namespace trajectory_generator
+};  // namespace minimum_jerk
 };  // namespace rapid_trajectories

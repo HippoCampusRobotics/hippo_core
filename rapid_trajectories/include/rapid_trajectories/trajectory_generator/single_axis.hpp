@@ -22,7 +22,7 @@
 #include <vector>
 
 namespace rapid_trajectories {
-namespace trajectory_generator {
+namespace minimum_jerk {
 
 //! An axis along one spatial direction
 /*!
@@ -72,6 +72,8 @@ class SingleAxisTrajectory {
     acceleration_constrained_ = true;
     a_final_ = accf;
   };
+
+  inline void SetGravity(const double _gravity) { gravity_ = _gravity; }
 
   inline void SetDamping(const double _damping) { damping_ = _damping; }
 
@@ -187,6 +189,7 @@ class SingleAxisTrajectory {
   double damping_{5.4};
   /// @brief Effective mass of the vehicle;
   double mass_{2.6};
+  double gravity_{0.0};
 };
-};  // namespace trajectory_generator
+};  // namespace minimum_jerk
 };  // namespace rapid_trajectories
