@@ -27,7 +27,7 @@
 #include "rapid_trajectories/roots/quartic.hpp"
 
 namespace rapid_trajectories {
-namespace trajectory_generator {
+namespace minimum_jerk {
 
 SingleAxisTrajectory::SingleAxisTrajectory(void)
     : alpha_(0), beta_(0), gamma_(0), damping_(5.4), mass_(2.6) {
@@ -149,6 +149,9 @@ double SingleAxisTrajectory::GetForce(double _t) const {
   result += _t * _t * (mass_ * beta_ + damping_ * gamma_) / 2.0;
   result += _t * _t * _t * (mass_ * alpha_ + damping_ * beta_) / 6.0;
   result += _t * _t * _t * _t * damping_ * alpha_ / 24.0;
+  // subtract gravity from acceleration. The thrust required needs to compensate
+  // the gravitational force
+  result -= gravity_;
   return result;
 }
 
@@ -329,5 +332,5 @@ double SingleAxisTrajectory::GetMaxJerkSquared(double t1, double t2) {
 
   return jMaxSqr;
 }
-};  // namespace trajectory_generator
+};  // namespace minimum_jerk
 };  // namespace rapid_trajectories

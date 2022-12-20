@@ -141,6 +141,30 @@ void SimpleTracker::DeclareParams() {
     param = declare_parameter(name, param, descr);
   }
 
+  name = "gravity.x";
+  descr_text = "Gravitational force in the respective axis direction.";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.gravity.x;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "gravity.y";
+  descr_text = "Gravitational force in the respective axis direction.";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.gravity.y;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "gravity.z";
+  descr_text = "Gravitational force in the respective axis direction.";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.gravity.z;
+    param = declare_parameter(name, param, descr);
+  }
+
   trajectory_params_cb_handle_ = add_on_set_parameters_callback(
       std::bind(&SimpleTracker::OnSetTrajectoryParams, this, _1));
 }
@@ -226,6 +250,7 @@ rcl_interfaces::msg::SetParametersResult SimpleTracker::OnSetTrajectoryParams(
       result.reason = "Set generation_update_period";
       continue;
     }
+
   }
   return result;
 }

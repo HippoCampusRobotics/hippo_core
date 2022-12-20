@@ -11,8 +11,11 @@ static constexpr int kUpdatePeriodMs = 20;
 SimpleTracker::SimpleTracker(rclcpp::NodeOptions const &_options)
     : Node("single_tracker", _options),
       selected_trajectory_(target_position_, target_velocity_,
-                           target_acceleration_, trajectory_params_.mass,
-                           trajectory_params_.damping),
+                           target_acceleration_,
+                           Eigen::Vector3d{trajectory_params_.gravity.x,
+                                           trajectory_params_.gravity.y,
+                                           trajectory_params_.gravity.z},
+                           trajectory_params_.mass, trajectory_params_.damping),
       t_last_odometry_(now()),
       dt_odometry_average_(trajectory_params_.timestep_min) {
   RCLCPP_INFO(get_logger(), "Node created.");
@@ -21,7 +24,8 @@ SimpleTracker::SimpleTracker(rclcpp::NodeOptions const &_options)
   InitPublishers();
   InitSubscribers();
   DeclareParams();
-  t_start_section_ = t_final_section_ = t_start_current_trajectory_ = now();
+  t_start_section_ = t_final_section_ = t_start_current_trajectory_ =
+      t_final_current_trajecotry_ = now();
 
   // circular shape
   target_positions_ = {Eigen::Vector3d{0.5, 2.0, -1.0},
@@ -115,7 +119,9 @@ bool SimpleTracker::ShouldGenerateNewTrajectory(const rclcpp::Time &_t_now) {
 }
 
 bool SimpleTracker::SectionFinished(const rclcpp::Time &_t_now) {
-  section_finished_ = _t_now > t_final_section_;
+  section_finished_ =
+      (_t_now >= t_final_section_) ||
+      (TimeOnTrajectory(_t_now) >= selected_trajectory_.GetFinalTime());
   return section_finished_;
 }
 
@@ -140,13 +146,82 @@ void SimpleTracker::SwitchToPreviousTarget() {
   target_acceleration_ = target_accelerations_.at(target_index_);
 }
 
+bool SimpleTracker::UpdateMovingTarget(double dt, const rclcpp::Time &_t_now) {
+  double t_final;
+  const int timesteps = 20;
+  double costs = std::numeric_limits<double>::max();
+  Eigen::Vector3d gravity{trajectory_params_.gravity.x,
+                          trajectory_params_.gravity.y,
+                          trajectory_params_.gravity.z};
+  Generator trajectory =
+      Generator(position_, velocity_, acceleration_, gravity,
+                trajectory_params_.mass, trajectory_params_.damping);
+  bool found_feasible = false;
+  Eigen::Vector3d p;
+  for (int i = 1; i <= timesteps; ++i) {
+    t_final = i * dt / timesteps;
+    Eigen::Vector3d p_gate{sin(_t_now.nanoseconds() * 1e-9 + t_final),
+                           2.0 * target_index_, -1.0};
+    double delta_f =
+        trajectory_params_.thrust_max - trajectory_params_.thrust_min;
+    const int force_steps = 10;
+    for (int i_f = 0; i < force_steps; ++i_f) {
+      double f_final = i_f * delta_f / force_steps;
+      const int normal_steps = 49;
+      for (int n_yaw = 0; n_yaw < 7; ++n_yaw) {
+        double yaw = 10 / 180 * 3.14 * n_yaw;
+        for (int n_roll = 0; n_roll < 7; ++n_roll) {
+          double roll = 10 / 180 * 3.14 * n_roll;
+          Eigen::Quaterniond q =
+              hippo_common::tf2_utils::EulerToQuaternion(yaw, 0.0, roll);
+          Eigen::Vector3d normal = orientation_ * q * Eigen::Vector3d::UnitX();
+          Eigen::Vector3d a =
+              f_final * (normal + gravity) / trajectory_params_.mass;
+          p = p_gate - 0.1 * normal;
+          trajectory.SetGoalAcceleration(a);
+          trajectory.SetGoalPosition(p);
+          trajectory.SetGoalVelocityInAxis(1, 0.3);
+          trajectory.SetGoalVelocityInAxis(2, 0.0);
+          trajectory.Generate(t_final);
+          if (trajectory.GetCost() >= costs) {
+            continue;
+          }
+          auto feasibility = trajectory.CheckInputFeasibility(
+              trajectory_params_.thrust_min, trajectory_params_.thrust_max,
+              trajectory_params_.body_rate_max,
+              trajectory_params_.timestep_min);
+          if (feasibility != Generator::InputFeasible) {
+            continue;
+          }
+          selected_trajectory_ = trajectory;
+          found_feasible = true;
+        }
+      }
+    }
+  }
+  if (!found_feasible) {
+    return false;
+  }
+  Eigen::Vector3d p_gate{sin(_t_now.nanoseconds() * 1e-9), 2.0 * target_index_,
+                         -1.0};
+  rviz_helper_->PublishTarget(
+      selected_trajectory_.GetPosition(selected_trajectory_.GetFinalTime()));
+  rviz_helper_->PublishStart(p_gate);
+  t_start_current_trajectory_ = _t_now;
+  t_final_current_trajecotry_ =
+      _t_now + rclcpp::Duration(std::chrono::milliseconds(
+                   (int)(selected_trajectory_.GetFinalTime() * 1e3)));
+  return true;
+}
+
 void SimpleTracker::Update() {
   rclcpp::Time t_now = now();
 
   if (SectionFinished(t_now)) {
     section_finished_ = false;
     SwitchToNextTarget();
-    if (!UpdateTrajectories(trajectory_params_.t_final, t_now)) {
+    // if (!UpdateTrajectories(trajectory_params_.t_final, t_now)) {
+    if (!UpdateMovingTarget(trajectory_params_.t_final, t_now)) {
       RCLCPP_WARN(get_logger(),
                   "Section finished, but no valid next trajectory.");
       SwitchToPreviousTarget();
@@ -162,7 +237,8 @@ void SimpleTracker::Update() {
   }
 
   if (ShouldGenerateNewTrajectory(t_now)) {
-    UpdateTrajectories(TimeOnSectionLeft(t_now), t_now);
+    // UpdateTrajectories(TimeOnSectionLeft(t_now), t_now);
+    UpdateMovingTarget(TimeOnSectionLeft(t_now), t_now);
   }
   double t_trajectory = TimeOnTrajectory(t_now);
   PublishControlInput(t_trajectory, t_now);
@@ -184,8 +260,6 @@ void SimpleTracker::Update() {
   attitude_target_pub_->publish(attitude_target_msg);
 
   rviz_helper_->PublishTrajectory(selected_trajectory_);
-  rviz_helper_->PublishTarget(target_position_);
-  rviz_helper_->PublishStart(position_);
   rviz_helper_->PublishHeading(selected_trajectory_.GetPosition(t_trajectory),
                                q);
   geometry_msgs::msg::PoseStamped pose_msg;
@@ -280,8 +354,8 @@ void SimpleTracker::OnLinearAcceleration(
   hippo_common::convert::RosToEigen(_msg->vector, acceleration_);
 }
 
-RapidTrajectoryGenerator::StateFeasibilityResult
-SimpleTracker::CheckWallCollision(RapidTrajectoryGenerator &_trajectory) {
+Generator::StateFeasibilityResult SimpleTracker::CheckWallCollision(
+    Generator &_trajectory) {
   static constexpr size_t n_walls = 6;
   std::array<Eigen::Vector3d, n_walls> boundary_points = {
       Eigen::Vector3d{0 + trajectory_params_.min_wall_distance.x, 0.0, 0.0},
@@ -298,15 +372,14 @@ SimpleTracker::CheckWallCollision(RapidTrajectoryGenerator &_trajectory) {
   // check for collision with all six walls. If a single check fails, the
   // trajectory is invalid.
   for (size_t i = 0; i < n_walls; ++i) {
-    RapidTrajectoryGenerator::StateFeasibilityResult result;
+    Generator::StateFeasibilityResult result;
     result = _trajectory.CheckPositionFeasibility(boundary_points.at(i),
                                                   boundary_normals.at(i));
-    if (result ==
-        RapidTrajectoryGenerator::StateFeasibilityResult::StateInfeasible) {
-      return RapidTrajectoryGenerator::StateFeasibilityResult::StateInfeasible;
+    if (result == Generator::StateFeasibilityResult::StateInfeasible) {
+      return Generator::StateFeasibilityResult::StateInfeasible;
     }
   }
-  return RapidTrajectoryGenerator::StateFeasibilityResult::StateFeasible;
+  return Generator::StateFeasibilityResult::StateFeasible;
 }
 
 void SimpleTracker::GenerateTrajectories(
@@ -317,13 +390,20 @@ void SimpleTracker::GenerateTrajectories(
   assert(_target_positions.size() == _target_velocities.size() &&
          _target_positions.size() == _target_accelerations.size());
 
-  RapidTrajectoryGenerator::InputFeasibilityResult input_feasibility;
-  RapidTrajectoryGenerator::StateFeasibilityResult position_feasibility;
+  Generator::InputFeasibilityResult input_feasibility;
+  Generator::StateFeasibilityResult position_feasibility;
 
   for (unsigned int i = 0; i < _target_positions.size(); ++i) {
-    RapidTrajectoryGenerator trajectory{position_, velocity_, acceleration_,
-                                        trajectory_params_.mass,
-                                        trajectory_params_.damping};
+    Generator trajectory{
+        position_,
+        velocity_,
+        acceleration_,
+        Eigen::Vector3d{trajectory_params_.gravity.x,
+                        trajectory_params_.gravity.y,
+                        trajectory_params_.gravity.z},
+        trajectory_params_.mass,
+        trajectory_params_.damping,
+    };
     trajectory.SetGoalPosition(_target_positions[i]);
     trajectory.SetGoalVelocity(_target_velocities[i]);
     trajectory.SetGoalAcceleration(_target_accelerations[i]);
@@ -332,7 +412,7 @@ void SimpleTracker::GenerateTrajectories(
     // check for collision with any wall.
     // position_feasibility = CheckWallCollision(trajectory);
     // if (!(position_feasibility ==
-    //       RapidTrajectoryGenerator::StateFeasibilityResult::StateFeasible)) {
+    //       Generator::StateFeasibilityResult::StateFeasible)) {
     //   RCLCPP_WARN(get_logger(), "Generated trajectory collides with walls.");
     //   continue;
     // }
@@ -342,10 +422,9 @@ void SimpleTracker::GenerateTrajectories(
         trajectory_params_.thrust_min, trajectory_params_.thrust_max,
         trajectory_params_.body_rate_max, trajectory_params_.timestep_min);
     if (!(input_feasibility ==
-              RapidTrajectoryGenerator::InputFeasibilityResult::InputFeasible ||
+              Generator::InputFeasibilityResult::InputFeasible ||
           input_feasibility ==
-              RapidTrajectoryGenerator::InputFeasibilityResult::
-                  InputIndeterminable)) {
+              Generator::InputFeasibilityResult::InputIndeterminable)) {
       RCLCPP_INFO(get_logger(), "Infeasible: %d", input_feasibility);
       continue;
     }

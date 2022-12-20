@@ -19,7 +19,7 @@
 namespace rapid_trajectories {
 namespace tracking {
 
-using namespace trajectory_generator;
+using namespace minimum_jerk;
 using namespace hippo_msgs::msg;
 using namespace nav_msgs::msg;
 using namespace rapid_trajectories_msgs::msg;
@@ -47,6 +47,11 @@ class SimpleTracker : public rclcpp::Node {
       double y{0.6};
       double z{0.5};
     } min_wall_distance;
+    struct Gravity {
+      double x{0.0};
+      double y{0.0};
+      double z{-9.81};
+    } gravity;
   } trajectory_params_;
 
  private:
@@ -60,6 +65,7 @@ class SimpleTracker : public rclcpp::Node {
   void InitSubscribers();
   void DeclareParams();
   void Update();
+  bool UpdateMovingTarget(double dt, const rclcpp::Time &_t_now);
   bool UpdateTrajectories(double _duration, const rclcpp::Time &_t_now);
   void PublishControlInput(double _t_trajectory, const rclcpp::Time &_t_now);
   void PublishCurrentStateDebug(double _t_trajectory,
@@ -72,8 +78,7 @@ class SimpleTracker : public rclcpp::Node {
   void SwitchToPreviousTarget();
   void OnLinearAcceleration(
       const geometry_msgs::msg::Vector3Stamped::ConstSharedPtr _msg);
-  RapidTrajectoryGenerator::StateFeasibilityResult CheckWallCollision(
-      RapidTrajectoryGenerator &_trajectory);
+  Generator::StateFeasibilityResult CheckWallCollision(Generator &_trajectory);
   rcl_interfaces::msg::SetParametersResult OnSetTrajectoryParams(
       const std::vector<rclcpp::Parameter> &_parameters);
   void GenerateTrajectories(
@@ -106,8 +111,8 @@ class SimpleTracker : public rclcpp::Node {
   rclcpp::Subscription<TargetState>::SharedPtr target_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr
       linear_acceleration_sub_;
-  std::vector<RapidTrajectoryGenerator> generators_;
-  RapidTrajectoryGenerator selected_trajectory_;
+  std::vector<Generator> generators_;
+  Generator selected_trajectory_;
   Eigen::Vector3d position_{0.0, 0.0, 0.0};
   Eigen::Vector3d velocity_{0.0, 0.0, 0.0};
   Eigen::Vector3d acceleration_{0.0, 0.0, 0.0};
@@ -120,6 +125,7 @@ class SimpleTracker : public rclcpp::Node {
   rclcpp::Time t_start_section_;
   rclcpp::Time t_final_section_;
   rclcpp::Time t_start_current_trajectory_;
+  rclcpp::Time t_final_current_trajecotry_;
   rclcpp::Time t_last_odometry_;
   bool section_finished_{true};
   std::vector<Eigen::Vector3d>::size_type target_index_;
