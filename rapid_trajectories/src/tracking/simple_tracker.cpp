@@ -1,4 +1,4 @@
-#include "rapid_trajectories/tracking/simple_tracker.hpp"
+#include "simple_tracker.hpp"
 
 #include <hippo_common/convert.hpp>
 #include <hippo_common/tf2_utils.hpp>
@@ -12,7 +12,9 @@ SimpleTracker::SimpleTracker(rclcpp::NodeOptions const &_options)
     : Node("single_tracker", _options),
       selected_trajectory_(target_position_, target_velocity_,
                            target_acceleration_, trajectory_params_.mass,
-                           trajectory_params_.damping) {
+                           trajectory_params_.damping),
+      t_last_odometry_(now()),
+      dt_odometry_average_(trajectory_params_.timestep_min) {
   RCLCPP_INFO(get_logger(), "Node created.");
   rclcpp::Node::SharedPtr rviz_node = create_sub_node("visualization");
   rviz_helper_ = std::make_shared<RvizHelper>(rviz_node);
@@ -20,7 +22,6 @@ SimpleTracker::SimpleTracker(rclcpp::NodeOptions const &_options)
   InitSubscribers();
   DeclareParams();
   t_start_section_ = t_final_section_ = t_start_current_trajectory_ = now();
-  t_last_odometry_ = now();
 
   // circular shape
   target_positions_ = {Eigen::Vector3d{0.5, 2.0, -1.0},
@@ -40,10 +41,6 @@ SimpleTracker::SimpleTracker(rclcpp::NodeOptions const &_options)
   // target_accelerations_ = {
   //     Eigen::Vector3d{0.0, 0.0, 0.0}, Eigen::Vector3d{0.0, 0.0, 0.0},
   //     Eigen::Vector3d{0.0, 0.0, 0.0}, Eigen::Vector3d{0.0, 0.0, 0.0}};
-
-  update_timer_ = rclcpp::create_timer(
-      this, get_clock(), std::chrono::milliseconds(kUpdatePeriodMs),
-      std::bind(&SimpleTracker::Update, this));
   // update_timer_ =
   // create_wall_timer(std::chrono::milliseconds(kUpdatePeriodMs),
   //                                   std::bind(&SimpleTracker::Update, this));
@@ -111,7 +108,7 @@ bool SimpleTracker::ShouldGenerateNewTrajectory(const rclcpp::Time &_t_now) {
   if (TimeOnSectionLeft(_t_now) < trajectory_params_.open_loop_threshold_time) {
     return false;
   }
-  if ((dt_since_start > trajectory_params_.generation_update_period)) {
+  if ((dt_since_start >= trajectory_params_.generation_update_period)) {
     return true;
   }
   return false;
@@ -144,8 +141,6 @@ void SimpleTracker::SwitchToPreviousTarget() {
 }
 
 void SimpleTracker::Update() {
-  static int update_counter = 0;
-  update_counter++;
   rclcpp::Time t_now = now();
 
   if (SectionFinished(t_now)) {
@@ -206,7 +201,7 @@ void SimpleTracker::PublishControlInput(double _t_trajectory,
   hippo_msgs::msg::RatesTarget rates_target_msg;
   rates_target_msg.header.stamp = _t_now;
   Eigen::Vector3d rates_world =
-      selected_trajectory_.GetOmega(_t_trajectory, kUpdatePeriodMs * 1e-3);
+      selected_trajectory_.GetOmega(_t_trajectory, dt_odometry_average_);
   Eigen::Vector3d rates_local = orientation_.inverse() * rates_world;
   rates_target_msg.roll = rates_local.x();
   rates_target_msg.pitch = rates_local.y();
@@ -215,7 +210,8 @@ void SimpleTracker::PublishControlInput(double _t_trajectory,
 
   hippo_msgs::msg::ActuatorSetpoint thrust_msg;
   thrust_msg.header.stamp = _t_now;
-  thrust_msg.x = selected_trajectory_.GetThrust(_t_trajectory);
+  thrust_msg.x =
+      selected_trajectory_.GetThrust(_t_trajectory + dt_odometry_average_);
   thrust_pub_->publish(thrust_msg);
 }
 
@@ -259,12 +255,20 @@ void SimpleTracker::OnOdometry(const Odometry::SharedPtr _msg) {
                          _msg->header.frame_id.c_str());
     return;
   }
+  auto t_now = now();
+  double dt = (t_now - t_last_odometry_).nanoseconds() * 1e-9;
+  if (dt < 1e-3) {
+    RCLCPP_WARN_STREAM(get_logger(),
+                       "Guarding against too small time interval.");
+    return;
+  }
+  t_last_odometry_ = t_now;
+  dt_odometry_average_ = 0.1 * dt + 0.9 * dt_odometry_average_;
   hippo_common::convert::RosToEigen(_msg->pose.pose.position, position_);
   hippo_common::convert::RosToEigen(_msg->twist.twist.linear, velocity_);
   hippo_common::convert::RosToEigen(_msg->pose.pose.orientation, orientation_);
-
-  auto t_now = now();
   PublishCurrentStateDebug(TimeOnTrajectory(t_now), t_now);
+  Update();
 }
 
 void SimpleTracker::OnTarget(const TargetState::SharedPtr _msg) {

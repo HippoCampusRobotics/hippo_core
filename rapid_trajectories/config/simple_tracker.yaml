@@ -6,8 +6,9 @@
     mass: 2.6
     damping: 5.4
     t_final: 10.0
-    timestep_min: 0.02
+    timestep_min: 0.004
     continuous: true
-    generation_update_period: 0.5
-    open_loop_threshold_time: 1.0
+    generation_update_period: 0.02
+    open_loop_threshold_time: 0.1
+    lookahead_factor: 1
 

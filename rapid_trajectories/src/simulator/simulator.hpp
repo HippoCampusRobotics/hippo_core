@@ -62,6 +62,7 @@ class Simulator : public rclcpp::Node {
 
   rclcpp::TimerBase::SharedPtr update_timer_;
   rclcpp::Time t_now_;
+  rclcpp::Time t_last_odometry_{0};
 
   OnSetParametersCallbackHandle::SharedPtr params_cb_handle_;
 

@@ -1,4 +1,4 @@
-#include "rapid_trajectories/tracking/simple_tracker.hpp"
+#include "simple_tracker.hpp"
 namespace rapid_trajectories {
 namespace tracking {
 
@@ -103,13 +103,13 @@ void SimpleTracker::DeclareParams() {
     param = declare_parameter(name, param, descr);
   }
 
-  name = "lookahead_time";
-  descr_text = "Time to look ahead in current newly calculated trajectory.";
-  descr = hippo_common::param_utils::Description(descr_text, false);
-  {
-    auto &param = trajectory_params_.lookahead_time;
-    param = declare_parameter(name, param, descr);
-  }
+  // name = "lookahead_time";
+  // descr_text = "Time to look ahead in current newly calculated trajectory.";
+  // descr = hippo_common::param_utils::Description(descr_text, false);
+  // {
+  //   auto &param = trajectory_params_.lookahead_time;
+  //   param = declare_parameter(name, param, descr);
+  // }
 
   name = "min_wall_distance.x";
   descr_text =
@@ -198,10 +198,10 @@ rcl_interfaces::msg::SetParametersResult SimpleTracker::OnSetTrajectoryParams(
             trajectory_params_.open_loop_threshold_time)) {
       result.reason = "Set open_loop_threshold_time";
     }
-    if (hippo_common::param_utils::AssignIfMatch(
-            parameter, "lookahead_time", trajectory_params_.lookahead_time)) {
-      result.reason = "Set lookahead_time.";
-    }
+    // if (hippo_common::param_utils::AssignIfMatch(
+    //         parameter, "lookahead_time", trajectory_params_.lookahead_time)) {
+    //   result.reason = "Set lookahead_time.";
+    // }
     if (hippo_common::param_utils::AssignIfMatch(
             parameter, "min_wall_distance.x",
             trajectory_params_.min_wall_distance.x)) {

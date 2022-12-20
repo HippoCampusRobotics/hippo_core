@@ -38,11 +38,10 @@ class SimpleTracker : public rclcpp::Node {
     double mass{2.6};
     double damping{5.4};
     double t_final{10.0};
-    double timestep_min{0.02};
+    double timestep_min{0.004};
     bool continuous{false};
     double generation_update_period{0.5};
     double open_loop_threshold_time{0.5};
-    double lookahead_time{0.02};
     struct WallDistance {
       double x{0.3};
       double y{0.6};
@@ -113,7 +112,6 @@ class SimpleTracker : public rclcpp::Node {
   Eigen::Vector3d velocity_{0.0, 0.0, 0.0};
   Eigen::Vector3d acceleration_{0.0, 0.0, 0.0};
   Eigen::Quaterniond orientation_{1.0, 0.0, 0.0, 0.0};
-  rclcpp::Time t_last_odometry_;
 
   OnSetParametersCallbackHandle::SharedPtr trajectory_params_cb_handle_;
 
@@ -122,11 +120,14 @@ class SimpleTracker : public rclcpp::Node {
   rclcpp::Time t_start_section_;
   rclcpp::Time t_final_section_;
   rclcpp::Time t_start_current_trajectory_;
+  rclcpp::Time t_last_odometry_;
   bool section_finished_{true};
   std::vector<Eigen::Vector3d>::size_type target_index_;
   std::vector<Eigen::Vector3d> target_positions_;
   std::vector<Eigen::Vector3d> target_velocities_;
   std::vector<Eigen::Vector3d> target_accelerations_;
+
+  double dt_odometry_average_;
 
   Eigen::Vector3d target_position_{0.0, 0.0, 0.0};
   bool use_position_{true};

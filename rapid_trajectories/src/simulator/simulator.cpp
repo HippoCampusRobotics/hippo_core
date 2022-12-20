@@ -98,7 +98,11 @@ void Simulator::Update() {
   clock_msg.clock = t_now_;
   clock_pub_->publish(clock_msg);
   UpdateState(dt.nanoseconds() * 1e-9);
-  PublishState();
+  if (t_now_ - t_last_odometry_ >=
+      rclcpp::Duration(std::chrono::milliseconds(4))) {
+    t_last_odometry_ = t_now_;
+    PublishState();
+  }
 }
 
 void Simulator::UpdateState(double _dt) {
