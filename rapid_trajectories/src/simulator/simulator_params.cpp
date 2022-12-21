@@ -9,6 +9,14 @@ void Simulator::DeclareParams() {
   rcl_interfaces::msg::ParameterDescriptor descriptor;
   std::string description;
 
+  name = "paused";
+  description = "Pauses the simulation";
+  descriptor = hippo_common::param_utils::Description(description, false);
+  {
+    auto &param = params_.paused;
+    param = declare_parameter(name, param, descriptor);
+  }
+
   name = "damping";
   description = "Damping coefficient";
   descriptor = hippo_common::param_utils::Description(description, false);
@@ -41,6 +49,30 @@ void Simulator::DeclareParams() {
     param = declare_parameter(name, param, descriptor);
   }
 
+  name = "gravity.x";
+  description = "Gravitational force in the respective axis direction.";
+  descriptor = hippo_common::param_utils::Description(description, false);
+  {
+    auto &param = params_.gravity.x;
+    param = declare_parameter(name, param, descriptor);
+  }
+
+  name = "gravity.y";
+  description = "Gravitational force in the respective axis direction.";
+  descriptor = hippo_common::param_utils::Description(description, false);
+  {
+    auto &param = params_.gravity.y;
+    param = declare_parameter(name, param, descriptor);
+  }
+
+  name = "gravity.z";
+  description = "Gravitational force in the respective axis direction.";
+  descriptor = hippo_common::param_utils::Description(description, false);
+  {
+    auto &param = params_.gravity.z;
+    param = declare_parameter(name, param, descriptor);
+  }
+
   params_cb_handle_ = add_on_set_parameters_callback(
       std::bind(&Simulator::OnSetParams, this, std::placeholders::_1));
 }
@@ -53,6 +85,13 @@ rcl_interfaces::msg::SetParametersResult Simulator::OnSetParams(
   std::string text;
 
   for (const rclcpp::Parameter &parameter : _parameters) {
+    if (hippo_common::param_utils::AssignIfMatch(parameter, "paused",
+                                                 params_.paused)) {
+      result.reason = "Toggled pause.";
+      RCLCPP_INFO_STREAM(get_logger(), "Toggled pause.");
+      continue;
+    }
+
     if (hippo_common::param_utils::AssignIfMatch(parameter, "damping",
                                                  params_.damping, text)) {
       result.reason = text;
@@ -76,6 +115,27 @@ rcl_interfaces::msg::SetParametersResult Simulator::OnSetParams(
 
     if (hippo_common::param_utils::AssignIfMatch(parameter, "speed_factor",
                                                  params_.speed_factor, text)) {
+      result.reason = text;
+      RCLCPP_INFO_STREAM(get_logger(), text);
+      continue;
+    }
+
+    if (hippo_common::param_utils::AssignIfMatch(parameter, "gravity.x",
+                                                 params_.gravity.x, text)) {
+      result.reason = text;
+      RCLCPP_INFO_STREAM(get_logger(), text);
+      continue;
+    }
+
+    if (hippo_common::param_utils::AssignIfMatch(parameter, "gravity.y",
+                                                 params_.gravity.y, text)) {
+      result.reason = text;
+      RCLCPP_INFO_STREAM(get_logger(), text);
+      continue;
+    }
+
+    if (hippo_common::param_utils::AssignIfMatch(parameter, "gravity.z",
+                                                 params_.gravity.z, text)) {
       result.reason = text;
       RCLCPP_INFO_STREAM(get_logger(), text);
       continue;

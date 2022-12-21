@@ -153,60 +153,127 @@ bool SimpleTracker::UpdateMovingTarget(double dt, const rclcpp::Time &_t_now) {
   Eigen::Vector3d gravity{trajectory_params_.gravity.x,
                           trajectory_params_.gravity.y,
                           trajectory_params_.gravity.z};
+
+  Eigen::Vector3d p_gate{sin(_t_now.nanoseconds() * 1e-9), 2.0 * target_index_,
+                         -1.0};
+  rviz_helper_->PublishStart(p_gate);
   Generator trajectory =
       Generator(position_, velocity_, acceleration_, gravity,
                 trajectory_params_.mass, trajectory_params_.damping);
   bool found_feasible = false;
   Eigen::Vector3d p;
+  int thrust_high_counter = 0;
+  int thrust_low_counter = 0;
+  int rates_counter = 0;
+  int indeterminable_counter = 0;
+  int feasible_counter = 0;
   for (int i = 1; i <= timesteps; ++i) {
     t_final = i * dt / timesteps;
     Eigen::Vector3d p_gate{sin(_t_now.nanoseconds() * 1e-9 + t_final),
                            2.0 * target_index_, -1.0};
+    Eigen::Vector3d v_gate{cos(_t_now.nanoseconds() * 1e-9 + t_final), 0.0,
+                           0.0};
     double delta_f =
         trajectory_params_.thrust_max - trajectory_params_.thrust_min;
     const int force_steps = 10;
-    for (int i_f = 0; i < force_steps; ++i_f) {
-      double f_final = i_f * delta_f / force_steps;
-      const int normal_steps = 49;
-      for (int n_yaw = 0; n_yaw < 7; ++n_yaw) {
-        double yaw = 10 / 180 * 3.14 * n_yaw;
-        for (int n_roll = 0; n_roll < 7; ++n_roll) {
-          double roll = 10 / 180 * 3.14 * n_roll;
-          Eigen::Quaterniond q =
-              hippo_common::tf2_utils::EulerToQuaternion(yaw, 0.0, roll);
-          Eigen::Vector3d normal = orientation_ * q * Eigen::Vector3d::UnitX();
-          Eigen::Vector3d a =
-              f_final * (normal + gravity) / trajectory_params_.mass;
-          p = p_gate - 0.1 * normal;
-          trajectory.SetGoalAcceleration(a);
-          trajectory.SetGoalPosition(p);
-          trajectory.SetGoalVelocityInAxis(1, 0.3);
-          trajectory.SetGoalVelocityInAxis(2, 0.0);
-          trajectory.Generate(t_final);
-          if (trajectory.GetCost() >= costs) {
-            continue;
-          }
-          auto feasibility = trajectory.CheckInputFeasibility(
-              trajectory_params_.thrust_min, trajectory_params_.thrust_max,
-              trajectory_params_.body_rate_max,
-              trajectory_params_.timestep_min);
-          if (feasibility != Generator::InputFeasible) {
-            continue;
-          }
-          selected_trajectory_ = trajectory;
-          found_feasible = true;
-        }
-      }
+    trajectory.SetGoalPosition(p_gate);
+    trajectory.SetGoalVelocity(v_gate);
+    trajectory.Generate(t_final);
+    if (trajectory.GetCost() >= costs) {
+      continue;
     }
+    auto feasibility = trajectory.CheckInputFeasibility(
+        trajectory_params_.thrust_min, trajectory_params_.thrust_max,
+        trajectory_params_.body_rate_max, trajectory_params_.timestep_min);
+    if (feasibility != Generator::InputFeasible) {
+      switch (feasibility) {
+        case Generator::InputIndeterminable:
+          indeterminable_counter++;
+          break;
+        case Generator::InputInfeasibleThrustHigh:
+          thrust_high_counter++;
+          break;
+        case Generator::InputInfeasibleThrustLow:
+          thrust_low_counter++;
+          break;
+        case Generator::InputInfeasibleRates:
+          rates_counter++;
+          break;
+        default:
+          RCLCPP_WARN_STREAM(get_logger(), "Unknown infeasibility.");
+          break;
+      }
+      continue;
+    }
+    feasible_counter++;
+    selected_trajectory_ = trajectory;
+    found_feasible = true;
+
+    // for (int i_f = 0; i_f < force_steps; ++i_f) {
+    //   double f_final = i_f * delta_f / force_steps;
+    //   const int normal_steps = 49;
+    //   for (int n_yaw = 0; n_yaw < 7; ++n_yaw) {
+    //     double yaw = 10 / 180 * 3.14 * n_yaw;
+    //     for (int n_roll = 0; n_roll < 7; ++n_roll) {
+    //       double roll = 10 / 180 * 3.14 * n_roll;
+    //       Eigen::Quaterniond q =
+    //           hippo_common::tf2_utils::EulerToQuaternion(yaw, 0.0, roll);
+    //       auto q2 =
+    //       hippo_common::tf2_utils::RotationBetweenNormalizedVectors(
+    //           Eigen::Vector3d::UnitX(), v_gate.normalized());
+    //       Eigen::Vector3d normal = q2 * q * Eigen::Vector3d::UnitX();
+    //       Eigen::Vector3d a =
+    //           f_final * (normal + gravity) / trajectory_params_.mass;
+    //       p = p_gate - 0.1 * normal;
+    //       trajectory.SetGoalAcceleration(a);
+    //       trajectory.SetGoalPosition(p);
+    //       trajectory.SetGoalVelocityInAxis(1, 0.3);
+    //       trajectory.SetGoalVelocityInAxis(2, 0.0);
+    //       trajectory.Generate(t_final);
+    //       if (trajectory.GetCost() >= costs) {
+    //         continue;
+    //       }
+    //       auto feasibility = trajectory.CheckInputFeasibility(
+    //           trajectory_params_.thrust_min, trajectory_params_.thrust_max,
+    //           trajectory_params_.body_rate_max,
+    //           trajectory_params_.timestep_min);
+    //       if (feasibility != Generator::InputFeasible) {
+    //         switch (feasibility) {
+    //           case Generator::InputIndeterminable:
+    //             indeterminable_counter++;
+    //             break;
+    //           case Generator::InputInfeasibleThrustHigh:
+    //             thrust_high_counter++;
+    //             break;
+    //           case Generator::InputInfeasibleThrustLow:
+    //             thrust_low_counter++;
+    //             break;
+    //           case Generator::InputInfeasibleRates:
+    //             rates_counter++;
+    //             break;
+    //           default:
+    //             RCLCPP_WARN_STREAM(get_logger(), "Unknown infeasibility.");
+    //             break;
+    //         }
+    //         continue;
+    //       }
+    //       feasible_counter++;
+    //       selected_trajectory_ = trajectory;
+    //       found_feasible = true;
+    //     }
+    //   }
+    // }
   }
+  RCLCPP_INFO(get_logger(),
+              "Feasible: %d Thrust High: %d Thrust Low: %d Rates High: %d "
+              "Indeterminable: %d",
+              feasible_counter, thrust_high_counter, thrust_low_counter,
+              rates_counter, indeterminable_counter);
   if (!found_feasible) {
     return false;
   }
-  Eigen::Vector3d p_gate{sin(_t_now.nanoseconds() * 1e-9), 2.0 * target_index_,
-                         -1.0};
   rviz_helper_->PublishTarget(
       selected_trajectory_.GetPosition(selected_trajectory_.GetFinalTime()));
-  rviz_helper_->PublishStart(p_gate);
   t_start_current_trajectory_ = _t_now;
   t_final_current_trajecotry_ =
       _t_now + rclcpp::Duration(std::chrono::milliseconds(

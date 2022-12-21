@@ -151,7 +151,7 @@ double SingleAxisTrajectory::GetForce(double _t) const {
   result += _t * _t * _t * _t * damping_ * alpha_ / 24.0;
   // subtract gravity from acceleration. The thrust required needs to compensate
   // the gravitational force
-  result -= gravity_;
+  result -= gravity_ * mass_;
   return result;
 }
 

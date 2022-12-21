@@ -92,6 +92,9 @@ void Simulator::CreateUpdateTimer() {
 
 void Simulator::Update() {
   CreateUpdateTimer();
+  if (params_.paused) {
+    return;
+  }
   rclcpp::Duration dt(std::chrono::milliseconds(params_.timestep_ms));
   t_now_ += dt;
   rosgraph_msgs::msg::Clock clock_msg;
@@ -109,8 +112,11 @@ void Simulator::UpdateState(double _dt) {
   orientation_ = orientation_ * DeltaRotation(body_rates_, _dt);
   orientation_.normalize();
 
-  Eigen::Vector3d force_ =
-      -params_.damping * velocity_ + orientation_ * thrust_local_;
+  Eigen::Vector3d gravity{params_.gravity.x, params_.gravity.y,
+                          params_.gravity.z};
+  Eigen::Vector3d force_ = -params_.damping * velocity_ +
+                           orientation_ * thrust_local_ +
+                           gravity * params_.mass;
   acceleration_ = force_ / params_.mass;
 
   velocity_ += acceleration_ * _dt;

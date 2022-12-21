@@ -16,10 +16,16 @@ class Simulator : public rclcpp::Node {
 
  private:
   struct Params {
+    bool paused{true};
     double damping{5.4};
     double mass{2.6};
     int timestep_ms{1};
     double speed_factor{1.0};
+    struct Gravity {
+      double x{0.0};
+      double y{0.0};
+      double z{-9.81};
+    } gravity;
   } params_;
   void DeclareParams();
 

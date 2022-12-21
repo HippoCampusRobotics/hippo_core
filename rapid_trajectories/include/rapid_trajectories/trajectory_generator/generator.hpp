@@ -192,16 +192,16 @@ class Generator {
   //! Return the quadrocopter's normal vector along the trajectory at time _t
   Eigen::Vector3d GetNormalVector(double _t) const {
     // add almost zero vector to ensure we do not normalize a zero vector
-    return (GetAcceleration(_t) * mass_param_ + GetVelocity(_t) * damping_)
+    return Eigen::Vector3d{axis_[0].GetForce(_t), axis_[1].GetForce(_t),
+                           axis_[2].GetForce(_t)}
         .normalized();
   };
   //! Return the quadrocopter's thrust input along the trajectory at time _t
   double GetThrust(double _t) const {
     // return (GetAcceleration(_t) * mass_param_ + GetVelocity(_t) * damping_)
     //     .norm();
-    return (Eigen::Vector3d{axis_[0].GetForce(_t), axis_[1].GetForce(_t),
-                            axis_[2].GetForce(_t)} -
-            gravity_)
+    return Eigen::Vector3d{axis_[0].GetForce(_t), axis_[1].GetForce(_t),
+                           axis_[2].GetForce(_t)}
         .norm();
   };
   /*! Return the quadrocopter's body rates along the trajectory at time _t
