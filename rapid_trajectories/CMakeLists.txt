@@ -33,13 +33,13 @@ install(
 )
 
 ################################################################################
-# trajectory_generator library
+# trajectory library
 ################################################################################
 
-set(lib_name trajectory_generator)
+set(lib_name trajectory)
 add_library(${lib_name}
-  src/trajectory_generator/generator.cpp
-  src/trajectory_generator/single_axis.cpp
+  src/trajectory/generator.cpp
+  src/trajectory/single_axis.cpp
 )
 target_include_directories(${lib_name}
   PUBLIC
@@ -94,7 +94,7 @@ add_library(${component_name}
   src/tracking/simple_tracker.cpp
   src/tracking/simple_tracker_params.cpp
 )
-target_link_libraries(${component_name} trajectory_generator rviz_helper)
+target_link_libraries(${component_name} trajectory rviz_helper)
 target_include_directories(${component_name}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

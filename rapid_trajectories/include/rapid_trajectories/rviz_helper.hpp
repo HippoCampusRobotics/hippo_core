@@ -1,7 +1,7 @@
 #pragma once
 #include <eigen3/Eigen/Dense>
 #include <geometry_msgs/msg/point.hpp>
-#include <rapid_trajectories/trajectory_generator/generator.hpp>
+#include <rapid_trajectories/trajectory/generator.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 
@@ -10,7 +10,7 @@ class RvizHelper {
  public:
   RvizHelper(rclcpp::Node::SharedPtr _node);
   void PublishTrajectory(
-      const minimum_jerk::Generator &_trajectory);
+      const minimum_jerk::Trajectory &_trajectory);
 
   void PublishTarget(const Eigen::Vector3d &_point);
 

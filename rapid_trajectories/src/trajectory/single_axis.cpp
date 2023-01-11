@@ -17,7 +17,7 @@
  * along with the code.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "rapid_trajectories/trajectory_generator/single_axis.hpp"
+#include "rapid_trajectories/trajectory/single_axis.hpp"
 
 #include <math.h>
 
@@ -30,12 +30,23 @@ namespace rapid_trajectories {
 namespace minimum_jerk {
 
 SingleAxisTrajectory::SingleAxisTrajectory(void)
-    : alpha_(0), beta_(0), gamma_(0), damping_(5.4), mass_(2.6) {
+    : alpha_(0),
+      beta_(0),
+      gamma_(0),
+      damping_(5.4),
+      mass_rb_(1.5),
+      mass_added_(1.5) {
   Reset();
 }
 
-SingleAxisTrajectory::SingleAxisTrajectory(double _mass, double _damping)
-    : alpha_(0), beta_(0), gamma_(0), damping_(_damping), mass_(_mass) {
+SingleAxisTrajectory::SingleAxisTrajectory(double _mass_rb, double _mass_added,
+                                           double _damping)
+    : alpha_(0),
+      beta_(0),
+      gamma_(0),
+      damping_(_damping),
+      mass_rb_(_mass_rb),
+      mass_added_(_mass_added) {
   Reset();
 }
 
@@ -51,9 +62,10 @@ SingleAxisTrajectory::SingleAxisTrajectory(double _mass, double _damping)
 /// @param _v_start
 /// @param _a_start
 SingleAxisTrajectory::SingleAxisTrajectory(double _alpha, double _beta,
-                                           double _gamma, double _mass,
-                                           double _damping, double _p_start,
-                                           double _v_start, double _a_start)
+                                           double _gamma, double _mass_rb,
+                                           double _mass_added, double _damping,
+                                           double _p_start, double _v_start,
+                                           double _a_start)
     : p_start_(_p_start),
       v_start_(_v_start),
       a_start_(_a_start),
@@ -61,7 +73,8 @@ SingleAxisTrajectory::SingleAxisTrajectory(double _alpha, double _beta,
       beta_(_beta),
       gamma_(_gamma),
       damping_(_damping),
-      mass_(_mass) {
+      mass_rb_(_mass_rb),
+      mass_added_(_mass_added) {
   Reset();
 }
 
@@ -76,9 +89,9 @@ void SingleAxisTrajectory::Reset(void) {
 }
 
 /*!
- * Calculate the coefficients that define a trajectory. This solves, in closed
- * form the optimal trajectory for some given set of goal constraints. Before
- * calling this,
+ * Calculate the coefficients that define a trajectory. This solves, in
+ * closed form the optimal trajectory for some given set of goal
+ * constraints. Before calling this,
  *   - define the initial state
  *   - define the relevant parts of the trajectory goal state.
  *
@@ -140,19 +153,77 @@ void SingleAxisTrajectory::GenerateTrajectory(const double Tf) {
   cost_ = gamma_ * gamma_ + beta_ * gamma_ * Tf + beta_ * beta_ * T2 / 3.0 +
           alpha_ * gamma_ * T2 / 3.0 + alpha_ * beta_ * T3 / 4.0 +
           alpha_ * alpha_ * T4 / 20.0;
+  UpdatePolynomialCoefficients();
 }
 
-double SingleAxisTrajectory::GetForce(double _t) const {
-  double result =
-      mass_ * GetInitialAcceleration() + damping_ * GetInitialVelocity();
-  result += _t * (mass_ * gamma_ + damping_ * GetInitialAcceleration());
-  result += _t * _t * (mass_ * beta_ + damping_ * gamma_) / 2.0;
-  result += _t * _t * _t * (mass_ * alpha_ + damping_ * beta_) / 6.0;
-  result += _t * _t * _t * _t * damping_ * alpha_ / 24.0;
-  // subtract gravity from acceleration. The thrust required needs to compensate
-  // the gravitational force
-  result -= gravity_ * mass_;
-  return result;
+void SingleAxisTrajectory::UpdatePolynomialCoefficients() {
+  v_poly_coeff_ = {v_start_, a_start_, 0.5 * gamma_, 1.0 / 6.0 * beta_,
+                   1.0 / 24.0 * alpha_};
+  a_poly_coeff_ = {a_start_, gamma_, 0.5 * beta_, 1.0 / 6.0 * alpha_};
+  j_poly_coeff_ = {gamma_, beta_, 0.5 * alpha_};
+  xi_poly_coeff_ = {mass_added_ * a_poly_coeff_[0] + j_poly_coeff_[0],
+                    mass_added_ * a_poly_coeff_[1] + j_poly_coeff_[1],
+                    mass_added_ * a_poly_coeff_[2] + j_poly_coeff_[2],
+                    mass_added_ * a_poly_coeff_[3]};
+  dxi_poly_coeff_ = {xi_poly_coeff_[1], xi_poly_coeff_[2] * 2.0,
+                     xi_poly_coeff_[3] * 3.0};
+  const double m = GetMassEffective();
+  f_poly_coeff_ = {damping_ * v_poly_coeff_[0] + m * a_poly_coeff_[0],
+                   damping_ * v_poly_coeff_[1] + m * a_poly_coeff_[1],
+                   damping_ * v_poly_coeff_[2] + m * a_poly_coeff_[2],
+                   damping_ * v_poly_coeff_[3] + m * a_poly_coeff_[3],
+                   damping_ * v_poly_coeff_[4]};
+  df_poly_coeff_ = {f_poly_coeff_[1], f_poly_coeff_[2] * 2.0,
+                    f_poly_coeff_[3] * 3.0, f_poly_coeff_[4] * 4.0};
+}
+
+std::pair<double, double> SingleAxisTrajectory::GetMinMaxXi(double _t1,
+                                                            double _t2) {
+  if (!xi_peak_times_.computed) {
+    // xi is of third order -> maximum of 2 extrema
+    // solve roots of quadratic function for peak candidates
+    if (dxi_poly_coeff_.at(2)) {
+      const double det = dxi_poly_coeff_.at(1) * dxi_poly_coeff_.at(1) -
+                         4.0 * dxi_poly_coeff_.at(2) * dxi_poly_coeff_.at(0);
+      if (det < 0) {
+        // no real roots
+        xi_peak_times_.t.at(0) = kNoPeakTime;
+        xi_peak_times_.t.at(1) = kNoPeakTime;
+      } else {
+        xi_peak_times_.t.at(0) =
+            0.5 * (-dxi_poly_coeff_.at(1) - sqrt(det)) / dxi_poly_coeff_.at(2);
+        xi_peak_times_.t.at(1) =
+            0.5 * (-dxi_poly_coeff_.at(1) + sqrt(det)) / dxi_poly_coeff_.at(2);
+      }
+    } else {
+      // we have a linear function since the first coeff is zero
+      //  at most a single root expected
+      xi_peak_times_.t.at(1) = kNoPeakTime;
+      if (dxi_poly_coeff_.at(1)) {
+        xi_peak_times_.t.at(0) =
+            -1.0 * dxi_poly_coeff_.at(0) / dxi_poly_coeff_.at(1);
+      } else {
+        // the function is a constant. no roots at all
+        xi_peak_times_.t.at(0) = kNoPeakTime;
+      }
+    }
+    xi_peak_times_.computed = true;
+  }
+  double min = PolyEval(xi_poly_coeff_, _t1);
+  double max = PolyEval(xi_poly_coeff_, _t2);
+  if (min > max) {
+    std::swap(min, max);
+  }
+  for (int i = 0; i < 2; ++i) {
+    const double t = xi_peak_times_.t.at(i);
+    if (t <= _t1 || t >= _t2) {
+      // only interested if strictly inside [_t1, _t2]
+      continue;
+    }
+    min = std::min(min, PolyEval(xi_poly_coeff_, t));
+    max = std::max(max, PolyEval(xi_poly_coeff_, t));
+  }
+  return std::pair{min, max};
 }
 
 /**
@@ -160,22 +231,17 @@ double SingleAxisTrajectory::GetForce(double _t) const {
  * order.
  *
  */
-std::vector<double> SingleAxisTrajectory::GetForceDerivativeRoots() const {
+std::vector<double> SingleAxisTrajectory::GetThrustDerivativeRoots() {
   std::vector<double> result;
   result.reserve(kMaxForceDerivateRoots);
   double roots_array[kMaxForceDerivateRoots];
   size_t n_roots;
-  // polynomial of the force derivative
-  double p[4];
-  // define the polynomial in form  p3 * t^3 + p2 * t^2 + p1 * t^1 + p0
-  p[3] = damping_ * alpha_ / 6.0;
-  p[2] = mass_ * alpha_ / 6.0 + damping_ * beta_ * 0.5;
-  p[1] = mass_ * beta_ * 0.5 + damping_ * gamma_;
-  p[0] = mass_ * gamma_ + damping_ * GetInitialAcceleration();
   // normalize the polynomial and solve for the roots
-  n_roots =
-      magnet::math::cubicSolve(p[0] / p[3], p[1] / p[3], p[2] / p[3],
-                               roots_array[0], roots_array[1], roots_array[2]);
+  double div = df_poly_coeff_.at(3);
+  n_roots = magnet::math::cubicSolve(df_poly_coeff_.at(2) / div,
+                                     df_poly_coeff_.at(1) / div,
+                                     df_poly_coeff_.at(0) / div, roots_array[0],
+                                     roots_array[1], roots_array[2]);
   for (size_t i = 0; i < n_roots; ++i) {
     // only add roots inside the time horizon of the whole trajectory.
     if (roots_array[i] < t_final_ && roots_array[i] > 0.0) {
@@ -184,38 +250,20 @@ std::vector<double> SingleAxisTrajectory::GetForceDerivativeRoots() const {
   }
   return result;
 }
-/**
- * @brief
- *
- * @param _t1 Lower time interval limit.
- * @param _t2 Upper time interval limit.
- * @param[out] _min Output parameter for the minimum.
- * @param[out] _max Output parameter for the maximum.
- */
-inline void SingleAxisTrajectory::HandleNoPeaks(const double &_t1,
-                                                const double &_t2, double &_min,
-                                                double &_max) {
-  force_peak_times_.t[0] = kNoPeakTime;
-  force_peak_times_.t[1] = kNoPeakTime;
-  _min = GetForce(_t1);
-  _max = GetForce(_t2);
-  if (_min > _max) {
-    std::swap(_min, _max);
-  }
-}
 
 std::pair<double, double> SingleAxisTrajectory::GetMinMaxForce(double _t1,
-                                                               double _t2) {
+                                                                double _t2) {
   double min;
   double max;
   if (!force_peak_times_.computed) {
     // compute the local extrama in the interval [0; t_final_].
-    std::vector<double> roots = GetForceDerivativeRoots();
+    std::vector<double> roots = GetThrustDerivativeRoots();
 
     switch (roots.size()) {
       case 0: {
         // no extrema, min/max will lie on the boundaries
-        HandleNoPeaks(_t1, _t2, min, max);
+        force_peak_times_.t[0] = kNoPeakTime;
+        force_peak_times_.t[1] = kNoPeakTime;
         break;
       }
       case 1: {
@@ -245,8 +293,8 @@ std::pair<double, double> SingleAxisTrajectory::GetMinMaxForce(double _t1,
     force_peak_times_.computed = true;
   }
 
-  // the min/max might lie on the boundaries of the interval, so evaluate these
-  // values first.
+  // the min/max might lie on the boundaries of the interval, so evaluate
+  // these values first.
   min = GetForce(_t1);
   max = GetForce(_t2);
   if (GetForce(_t1) > GetForce(_t2)) {
@@ -254,8 +302,9 @@ std::pair<double, double> SingleAxisTrajectory::GetMinMaxForce(double _t1,
   }
 
   for (int i = 0; i < 2; ++i) {
-    const double t = accel_peak_times_.t[i];
-    // skip the peak, if the peak is not strictly inside the interval [_t1; _t2]
+    const double t = force_peak_times_.t[i];
+    // skip the peak, if the peak is not strictly inside the interval [_t1;
+    // _t2]
     if (t >= _t2 || t <= _t1) {
       continue;
     }
@@ -266,9 +315,9 @@ std::pair<double, double> SingleAxisTrajectory::GetMinMaxForce(double _t1,
 }
 
 /*!
- * Calculate the extrema of the acceleration trajectory. This is made relatively
- * easy by the fact that the acceleration is a cubic polynomial, so we only need
- * to solve for the roots of a quadratic.
+ * Calculate the extrema of the acceleration trajectory. This is made
+ * relatively easy by the fact that the acceleration is a cubic polynomial,
+ * so we only need to solve for the roots of a quadratic.
  * @param aMinOut [out] The minimum acceleration in the segment
  * @param aMaxOut [out] The maximum acceleration in the segment
  * @param t1 [in] The start time of the segment
@@ -313,8 +362,9 @@ void SingleAxisTrajectory::GetMinMaxAcc(double &aMinOut, double &aMaxOut,
 }
 
 /*!
- * Calculate the maximum jerk squared along the trajectory. This is made easy
- * because the jerk is quadratic, so we need to evaluate at most three points.
+ * Calculate the maximum jerk squared along the trajectory. This is made
+ * easy because the jerk is quadratic, so we need to evaluate at most three
+ * points.
  * @param t1 [in] The start time of the segment
  * @param t2 [in] The end time of the segment
  * @return the maximum jerk

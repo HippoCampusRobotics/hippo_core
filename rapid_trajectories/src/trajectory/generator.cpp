@@ -17,7 +17,7 @@
  * along with the code.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "rapid_trajectories/trajectory_generator/generator.hpp"
+#include "rapid_trajectories/trajectory/generator.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -61,19 +61,23 @@ T min(T a, T b, T c) {
   }
 }
 
-Generator::Generator(const Eigen::Vector3d &_p0, const Eigen::Vector3d &_v0,
-                     const Eigen::Vector3d &_a0,
-                     const Eigen::Vector3d &_gravity, const double _mass,
-                     const double _damping) {
+Trajectory::Trajectory(const Eigen::Vector3d &_p0, const Eigen::Vector3d &_v0,
+                       const Eigen::Vector3d &_a0,
+                       const Eigen::Vector3d &_gravity, const double _mass_rb,
+                       const double _mass_added, const double _damping,
+                       const Eigen::Quaterniond &_rotation) {
   // initialise each axis:
   Reset();
+  rotation_ = _rotation;
   damping_ = _damping;
-  mass_param_ = _mass;
+  mass_rb_ = _mass_rb;
+  mass_added_ = _mass_added;
   gravity_ = _gravity;
   for (size_t i = 0; i < axis_.size(); i++) {
     axis_[i].SetGravity(gravity_[i]);
     axis_[i].SetDamping(damping_);
-    axis_[i].SetMass(mass_param_);
+    axis_[i].SetMassRigidBody(mass_rb_);
+    axis_[i].SetMassAdded(mass_added_);
     axis_[i].SetInitialState(_p0[i], _v0[i], _a0[i]);
   }
 }
@@ -82,25 +86,25 @@ Generator::Generator(const Eigen::Vector3d &_p0, const Eigen::Vector3d &_v0,
  *
  * @param _in
  */
-void Generator::SetGoalPosition(const Eigen::Vector3d &_in) {
+void Trajectory::SetGoalPosition(const Eigen::Vector3d &_in) {
   for (unsigned i = 0; i < 3; i++) {
     SetGoalPositionInAxis(i, _in[i]);
   }
 }
 
-void Generator::SetGoalVelocity(const Eigen::Vector3d &_in) {
+void Trajectory::SetGoalVelocity(const Eigen::Vector3d &_in) {
   for (int i = 0; i < 3; i++) {
     SetGoalVelocityInAxis(i, _in[i]);
   }
 }
 
-void Generator::SetGoalAcceleration(const Eigen::Vector3d &_in) {
+void Trajectory::SetGoalAcceleration(const Eigen::Vector3d &_in) {
   for (int i = 0; i < 3; i++) {
     SetGoalAccelerationInAxis(i, _in[i]);
   }
 }
 
-void Generator::Reset(void) {
+void Trajectory::Reset(void) {
   for (int i = 0; i < 3; i++) {
     axis_[i].Reset();
   }
@@ -108,18 +112,18 @@ void Generator::Reset(void) {
 }
 
 // Generate the trajectory:
-void Generator::Generate(const double timeToFinish) {
+void Trajectory::Generate(const double timeToFinish) {
   t_final_ = timeToFinish;
   for (int i = 0; i < 3; i++) {
     axis_[i].GenerateTrajectory(t_final_);
   }
 }
 
-Generator::InputFeasibilityResult Generator::CheckInputFeasibilitySection(
+Trajectory::InputFeasibilityResult Trajectory::CheckInputFeasibilitySection(
     double _f_min_allowed, double _f_max_allowed, double _w_max_allowed,
     double _t1, double _t2, double _dt_min) {
   if (_t2 - _t1 < _dt_min) return InputIndeterminable;
-  // test the acceleration at the two limits:
+  // test the acceleration at both limits:
   if (std::max(GetThrust(_t1), GetThrust(_t2)) > _f_max_allowed)
     return InputInfeasibleThrustHigh;
   if (std::min(GetThrust(_t1), GetThrust(_t2)) < _f_min_allowed)
@@ -206,7 +210,7 @@ Generator::InputFeasibilityResult Generator::CheckInputFeasibilitySection(
   return InputFeasible;
 }
 
-Generator::InputFeasibilityResult Generator::CheckInputFeasibility(
+Trajectory::InputFeasibilityResult Trajectory::CheckInputFeasibility(
     double _f_max_allowed, double _f_min_allowed, double _w_max_allowed,
     double _dt_min) {
   // required thrust limits along trajectory
@@ -217,7 +221,7 @@ Generator::InputFeasibilityResult Generator::CheckInputFeasibility(
                                       _w_max_allowed, _t1, _t2, _dt_min);
 }
 
-Generator::StateFeasibilityResult Generator::CheckPositionFeasibility(
+Trajectory::StateFeasibilityResult Trajectory::CheckPositionFeasibility(
     Eigen::Vector3d &_boundary_point, Eigen::Vector3d &_boundary_normal) {
   // Ensure that the normal is a unit vector:
   _boundary_normal.normalize();
@@ -271,7 +275,7 @@ Generator::StateFeasibilityResult Generator::CheckPositionFeasibility(
   return StateFeasible;
 }
 
-Eigen::Vector3d Generator::GetOmega(double t, double _dt) const {
+Eigen::Vector3d Trajectory::GetOmega(double t, double _dt) const {
   // Calculates the body rates necessary at time t, to rotate the normal vector.
   // The result is coordinated in the world frame, i.e. would have to be rotated
   // into a body frame.

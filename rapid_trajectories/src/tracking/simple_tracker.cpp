@@ -157,8 +157,8 @@ bool SimpleTracker::UpdateMovingTarget(double dt, const rclcpp::Time &_t_now) {
   Eigen::Vector3d p_gate{sin(_t_now.nanoseconds() * 1e-9), 2.0 * target_index_,
                          -1.0};
   rviz_helper_->PublishStart(p_gate);
-  Generator trajectory =
-      Generator(position_, velocity_, acceleration_, gravity,
+  Trajectory trajectory =
+      Trajectory(position_, velocity_, acceleration_, gravity,
                 trajectory_params_.mass, trajectory_params_.damping);
   bool found_feasible = false;
   Eigen::Vector3d p;
@@ -185,18 +185,18 @@ bool SimpleTracker::UpdateMovingTarget(double dt, const rclcpp::Time &_t_now) {
     auto feasibility = trajectory.CheckInputFeasibility(
         trajectory_params_.thrust_min, trajectory_params_.thrust_max,
         trajectory_params_.body_rate_max, trajectory_params_.timestep_min);
-    if (feasibility != Generator::InputFeasible) {
+    if (feasibility != Trajectory::InputFeasible) {
       switch (feasibility) {
-        case Generator::InputIndeterminable:
+        case Trajectory::InputIndeterminable:
           indeterminable_counter++;
           break;
-        case Generator::InputInfeasibleThrustHigh:
+        case Trajectory::InputInfeasibleThrustHigh:
           thrust_high_counter++;
           break;
-        case Generator::InputInfeasibleThrustLow:
+        case Trajectory::InputInfeasibleThrustLow:
           thrust_low_counter++;
           break;
-        case Generator::InputInfeasibleRates:
+        case Trajectory::InputInfeasibleRates:
           rates_counter++;
           break;
         default:
@@ -237,18 +237,18 @@ bool SimpleTracker::UpdateMovingTarget(double dt, const rclcpp::Time &_t_now) {
     //           trajectory_params_.thrust_min, trajectory_params_.thrust_max,
     //           trajectory_params_.body_rate_max,
     //           trajectory_params_.timestep_min);
-    //       if (feasibility != Generator::InputFeasible) {
+    //       if (feasibility != Trajectory::InputFeasible) {
     //         switch (feasibility) {
-    //           case Generator::InputIndeterminable:
+    //           case Trajectory::InputIndeterminable:
     //             indeterminable_counter++;
     //             break;
-    //           case Generator::InputInfeasibleThrustHigh:
+    //           case Trajectory::InputInfeasibleThrustHigh:
     //             thrust_high_counter++;
     //             break;
-    //           case Generator::InputInfeasibleThrustLow:
+    //           case Trajectory::InputInfeasibleThrustLow:
     //             thrust_low_counter++;
     //             break;
-    //           case Generator::InputInfeasibleRates:
+    //           case Trajectory::InputInfeasibleRates:
     //             rates_counter++;
     //             break;
     //           default:
@@ -421,8 +421,8 @@ void SimpleTracker::OnLinearAcceleration(
   hippo_common::convert::RosToEigen(_msg->vector, acceleration_);
 }
 
-Generator::StateFeasibilityResult SimpleTracker::CheckWallCollision(
-    Generator &_trajectory) {
+Trajectory::StateFeasibilityResult SimpleTracker::CheckWallCollision(
+    Trajectory &_trajectory) {
   static constexpr size_t n_walls = 6;
   std::array<Eigen::Vector3d, n_walls> boundary_points = {
       Eigen::Vector3d{0 + trajectory_params_.min_wall_distance.x, 0.0, 0.0},
@@ -439,14 +439,14 @@ Generator::StateFeasibilityResult SimpleTracker::CheckWallCollision(
   // check for collision with all six walls. If a single check fails, the
   // trajectory is invalid.
   for (size_t i = 0; i < n_walls; ++i) {
-    Generator::StateFeasibilityResult result;
+    Trajectory::StateFeasibilityResult result;
     result = _trajectory.CheckPositionFeasibility(boundary_points.at(i),
                                                   boundary_normals.at(i));
-    if (result == Generator::StateFeasibilityResult::StateInfeasible) {
-      return Generator::StateFeasibilityResult::StateInfeasible;
+    if (result == Trajectory::StateFeasibilityResult::StateInfeasible) {
+      return Trajectory::StateFeasibilityResult::StateInfeasible;
     }
   }
-  return Generator::StateFeasibilityResult::StateFeasible;
+  return Trajectory::StateFeasibilityResult::StateFeasible;
 }
 
 void SimpleTracker::GenerateTrajectories(
@@ -457,11 +457,11 @@ void SimpleTracker::GenerateTrajectories(
   assert(_target_positions.size() == _target_velocities.size() &&
          _target_positions.size() == _target_accelerations.size());
 
-  Generator::InputFeasibilityResult input_feasibility;
-  Generator::StateFeasibilityResult position_feasibility;
+  Trajectory::InputFeasibilityResult input_feasibility;
+  Trajectory::StateFeasibilityResult position_feasibility;
 
   for (unsigned int i = 0; i < _target_positions.size(); ++i) {
-    Generator trajectory{
+    Trajectory trajectory{
         position_,
         velocity_,
         acceleration_,
@@ -479,7 +479,7 @@ void SimpleTracker::GenerateTrajectories(
     // check for collision with any wall.
     // position_feasibility = CheckWallCollision(trajectory);
     // if (!(position_feasibility ==
-    //       Generator::StateFeasibilityResult::StateFeasible)) {
+    //       Trajectory::StateFeasibilityResult::StateFeasible)) {
     //   RCLCPP_WARN(get_logger(), "Generated trajectory collides with walls.");
     //   continue;
     // }
@@ -489,9 +489,9 @@ void SimpleTracker::GenerateTrajectories(
         trajectory_params_.thrust_min, trajectory_params_.thrust_max,
         trajectory_params_.body_rate_max, trajectory_params_.timestep_min);
     if (!(input_feasibility ==
-              Generator::InputFeasibilityResult::InputFeasible ||
+              Trajectory::InputFeasibilityResult::InputFeasible ||
           input_feasibility ==
-              Generator::InputFeasibilityResult::InputIndeterminable)) {
+              Trajectory::InputFeasibilityResult::InputIndeterminable)) {
       RCLCPP_INFO(get_logger(), "Infeasible: %d", input_feasibility);
       continue;
     }

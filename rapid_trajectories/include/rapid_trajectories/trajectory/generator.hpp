@@ -20,7 +20,7 @@
 #pragma once
 #include <eigen3/Eigen/Dense>
 
-#include "rapid_trajectories/trajectory_generator/single_axis.hpp"
+#include "rapid_trajectories/trajectory/single_axis.hpp"
 
 namespace rapid_trajectories {
 namespace minimum_jerk {
@@ -52,7 +52,7 @@ namespace minimum_jerk {
  * NOTE: in the publication, axes are 1-indexed, while here they are
  * zero-indexed.
  */
-class Generator {
+class Trajectory {
  public:
   enum InputFeasibilityResult {
     InputFeasible = 0,        //!< The trajectory is input feasible
@@ -72,9 +72,10 @@ class Generator {
   };
 
   //! Constructor, user must define initial state, and the direction of gravity.
-  Generator(const Eigen::Vector3d &_x0, const Eigen::Vector3d &_v0,
-            const Eigen::Vector3d &_a0, const Eigen::Vector3d &_gravity,
-            const double _mass, const double _damping);
+  Trajectory(const Eigen::Vector3d &_p0, const Eigen::Vector3d &_v0,
+             const Eigen::Vector3d &_a0, const Eigen::Vector3d &_gravity,
+             const double _mass_rb, const double _mass_added,
+             const double _damping, const Eigen::Quaterniond &_rotation);
 
   inline std::array<double, SingleAxisTrajectory::kTrajectoryParamsCount>
   GetAxisParameters(int _i) const {
@@ -82,7 +83,11 @@ class Generator {
         GetAxisParamAlpha(_i), GetAxisParamBeta(_i), GetAxisParamGamma(_i)};
   }
 
-  inline double GetMass() const { return mass_param_; }
+  inline double GetMassRigidBody() const { return mass_rb_; }
+
+  inline double GetMassAdded() const { return mass_added_; }
+
+  inline double GetMassEffective() const { return mass_rb_ + mass_added_; }
 
   inline double GetDamping() const { return damping_; }
 
@@ -239,6 +244,10 @@ class Generator {
     return axis_[i].GetParamGamma();
   };
 
+  inline Eigen::Vector3d ToWorld(const Eigen::Vector3d &_vec) {
+    return rotation_.inverse() * _vec;
+  }
+
  private:
   //! Test a section of the trajectory for input feasibility (recursion).
   InputFeasibilityResult CheckInputFeasibilitySection(double _f_min_allowed,
@@ -250,9 +259,17 @@ class Generator {
   std::array<SingleAxisTrajectory, 3> axis_;
   double t_final_{0.0};  //!< trajectory end time [s]
   double damping_{5.4};
-  double mass_param_{2.6};
+  double mass_rb_{1.5};
+  double mass_added_{1.5};
   double thrust_max_{0.0};
   double thrust_min_{0.0};
+
+  /**
+   * @brief Rotation of the used inertial frame relative to the world frame.
+   * To get trajectory vectors/points in world frame, you would write
+   * x_world = _rotation_.inverse() * x_trajectory
+   */
+  Eigen::Quaterniond rotation_;
 
   Eigen::Vector3d gravity_{0.0, 0.0, 0.0};
 };

@@ -22,7 +22,7 @@ RvizHelper::RvizHelper(rclcpp::Node::SharedPtr _node) {
 }
 
 void RvizHelper::PublishTrajectory(
-    const minimum_jerk::Generator &_trajectory) {
+    const minimum_jerk::Trajectory &_trajectory) {
   visualization_msgs::msg::Marker path;
   path.points.resize(n_trajectory_samples_);
   path.header.frame_id = "map";

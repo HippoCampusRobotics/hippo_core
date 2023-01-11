@@ -24,6 +24,35 @@
 namespace rapid_trajectories {
 namespace minimum_jerk {
 
+/**
+ * @brief Eval polynomial at time _t.
+ *
+ * @param _p Polynomial coefficients
+ * @param _t
+ * @param n Degree of polynomial, or in other words number of coefficients - 1.
+ * @return double
+ */
+double PolyEval(const double *_p, const double _t, const int n) {
+  double result = 0.0;
+  double t = 1.0;
+  for (int i = 0; i <= n; ++i) {
+    result += *(_p++) * t;
+    t *= _t;
+  }
+  return result;
+}
+
+template <std::size_t size>
+double PolyEval(const std::array<double, size> &_poly, const double _t) {
+  double result{0.0};
+  double t = 1.0;
+  for (const auto &p : _poly) {
+    result += p * t;
+    t *= _t;
+  }
+  return result;
+}
+
 //! An axis along one spatial direction
 /*!
  * For more information, please refer to Section II of the publication.
@@ -37,10 +66,10 @@ class SingleAxisTrajectory {
   static constexpr int kTrajectoryParamsCount = 3;
   //! Constructor, calls Reset() function.
   SingleAxisTrajectory();
-  SingleAxisTrajectory(double _mass, double _damping);
-  SingleAxisTrajectory(double _alpha, double _beta, double _gamma, double _mass,
-                       double _damping, double _p_start, double _v_start,
-                       double _a_start);
+  SingleAxisTrajectory(double _mass_rb, double _mass_added, double _damping);
+  SingleAxisTrajectory(double _alpha, double _beta, double _gamma,
+                       double _mass_rb, double _mass_added, double _damping,
+                       double _p_start, double _v_start, double _a_start);
 
   //! Define the trajectory's initial state (position, velocity, acceleration),
   //! at time zero
@@ -79,9 +108,15 @@ class SingleAxisTrajectory {
 
   inline double GetDamping() const { return damping_; }
 
-  inline void SetMass(const double _mass) { mass_ = _mass; }
+  inline void SetMassRigidBody(const double _mass) { mass_rb_ = _mass; }
 
-  inline double GetMass() const { return mass_; }
+  inline double GetMassRigidBody() const { return mass_rb_; }
+
+  inline void SetMassAdded(const double _mass) { mass_added_ = _mass; }
+
+  inline double GetMassAdded() const { return mass_added_; }
+
+  inline double GetMassEffective() const { return mass_added_ + mass_rb_; }
 
   //! Generate the trajectory, from the defined initial state to the defined
   //! components of the final state.
@@ -92,23 +127,15 @@ class SingleAxisTrajectory {
   void Reset(void);
 
   //! Returns the jerk at time t
-  double GetJerk(double t) const {
-    return gamma_ + beta_ * t + (1 / 2.0) * alpha_ * t * t;
-  };
+  double GetJerk(double t) const { return PolyEval(j_poly_coeff_, t); };
 
   //! Returns the acceleration at time t
-  double GetAcceleration(double t) const {
-    return a_start_ + gamma_ * t + (1 / 2.0) * beta_ * t * t +
-           (1 / 6.0) * alpha_ * t * t * t;
-  };
+  double GetAcceleration(double t) const { return PolyEval(a_poly_coeff_, t); };
 
-  double GetForce(double _t) const;
+  double GetForce(double t) const { return PolyEval(f_poly_coeff_, t); }
 
   //! Returns the velocity at time t
-  double GetVelocity(double t) const {
-    return v_start_ + a_start_ * t + (1 / 2.0) * gamma_ * t * t +
-           (1 / 6.0) * beta_ * t * t * t + (1 / 24.0) * alpha_ * t * t * t * t;
-  };
+  double GetVelocity(double t) const { return PolyEval(v_poly_coeff_, t); };
 
   //! Returns the position at time t
   double GetPosition(double t) const {
@@ -117,9 +144,11 @@ class SingleAxisTrajectory {
            (1 / 120.0) * alpha_ * t * t * t * t * t;
   };
 
-  std::vector<double> GetForceDerivativeRoots() const;
+  std::vector<double> GetThrustDerivativeRoots();
 
   std::pair<double, double> GetMinMaxForce(double _t1, double _t2);
+
+  std::pair<double, double> GetMinMaxXi(double _t1, double _t2);
 
   //! Calculate the extrema of the acceleration trajectory over a section
   void GetMinMaxAcc(double &aMinOut, double &aMaxOut, double t1, double t2);
@@ -144,6 +173,7 @@ class SingleAxisTrajectory {
   double GetCost(void) const { return cost_; };
 
  private:
+  void UpdatePolynomialCoefficients();
   inline void HandleNoPeaks(const double &_t1, const double &_t2, double &_min,
                             double &_max);
   struct PeakTimes {
@@ -184,12 +214,21 @@ class SingleAxisTrajectory {
 
   PeakTimes accel_peak_times_;
   PeakTimes force_peak_times_;
+  PeakTimes xi_peak_times_;
 
   /// @brief Damping is modelled as a linear function of the velocity;
   double damping_{5.4};
   /// @brief Effective mass of the vehicle;
-  double mass_{2.6};
+  double mass_rb_{1.5};
+  double mass_added_{1.5};
   double gravity_{0.0};
+  std::array<double, 5> v_poly_coeff_;
+  std::array<double, 4> a_poly_coeff_;
+  std::array<double, 3> j_poly_coeff_;
+  std::array<double, 4> xi_poly_coeff_;
+  std::array<double, 3> dxi_poly_coeff_;
+  std::array<double, 5> f_poly_coeff_;
+  std::array<double, 4> df_poly_coeff_;
 };
 };  // namespace minimum_jerk
 };  // namespace rapid_trajectories

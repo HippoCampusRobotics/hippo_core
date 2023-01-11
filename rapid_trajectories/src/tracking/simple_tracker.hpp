@@ -9,7 +9,7 @@
 #include <hippo_msgs/msg/rates_target.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rapid_trajectories/rviz_helper.hpp>
-#include <rapid_trajectories/trajectory_generator/generator.hpp>
+#include <rapid_trajectories/trajectory/generator.hpp>
 #include <rapid_trajectories_msgs/msg/current_state_debug.hpp>
 #include <rapid_trajectories_msgs/msg/target_state.hpp>
 #include <rapid_trajectories_msgs/msg/trajectory_stamped.hpp>
@@ -78,7 +78,7 @@ class SimpleTracker : public rclcpp::Node {
   void SwitchToPreviousTarget();
   void OnLinearAcceleration(
       const geometry_msgs::msg::Vector3Stamped::ConstSharedPtr _msg);
-  Generator::StateFeasibilityResult CheckWallCollision(Generator &_trajectory);
+  Trajectory::StateFeasibilityResult CheckWallCollision(Trajectory &_trajectory);
   rcl_interfaces::msg::SetParametersResult OnSetTrajectoryParams(
       const std::vector<rclcpp::Parameter> &_parameters);
   void GenerateTrajectories(
@@ -111,8 +111,8 @@ class SimpleTracker : public rclcpp::Node {
   rclcpp::Subscription<TargetState>::SharedPtr target_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr
       linear_acceleration_sub_;
-  std::vector<Generator> generators_;
-  Generator selected_trajectory_;
+  std::vector<Trajectory> generators_;
+  Trajectory selected_trajectory_;
   Eigen::Vector3d position_{0.0, 0.0, 0.0};
   Eigen::Vector3d velocity_{0.0, 0.0, 0.0};
   Eigen::Vector3d acceleration_{0.0, 0.0, 0.0};
