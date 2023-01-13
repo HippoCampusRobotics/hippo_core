@@ -32,11 +32,19 @@ void SimpleTracker::DeclareParams() {
     param = declare_parameter(name, param, descr);
   }
 
-  name = "mass";
-  descr_text = "Effective mass including added mass (hydrodynamics) [m] = kg";
+  name = "mass_rb";
+  descr_text = "Rigid body mass [m] = kg";
   descr = hippo_common::param_utils::Description(descr_text, false);
   {
-    auto &param = trajectory_params_.mass;
+    auto &param = trajectory_params_.mass_rb;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "mass_added";
+  descr_text = "Added mass due to hydrodynamics [m] = kg";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.mass_added;
     param = declare_parameter(name, param, descr);
   }
 
@@ -79,6 +87,19 @@ void SimpleTracker::DeclareParams() {
     } else {
       RCLCPP_INFO(get_logger(),
                   "Starting in NON-continuous trajectory recalculation mode.");
+    }
+  }
+
+  name = "use_attitude_control";
+  descr_text = "Use either attitude control or rate control";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.continuous;
+    param = declare_parameter(name, param, descr);
+    if (trajectory_params_.use_attitude_control) {
+      RCLCPP_INFO(get_logger(), "Attitude mode enabled.");
+    } else {
+      RCLCPP_INFO(get_logger(), "Rate mode enabled.");
     }
   }
 
@@ -165,6 +186,104 @@ void SimpleTracker::DeclareParams() {
     param = declare_parameter(name, param, descr);
   }
 
+  name = "homing_thrust";
+  descr_text = "Homing thrust in [N].";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.homing_thrust;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "home_tolerance";
+  descr_text =
+      "Home is reached, if distance to home postion is less than the tolerance "
+      "in [m].";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.home_tolerance;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "home_yaw";
+  descr_text = "Orientation for the home position [rad]";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.home_yaw;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "home_position.x";
+  descr_text = "Axis component of home position.";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.home_position.x;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "home_position.y";
+  descr_text = "Axis component of home position.";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.home_position.y;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "home_position.z";
+  descr_text = "Axis component of home position.";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.home_position.z;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "target_p0.x";
+  descr_text = "Intial target position.";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.target_p0.x;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "target_p0.y";
+  descr_text = "Intial target position.";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.target_p0.y;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "target_p0.z";
+  descr_text = "Intial target position.";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.target_p0.z;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "target_v0.x";
+  descr_text = "Initial target velocity.";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.target_v0.x;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "target_v0.y";
+  descr_text = "Initial target velocity.";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.target_v0.y;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "target_v0.z";
+  descr_text = "Initial target velocity.";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.target_v0.z;
+    param = declare_parameter(name, param, descr);
+  }
+
   trajectory_params_cb_handle_ = add_on_set_parameters_callback(
       std::bind(&SimpleTracker::OnSetTrajectoryParams, this, _1));
 }
@@ -174,83 +293,70 @@ rcl_interfaces::msg::SetParametersResult SimpleTracker::OnSetTrajectoryParams(
   rcl_interfaces::msg::SetParametersResult result;
   result.reason = "Unhandled";
   result.successful = true;
+  std::string result_text;
   for (const rclcpp::Parameter &parameter : _parameters) {
-    if (hippo_common::param_utils::AssignIfMatch(
-            parameter, "thrust_min", trajectory_params_.thrust_min)) {
-      result.reason = "Set thrust_min.";
-      // nothing else to do but to assign the value;
-      continue;
-    }
-    if (hippo_common::param_utils::AssignIfMatch(
-            parameter, "thrust_max", trajectory_params_.thrust_max)) {
-      result.reason = "Set thrust_max.";
-      // nothing else to do but to assign the value;
-      continue;
-    }
-    if (hippo_common::param_utils::AssignIfMatch(
-            parameter, "body_rate_max", trajectory_params_.body_rate_max)) {
-      result.reason = "Set body_rate_max.";
-      // nothing else to do but to assign the value;
-      continue;
-    }
-    if (hippo_common::param_utils::AssignIfMatch(parameter, "mass",
-                                                 trajectory_params_.mass)) {
-      result.reason = "Set mass.";
-      // nothing else to do but to assign the value;
-      continue;
-    }
-    if (hippo_common::param_utils::AssignIfMatch(parameter, "damping",
-                                                 trajectory_params_.damping)) {
-      result.reason = "Set damping.";
-      // nothing else to do but to assign the value;
-      continue;
-    }
-    if (hippo_common::param_utils::AssignIfMatch(parameter, "t_final",
-                                                 trajectory_params_.t_final)) {
-      result.reason = "Set t_final.";
-      // nothing else to do but to assign the value;
-      continue;
-    }
-    if (hippo_common::param_utils::AssignIfMatch(
-            parameter, "timestep_min", trajectory_params_.timestep_min)) {
-      result.reason = "Set timestep_min.";
-      // nothing else to do but to assign the value;
-      continue;
-    }
-    if (hippo_common::param_utils::AssignIfMatch(
-            parameter, "open_loop_threshold_time",
-            trajectory_params_.open_loop_threshold_time)) {
+    if (hippo_common::param_utils::AssignIfMatch(parameter, "thrust_min",
+                                                 trajectory_params_.thrust_min,
+                                                 result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "thrust_max", trajectory_params_.thrust_max,
+                   result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "body_rate_max", trajectory_params_.body_rate_max,
+                   result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "mass_rb", trajectory_params_.mass_rb,
+                   result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "mass_added", trajectory_params_.mass_added,
+                   result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "damping", trajectory_params_.damping,
+                   result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "t_final", trajectory_params_.t_final,
+                   result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "timestep_min", trajectory_params_.timestep_min,
+                   result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "open_loop_threshold_time",
+                   trajectory_params_.open_loop_threshold_time, result_text)) {
       result.reason = "Set open_loop_threshold_time";
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "homing_thrust", trajectory_params_.homing_thrust,
+                   result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "home_yaw", trajectory_params_.home_yaw,
+                   result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "min_wall_distance.x",
+                   trajectory_params_.min_wall_distance.x, result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "min_wall_distance.y",
+                   trajectory_params_.min_wall_distance.y, result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "min_wall_distance.z",
+                   trajectory_params_.min_wall_distance.z, result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "generation_update_period",
+                   trajectory_params_.generation_update_period, result_text)) {
+      result.reason = result_text;
     }
-    // if (hippo_common::param_utils::AssignIfMatch(
-    //         parameter, "lookahead_time", trajectory_params_.lookahead_time)) {
-    //   result.reason = "Set lookahead_time.";
-    // }
-    if (hippo_common::param_utils::AssignIfMatch(
-            parameter, "min_wall_distance.x",
-            trajectory_params_.min_wall_distance.x)) {
-      result.reason = "Set min_wall_distance.x";
-      continue;
-    }
-    if (hippo_common::param_utils::AssignIfMatch(
-            parameter, "min_wall_distance.y",
-            trajectory_params_.min_wall_distance.y)) {
-      result.reason = "Set min_wall_distance.y";
-      continue;
-    }
-    if (hippo_common::param_utils::AssignIfMatch(
-            parameter, "min_wall_distance.z",
-            trajectory_params_.min_wall_distance.z)) {
-      result.reason = "Set min_wall_distance.z";
-      continue;
-    }
-    if (hippo_common::param_utils::AssignIfMatch(
-            parameter, "generation_update_period",
-            trajectory_params_.generation_update_period)) {
-      result.reason = "Set generation_update_period";
-      continue;
-    }
-
+    RCLCPP_INFO_STREAM(get_logger(), result_text);
   }
   return result;
 }

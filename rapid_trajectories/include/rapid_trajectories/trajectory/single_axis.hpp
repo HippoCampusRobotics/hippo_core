@@ -24,24 +24,6 @@
 namespace rapid_trajectories {
 namespace minimum_jerk {
 
-/**
- * @brief Eval polynomial at time _t.
- *
- * @param _p Polynomial coefficients
- * @param _t
- * @param n Degree of polynomial, or in other words number of coefficients - 1.
- * @return double
- */
-double PolyEval(const double *_p, const double _t, const int n) {
-  double result = 0.0;
-  double t = 1.0;
-  for (int i = 0; i <= n; ++i) {
-    result += *(_p++) * t;
-    t *= _t;
-  }
-  return result;
-}
-
 template <std::size_t size>
 double PolyEval(const std::array<double, size> &_poly, const double _t) {
   double result{0.0};

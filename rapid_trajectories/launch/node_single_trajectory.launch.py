@@ -20,7 +20,7 @@ def generate_launch_description():
                                     launch.substitutions.LaunchConfiguration(
                                         'single_tracker_config_path'),
                                     {
-                                        'use_sim_time': True
+                                        'use_sim_time': False
                                     },
                                 ],
                                 output='screen'),

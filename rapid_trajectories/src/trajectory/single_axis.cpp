@@ -161,10 +161,10 @@ void SingleAxisTrajectory::UpdatePolynomialCoefficients() {
                    1.0 / 24.0 * alpha_};
   a_poly_coeff_ = {a_start_, gamma_, 0.5 * beta_, 1.0 / 6.0 * alpha_};
   j_poly_coeff_ = {gamma_, beta_, 0.5 * alpha_};
-  xi_poly_coeff_ = {mass_added_ * a_poly_coeff_[0] + j_poly_coeff_[0],
-                    mass_added_ * a_poly_coeff_[1] + j_poly_coeff_[1],
-                    mass_added_ * a_poly_coeff_[2] + j_poly_coeff_[2],
-                    mass_added_ * a_poly_coeff_[3]};
+  xi_poly_coeff_ = {damping_ * a_poly_coeff_[0] + j_poly_coeff_[0],
+                    damping_ * a_poly_coeff_[1] + j_poly_coeff_[1],
+                    damping_ * a_poly_coeff_[2] + j_poly_coeff_[2],
+                    damping_ * a_poly_coeff_[3]};
   dxi_poly_coeff_ = {xi_poly_coeff_[1], xi_poly_coeff_[2] * 2.0,
                      xi_poly_coeff_[3] * 3.0};
   const double m = GetMassEffective();
@@ -252,7 +252,7 @@ std::vector<double> SingleAxisTrajectory::GetThrustDerivativeRoots() {
 }
 
 std::pair<double, double> SingleAxisTrajectory::GetMinMaxForce(double _t1,
-                                                                double _t2) {
+                                                               double _t2) {
   double min;
   double max;
   if (!force_peak_times_.computed) {

@@ -83,6 +83,12 @@ class Trajectory {
         GetAxisParamAlpha(_i), GetAxisParamBeta(_i), GetAxisParamGamma(_i)};
   }
 
+  inline void SetMassRigidBody(double _v) { mass_rb_ = _v; }
+  inline void SetMassAdded(double _v) { mass_added_ = _v; }
+  inline void SetDamping(double _v) { damping_ = _v; }
+  inline void SetRotation(const Eigen::Quaterniond &_v) { rotation_ = _v; }
+  inline void SetGravity(const Eigen::Vector3d &_v) { gravity_ = _v; }
+
   inline double GetMassRigidBody() const { return mass_rb_; }
 
   inline double GetMassAdded() const { return mass_added_; }
@@ -90,6 +96,9 @@ class Trajectory {
   inline double GetMassEffective() const { return mass_rb_ + mass_added_; }
 
   inline double GetDamping() const { return damping_; }
+
+  Eigen::Quaterniond GetRotation() const { return rotation_; }
+  Eigen::Vector3d GetGravity() const { return gravity_; }
 
   // set the final state for all axes:
   //! Fix the full position at the end time (see also the per-axis functions).
@@ -118,12 +127,13 @@ class Trajectory {
   //! Reset the trajectory, clearing any end state constraints.
   void Reset(void);
 
-  /*! Calculate the optimal trajectory of duration `_time`.
+  /*! Calculate the optimal trajectory of duration `_duration`.
    *
    * Calculate the full trajectory, for all the parameters defined so far.
-   * @param _time The trajectory duration, in [s].
+   * @param _duration The trajectory duration, in [s].
+   * @param _t_now_abs_ns Absolute time in [ns].
    */
-  void Generate(const double _time);
+  void Generate(const double _duration, const uint64_t _t_now_abs_ns);
 
   /*! Test the trajectory for input feasibility.
    *
@@ -194,21 +204,55 @@ class Trajectory {
 
   inline double GetFinalTime() const { return t_final_; }
 
+  inline uint64_t GetFinalTimeAbsNs() const { return t_final_abs_ns_; }
+
   //! Return the quadrocopter's normal vector along the trajectory at time _t
-  Eigen::Vector3d GetNormalVector(double _t) const {
+  inline Eigen::Vector3d GetNormalVector(double _t) const {
     // add almost zero vector to ensure we do not normalize a zero vector
     return Eigen::Vector3d{axis_[0].GetForce(_t), axis_[1].GetForce(_t),
                            axis_[2].GetForce(_t)}
         .normalized();
   };
+
+  inline Eigen::Vector3d GetNormalVector(uint64_t _t_abs_ns) const {
+    return GetNormalVector((_t_abs_ns - t_start_abs_ns_) * 1e-9);
+  }
   //! Return the quadrocopter's thrust input along the trajectory at time _t
-  double GetThrust(double _t) const {
+  inline double GetThrust(double _t) const {
     // return (GetAcceleration(_t) * mass_param_ + GetVelocity(_t) * damping_)
     //     .norm();
-    return Eigen::Vector3d{axis_[0].GetForce(_t), axis_[1].GetForce(_t),
-                           axis_[2].GetForce(_t)}
-        .norm();
+    return GetThrustVector(_t).norm();
   };
+
+  inline double GetThrust(uint64_t _t_abs_ns) const {
+    return GetThrust((_t_abs_ns - t_start_abs_ns_) * 1e-9);
+  }
+
+  inline Eigen::Vector3d GetThrustVector(double _t) const {
+    return Eigen::Vector3d{axis_[0].GetForce(_t), axis_[1].GetForce(_t),
+                           axis_[2].GetForce(_t)};
+  }
+
+  inline Eigen::Vector3d GetThrustVector(uint64_t _t_abs_ns) const {
+    return GetThrustVector((_t_abs_ns - t_start_abs_ns_) * 1e-9);
+  }
+
+  inline uint64_t TimeLeft(uint64_t _t_now_ns) const {
+    return t_final_abs_ns_ > _t_now_ns ? (t_final_abs_ns_ - _t_now_ns) : 0;
+  }
+
+  inline uint64_t TimeOnTrajectoryNs(uint64_t _t_now_ns) const {
+    return _t_now_ns > t_start_abs_ns_ ? (_t_now_ns - t_start_abs_ns_) : 0;
+  }
+
+  inline double TimeOnTrajectory(uint64_t _t_now_ns) const {
+    return TimeOnTrajectoryNs(_t_now_ns) * 1e-9;
+  }
+
+  inline double TimeLeft(double _t) const {
+    return _t < t_final_ ? (t_final_ - _t) : 0.0;
+  }
+
   /*! Return the quadrocopter's body rates along the trajectory at time _t
    *
    * Returns the required body rates along the trajectory. These are expressed
@@ -244,8 +288,8 @@ class Trajectory {
     return axis_[i].GetParamGamma();
   };
 
-  inline Eigen::Vector3d ToWorld(const Eigen::Vector3d &_vec) {
-    return rotation_.inverse() * _vec;
+  inline Eigen::Vector3d ToWorld(const Eigen::Vector3d &_vec) const {
+    return rotation_ * _vec;
   }
 
  private:
@@ -257,6 +301,8 @@ class Trajectory {
                                                       double _dt_min);
 
   std::array<SingleAxisTrajectory, 3> axis_;
+  uint64_t t_start_abs_ns_{0};
+  uint64_t t_final_abs_ns_{0};
   double t_final_{0.0};  //!< trajectory end time [s]
   double damping_{5.4};
   double mass_rb_{1.5};
@@ -267,7 +313,7 @@ class Trajectory {
   /**
    * @brief Rotation of the used inertial frame relative to the world frame.
    * To get trajectory vectors/points in world frame, you would write
-   * x_world = _rotation_.inverse() * x_trajectory
+   * x_world = rotation_ * x_trajectory
    */
   Eigen::Quaterniond rotation_;
 

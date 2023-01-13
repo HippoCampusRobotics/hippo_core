@@ -1,18 +1,36 @@
 /**: # wildcard for the node name
   ros__parameters:
     thrust_min: 0.0
-    thrust_max: 100.0
-    body_rate_max: 20.0
-    mass: 2.6
-    damping: 0.0
-    t_final: 10.0
-    timestep_min: 0.004
+    thrust_max: 24.0
+    body_rate_max: 6.0
+    mass_rb: 1.5
+    mass_added: 1.5
+    damping: 5.4
+    t_final: 5.0
+    timestep_min: 0.02
     continuous: true
-    generation_update_period: 0.02
-    open_loop_threshold_time: 0.1
+    use_attitude_control: true
+    generation_update_period: 0.5
+    open_loop_threshold_time: 0.6
     lookahead_factor: 1
     gravity:
       x: 0.0
       y: 0.0
-      z: -9.81
+      z: 0.0
+    target_p0:
+      x: 1.0
+      y: 0.8
+      z: -0.3
+    target_v0:
+      x: 0.0
+      y: 0.0
+      z: -0.1
+    homing_thrust: 0.1
+    home_tolerance: 0.1
+    home_position:
+      x: 1.0
+      y: 3.3
+      z: -0.5
+    home_yaw: -1.57
+    
 

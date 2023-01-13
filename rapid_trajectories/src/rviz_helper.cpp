@@ -39,7 +39,7 @@ void RvizHelper::PublishTrajectory(
   for (int i = 0; i < n_trajectory_samples_; ++i) {
     geometry_msgs::msg::Point &path_point = path.points.at(i);
     double t = _trajectory.GetFinalTime() / (n_trajectory_samples_ - 1) * i;
-    Eigen::Vector3d p = _trajectory.GetPosition(t);
+    Eigen::Vector3d p = _trajectory.ToWorld(_trajectory.GetPosition(t));
     hippo_common::convert::EigenToRos(p, path_point);
     geometry_msgs::msg::Point thrust_point;
     thrust_point = path_point;

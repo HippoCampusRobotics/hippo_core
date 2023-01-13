@@ -10,6 +10,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <rapid_trajectories/rviz_helper.hpp>
 #include <rapid_trajectories/trajectory/generator.hpp>
+#include <rapid_trajectories/trajectory/target.hpp>
 #include <rapid_trajectories_msgs/msg/current_state_debug.hpp>
 #include <rapid_trajectories_msgs/msg/target_state.hpp>
 #include <rapid_trajectories_msgs/msg/trajectory_stamped.hpp>
@@ -26,6 +27,31 @@ using namespace rapid_trajectories_msgs::msg;
 using namespace std::chrono_literals;
 using std::placeholders::_1;
 
+namespace Sampling {
+static constexpr int kTimeSteps = 2;
+static constexpr int kThrustSteps = 5;
+static constexpr int kPositionRadialSteps = 2;
+static constexpr int kPositionAngleSteps = 5;
+static constexpr int kPositions = kPositionRadialSteps * kPositionAngleSteps;
+static constexpr int kNormalFirstAxisSteps = 5;
+static constexpr int kNormalSecondAxisSteps = 5;
+static constexpr int kNormals = kNormalFirstAxisSteps * kNormalSecondAxisSteps;
+static constexpr int kSamples = kTimeSteps * kThrustSteps *
+                                kPositionRadialSteps * kPositionAngleSteps *
+                                kNormalFirstAxisSteps * kNormalSecondAxisSteps;
+static constexpr double kNormalFirstAngleDeg = 15.0;
+static constexpr double kNormalSecondAngleDeg = 360.0;
+static constexpr double kNormalLength = 0.15;
+static constexpr double kPositionAngleDeg = 360.0;
+static constexpr double kPositionRadius = 0.15;
+}  // namespace Sampling
+
+enum class MissionState {
+  HOMING,
+  ROTATING,
+  TRAJECTORY
+};
+
 class SimpleTracker : public rclcpp::Node {
  public:
   explicit SimpleTracker(rclcpp::NodeOptions const &_options);
@@ -35,11 +61,13 @@ class SimpleTracker : public rclcpp::Node {
     double thrust_min{0.0};
     double thrust_max{16.0};
     double body_rate_max{3.0};
-    double mass{2.6};
+    double mass_rb{1.5};
+    double mass_added{1.5};
     double damping{5.4};
     double t_final{10.0};
     double timestep_min{0.004};
     bool continuous{false};
+    bool use_attitude_control{true};
     double generation_update_period{0.5};
     double open_loop_threshold_time{0.5};
     struct WallDistance {
@@ -50,42 +78,62 @@ class SimpleTracker : public rclcpp::Node {
     struct Gravity {
       double x{0.0};
       double y{0.0};
-      double z{-9.81};
+      double z{0.0};
     } gravity;
+    struct HomePosition {
+      double x{1.0};
+      double y{3.0};
+      double z{-0.8};
+    } home_position;
+    double homing_thrust{0.1};
+    double home_tolerance{0.1};
+    double  home_yaw{3.14};
+    struct TargetPosition {
+      double x{1.0};
+      double y{0.8};
+      double z{-0.3};
+    } target_p0;
+    struct TargetVelocity {
+      double x{0.0};
+      double y{0.0};
+      double z{-0.1};
+    } target_v0;
   } trajectory_params_;
 
  private:
-  inline double TimeOnTrajectory(const rclcpp::Time &_t_now) {
-    return (_t_now - t_start_current_trajectory_).nanoseconds() * 1e-9;
-  }
   inline double TimeOnSectionLeft(const rclcpp::Time &_t_now) {
     return (t_final_section_ - _t_now).nanoseconds() * 1e-9;
+  }
+  inline double TimeOnSection(const rclcpp::Time &_t_now) {
+    return (_t_now - t_start_section_).nanoseconds() * 1e-9;
   }
   void InitPublishers();
   void InitSubscribers();
   void DeclareParams();
   void Update();
-  bool UpdateMovingTarget(double dt, const rclcpp::Time &_t_now);
-  bool UpdateTrajectories(double _duration, const rclcpp::Time &_t_now);
   void PublishControlInput(double _t_trajectory, const rclcpp::Time &_t_now);
+  void PublishAttitudeTarget(double _t_trajectory, const rclcpp::Time &_t_now);
   void PublishCurrentStateDebug(double _t_trajectory,
                                 const rclcpp::Time &_t_now);
+  void PublishVisualizationTopics(const rclcpp::Time &_t_now);
   void OnOdometry(const Odometry::SharedPtr _msg);
   void OnTarget(const TargetState::SharedPtr _msg);
-  bool ShouldGenerateNewTrajectory(const rclcpp::Time &t_now);
+  bool ShouldGenerateNewTrajectories(const rclcpp::Time &t_now);
+  void GenerateDiscPoints();
+  void GenerateTargetPoints(const double _t);
+  void GenerateNormals();
+  bool MoveHome();
+  bool OrientateHome();
+  bool RunTrajectory(const rclcpp::Time &_t_now);
+  bool CheckFeasibility(Trajectory &_traj);
+  bool SampleTrajectories(const rclcpp::Time &_t_now);
   bool SectionFinished(const rclcpp::Time &t_now);
-  void SwitchToNextTarget();
-  void SwitchToPreviousTarget();
   void OnLinearAcceleration(
       const geometry_msgs::msg::Vector3Stamped::ConstSharedPtr _msg);
-  Trajectory::StateFeasibilityResult CheckWallCollision(Trajectory &_trajectory);
+  Trajectory::StateFeasibilityResult CheckWallCollision(
+      Trajectory &_trajectory);
   rcl_interfaces::msg::SetParametersResult OnSetTrajectoryParams(
       const std::vector<rclcpp::Parameter> &_parameters);
-  void GenerateTrajectories(
-      double _duration, std::vector<Eigen::Vector3d> &_target_positions,
-      std::vector<Eigen::Vector3d> &_target_velocities,
-      std::vector<Eigen::Vector3d> &_target_accelerations);
-  void DeleteTrajectories() { generators_.clear(); };
 
  private:
   //////////////////////////////////////////////////////////////////////////////
@@ -96,11 +144,13 @@ class SimpleTracker : public rclcpp::Node {
   /// topic.
   rclcpp::Publisher<TrajectoryStamped>::SharedPtr target_trajectory_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
-      target_pose_pub_;
+      desired_pose_pub_;
   rclcpp::Publisher<hippo_msgs::msg::RatesTarget>::SharedPtr rates_target_pub_;
   rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr thrust_pub_;
   rclcpp::Publisher<rapid_trajectories_msgs::msg::CurrentStateDebug>::SharedPtr
       state_debug_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr ring_pose_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr final_pose_pub_;
 
   //////////////////////////////////////////////////////////////////////////////
   // subscriptions
@@ -111,8 +161,8 @@ class SimpleTracker : public rclcpp::Node {
   rclcpp::Subscription<TargetState>::SharedPtr target_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr
       linear_acceleration_sub_;
-  std::vector<Trajectory> generators_;
-  Trajectory selected_trajectory_;
+
+  Trajectory trajectory_;
   Eigen::Vector3d position_{0.0, 0.0, 0.0};
   Eigen::Vector3d velocity_{0.0, 0.0, 0.0};
   Eigen::Vector3d acceleration_{0.0, 0.0, 0.0};
@@ -124,23 +174,24 @@ class SimpleTracker : public rclcpp::Node {
 
   rclcpp::Time t_start_section_;
   rclcpp::Time t_final_section_;
-  rclcpp::Time t_start_current_trajectory_;
-  rclcpp::Time t_final_current_trajecotry_;
+  rclcpp::Time t_start_trajectory_;
+  rclcpp::Time t_final_trajecotry_;
   rclcpp::Time t_last_odometry_;
   bool section_finished_{true};
+  std::array<Eigen::Vector3d, Sampling::kPositions> target_points_;
+  std::array<Eigen::Vector3d, Sampling::kPositions> disc_points_;
+  std::array<Eigen::Vector3d, Sampling::kNormals> normals_;
   std::vector<Eigen::Vector3d>::size_type target_index_;
   std::vector<Eigen::Vector3d> target_positions_;
   std::vector<Eigen::Vector3d> target_velocities_;
   std::vector<Eigen::Vector3d> target_accelerations_;
 
-  double dt_odometry_average_;
+  MissionState mission_state_{MissionState::HOMING};
 
-  Eigen::Vector3d target_position_{0.0, 0.0, 0.0};
-  bool use_position_{true};
-  Eigen::Vector3d target_velocity_{1.0, 0.0, 0.0};
-  bool use_velocity_{true};
-  Eigen::Vector3d target_acceleration_{0.0, 0.0, 0.0};
-  bool use_acceleration_{true};
+  double dt_odometry_average_;
+  bool initial_sampling_{true};
+
+  TargetUniform target_;
   std::shared_ptr<RvizHelper> rviz_helper_;
 };
 }  // namespace tracking

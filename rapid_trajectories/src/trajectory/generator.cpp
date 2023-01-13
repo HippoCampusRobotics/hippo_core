@@ -112,8 +112,11 @@ void Trajectory::Reset(void) {
 }
 
 // Generate the trajectory:
-void Trajectory::Generate(const double timeToFinish) {
-  t_final_ = timeToFinish;
+void Trajectory::Generate(const double _duration,
+                          const uint64_t _t_now_abs_ns) {
+  t_final_ = _duration;
+  t_start_abs_ns_ = _t_now_abs_ns;
+  t_final_abs_ns_ = t_start_abs_ns_ + _duration * 1e9;
   for (int i = 0; i < 3; i++) {
     axis_[i].GenerateTrajectory(t_final_);
   }
@@ -135,12 +138,12 @@ Trajectory::InputFeasibilityResult Trajectory::CheckInputFeasibilitySection(
   // maximas of each axis. If this coarse criterium is not sufficient to
   // determine feasibility, this function can be called recursively with the
   // time horizon
-
   // split in half. sum of min(f²) over all axes
-  double f_square_min_sum = 0;
+  double f_square_min_sum = 0.0;
   // sum of max(f^2) over all axes
-  double f_square_max_sum = 0;
-  double jerk_square_max = 0;
+  double f_square_max_sum = 0.0;
+
+  double xi_max_square_sum = 0.0;
 
   // Test the limits of the box we're putting around the trajectory:
   for (int i = 0; i < 3; i++) {
@@ -166,7 +169,14 @@ Trajectory::InputFeasibilityResult Trajectory::CheckInputFeasibilitySection(
       f_square_min_sum += f_min_square;
     }
     f_square_max_sum += f_max_square;
-    jerk_square_max += axis_[i].GetMaxJerkSquared(_t1, _t2);
+
+    auto [xi_min, xi_max] = axis_[i].GetMinMaxXi(_t1, _t2);
+    double xi_min_square = xi_min * xi_min;
+    double xi_max_square = xi_max * xi_max;
+    if (xi_min_square > xi_max_square) {
+      std::swap(xi_min_square, xi_max_square);
+    }
+    xi_max_square_sum += xi_max_square;
   }
 
   // if not even the sum of individual maxima is sufficient to reach the minum
@@ -183,14 +193,16 @@ Trajectory::InputFeasibilityResult Trajectory::CheckInputFeasibilitySection(
   double omega_bound_square;
   // dont divide by zero
   if (f_square_min_sum > 1e-6) {
-    omega_bound_square = jerk_square_max / f_square_min_sum;
+    double m = GetMassEffective();
+    omega_bound_square = m * m * xi_max_square_sum / f_square_min_sum;
   } else {
     omega_bound_square = std::numeric_limits<double>::max();
   }
+  omega_bound_square = 0.0;
 
   // opposite of:
-  // sum(min(f²)) >= f²ₘₐₓ AND
-  // sum(max(f²)) <= f²ₘᵢₙ AND
+  // sum(min(f²)) >= f²ₘᵢₙ AND
+  // sum(max(f²)) <= f²ₘₐₓ AND
   // ω² <= ω²ₘₐₓ
   // that is the only (but coarse) criterium for feasibility.
   if ((f_square_min_sum < _f_min_allowed * _f_min_allowed) ||
