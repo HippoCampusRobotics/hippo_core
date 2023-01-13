@@ -81,14 +81,27 @@ class ActuatorCommandMixer : public rclcpp::Node {
 
     std::string descr;
     rcl_interfaces::msg::ParameterDescriptor param;
+
+    name = "zero_thrust_threshold";
+    descr = "Thrust threshold until which zero output is sent.";
+    param = hippo_common::param_utils::Description(descr);
+    auto zero_thrust_threshold = declare_parameter<double>(name, param);
+    mixer_.SetZeroThrustThreshold(zero_thrust_threshold);
+
+    name = "constant_coefficient";
+    descr = "Constant coefficient c of thrust function F(n) = ax^2 + bx + c.";
+    param = hippo_common::param_utils::Description(descr);
+    auto constant_coefficient = declare_parameter<double>(name, param);
+    mixer_.SetConstantCoefficient(constant_coefficient);
+
     name = "linear_coefficient";
-    descr = "Linear coefficient b of thrust function F(n) = ax^2 + bx.";
+    descr = "Linear coefficient b of thrust function F(n) = ax^2 + bx + c.";
     param = hippo_common::param_utils::Description(descr);
     auto linear_coefficient = declare_parameter<double>(name, param);
     mixer_.SetLinearCoefficient(linear_coefficient);
 
     name = "quadratic_coefficient";
-    descr = "Quadratic coefficient a of thrust function F(n) = ax^2 + bx.";
+    descr = "Quadratic coefficient a of thrust function F(n) = ax^2 + bx + c.";
     param = hippo_common::param_utils::Description(descr);
     auto quadratic_coefficient = declare_parameter<double>(name, param);
     mixer_.SetQuadraticCoefficient(quadratic_coefficient);
@@ -172,6 +185,20 @@ class ActuatorCommandMixer : public rclcpp::Node {
                                      tmp_double)) {
         mixer_.SetQuadraticCoefficient(tmp_double);
         result.reason = "Set quadratic_coefficient.";
+        continue;
+      }
+
+      if (param_utils::AssignIfMatch(parameter, "constant_coefficient",
+                                     tmp_double)) {
+        mixer_.SetConstantCoefficient(tmp_double);
+        result.reason = "Set constant_coefficient.";
+        continue;
+      }
+
+      if (param_utils::AssignIfMatch(parameter, "zero_thrust_threshold",
+                                     tmp_double)) {
+        mixer_.SetZeroThrustThreshold(tmp_double);
+        result.reason = "Set zero_thrust_threshold";
         continue;
       }
     }

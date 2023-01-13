@@ -33,6 +33,9 @@
      +1.0, +1.0, +1.0, +1.0, +0.0, +0.0, # motor 7
     ]
     # Thrust is assumed to be a quadratic function of revs per second.
-    quadratic_coefficient: 2.6e-3
-    linear_coefficient: 4.2e-2
+    quadratic_coefficient: 3.313e-3
+    linear_coefficient: 0.1086
+    constant_coefficient: -0.8576
+    # thrust [N] below which a zero output is generated
+    zero_thrust_threshold: 0.000001
     max_rotations_per_second: 50.0

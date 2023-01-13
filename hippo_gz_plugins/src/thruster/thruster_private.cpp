@@ -25,6 +25,7 @@ void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf) {
   AssignSdfParam(_sdf, "rpm_base_topic", sdf_params_.rpm_base_topic);
   AssignSdfParam(_sdf, "throttle_cmd_base_topic",
                  sdf_params_.throttle_cmd_base_topic);
+  AssignSdfParam(_sdf, "constant_coeff", sdf_params_.constant_coeff);
   AssignSdfParam(_sdf, "linear_coeff", sdf_params_.linear_coeff);
   AssignSdfParam(_sdf, "quadratic_coeff", sdf_params_.quadratic_coeff);
   AssignSdfParam(_sdf, "torque_coeff", sdf_params_.torque_coeff);
@@ -99,9 +100,10 @@ ignition::math::Vector3d PluginPrivate::ThrusterForce() {
   double thrust;
   // get rotations per second
   double tmp = std::abs(rotor_velocity_ / 6.28);
-  thrust =
-      tmp * tmp * sdf_params_.quadratic_coeff + tmp * sdf_params_.linear_coeff;
-  if (rotor_velocity_ < 0) {
+  thrust = tmp * tmp * sdf_params_.quadratic_coeff +
+           tmp * sdf_params_.linear_coeff + sdf_params_.constant_coeff;
+  thrust = thrust < 0.0 ? 0.0 : thrust;
+  if (rotor_velocity_ < 0.0) {
     thrust *= -1.0;
   }
   double force = propeller_direction_ * thrust;

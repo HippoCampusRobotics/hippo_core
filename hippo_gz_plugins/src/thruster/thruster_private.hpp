@@ -76,6 +76,7 @@ class PluginPrivate {
     double maximum_rpm{800.0};
     double rpm_scaler{10.0};
     double torque_coeff{0.0};
+    double constant_coeff{0.0};
     double linear_coeff{0.0};
     double quadratic_coeff{0.0};
     double timeconstant_up{0.0};
@@ -91,6 +92,10 @@ class PluginPrivate {
    * @return double Rotational velocity [omega] = rad/s
    */
   double ThrottleToVelocity(double _throttle) {
+    // simulate kind of deadband
+    if (std::abs(_throttle) < 0.11) {
+      return 0.0;
+    }
     return _throttle * turning_direction_ * sdf_params_.maximum_rpm / 60.0 *
            3.14 * 2;
   }

@@ -31,6 +31,10 @@ class SimpleMixer {
   double test;
 
   void SetMapping(int _index, const Mapping &_mapping);
+  void SetZeroThrustThreshold(double _v) { zero_thrust_threshold_ = _v; }
+  inline double ZeroThrustThreshold() const { return zero_thrust_threshold_; }
+  void SetConstantCoefficient(double _v) { constant_coefficient_ = _v; }
+  inline double ConstantCoefficient() const { return constant_coefficient_; }
   void SetLinearCoefficient(double _v) { linear_coefficient_ = _v; }
   inline double LinearCoefficient() const { return linear_coefficient_; }
   void SetQuadraticCoefficient(double _v) { quadratic_coefficient_ = _v; }
@@ -45,6 +49,8 @@ class SimpleMixer {
   /// @brief per motor mappings of torque/thrust
   Mapping mappings_[kOutputChannels];
   Output outputs_[kOutputChannels];
+  double zero_thrust_threshold_;
+  double constant_coefficient_;
   double linear_coefficient_;
   double quadratic_coefficient_;
   double max_rotations_per_second_{1.0};

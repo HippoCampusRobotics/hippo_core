@@ -32,23 +32,28 @@ double SimpleMixer::ApplyInput(
       outputs_[i_out].channels[i_in] += tmp;
     }
     double tmp = abs(outputs_[i_out].total);
-    // normalize the output by applying the reverse of F(n) = an²+bn, n is
-    // revolutions per second and divide by max revs per second to normalize
-    // output to [-1;1].
-    if (linear_coefficient_ == 0.0) {
-      if (quadratic_coefficient_ == 0.0) {
-        tmp = 0.0;
-      } else {
-        tmp = sqrt(tmp / quadratic_coefficient_);
-      }
+    if (tmp < zero_thrust_threshold_) {
+      tmp = 0;
     } else {
-      if (quadratic_coefficient_ == 0.0) {
-        tmp = tmp / linear_coefficient_;
+      // normalize the output by applying the reverse of F(n) = an²+bn, n is
+      // revolutions per second and divide by max revs per second to normalize
+      // output to [-1;1].
+      if (linear_coefficient_ == 0.0) {
+        if (quadratic_coefficient_ == 0.0) {
+          tmp = 0.0;
+        } else {
+          tmp = sqrt((tmp - constant_coefficient_) / quadratic_coefficient_);
+        }
       } else {
-        tmp = (-linear_coefficient_ +
-               sqrt(4 * quadratic_coefficient_ * tmp +
-                    linear_coefficient_ * linear_coefficient_)) /
-              (2 * quadratic_coefficient_);
+        if (quadratic_coefficient_ == 0.0) {
+          tmp = (tmp - constant_coefficient_) / linear_coefficient_;
+        } else {
+          tmp = (-linear_coefficient_ +
+                 sqrt(4 * quadratic_coefficient_ * tmp +
+                      linear_coefficient_ * linear_coefficient_ -
+                      4 * quadratic_coefficient_ * constant_coefficient_)) /
+                (2 * quadratic_coefficient_);
+        }
       }
     }
     tmp /= max_rotations_per_second_;
