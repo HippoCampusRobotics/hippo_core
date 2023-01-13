@@ -10,7 +10,8 @@ if(CMAKE_EXPORT_COMPILE_COMMANDS)
     set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
 endif()
 
-set(CXX_FLAGS -Wall -Wextra -Wpedantic -Wshadow -std=c++17)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CXX_FLAGS -Wall -Wextra -Wpedantic -Wshadow -std=c++17 -O2)
 add_compile_options(${CXX_FLAGS})
 
 find_package(ament_cmake REQUIRED)
@@ -40,6 +41,7 @@ set(lib_name trajectory)
 add_library(${lib_name}
   src/trajectory/generator.cpp
   src/trajectory/single_axis.cpp
+  src/trajectory/target.cpp
 )
 target_include_directories(${lib_name}
   PUBLIC

@@ -6,7 +6,7 @@ project(esc)
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
-set(CXX_FLAGS -Wall -Wextra -Wpedantic -Wshadow -std=c++17)
+set(CXX_FLAGS -Wall -Wextra -Wpedantic -Wshadow -std=c++17 -O2)
 add_compile_options(${CXX_FLAGS})
 
 ## Find catkin macros and libraries
