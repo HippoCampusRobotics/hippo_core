@@ -77,10 +77,24 @@ class Trajectory {
              const double _mass_rb, const double _mass_added,
              const double _damping, const Eigen::Quaterniond &_rotation);
 
-  inline std::array<double, SingleAxisTrajectory::kTrajectoryParamsCount>
-  GetAxisParameters(int _i) const {
-    return std::array<double, SingleAxisTrajectory::kTrajectoryParamsCount>{
-        GetAxisParamAlpha(_i), GetAxisParamBeta(_i), GetAxisParamGamma(_i)};
+  inline Eigen::Vector3d GetAxisParameters(int _i) const {
+    return Eigen::Vector3d{GetAxisParamAlpha(_i), GetAxisParamBeta(_i),
+                           GetAxisParamGamma(_i)};
+  }
+
+  inline Eigen::Vector3d GetAlphas() const {
+    return Eigen::Vector3d{GetAxisParamAlpha(0), GetAxisParamAlpha(1),
+                           GetAxisParamAlpha(2)};
+  }
+
+  inline Eigen::Vector3d GetBetas() const {
+    return Eigen::Vector3d{GetAxisParamBeta(0), GetAxisParamBeta(1),
+                           GetAxisParamBeta(2)};
+  }
+
+  inline Eigen::Vector3d GetGammas() const {
+    return Eigen::Vector3d{GetAxisParamGamma(0), GetAxisParamGamma(1),
+                           GetAxisParamGamma(2)};
   }
 
   inline void SetMassRigidBody(double _v) { mass_rb_ = _v; }
@@ -251,6 +265,10 @@ class Trajectory {
 
   inline double TimeLeft(double _t) const {
     return _t < t_final_ ? (t_final_ - _t) : 0.0;
+  }
+
+  inline uint64_t GetStartTimeNs() const {
+    return t_start_abs_ns_;
   }
 
   /*! Return the quadrocopter's body rates along the trajectory at time _t

@@ -24,6 +24,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/TargetState.msg"
   "msg/Trajectory.msg"
   "msg/TrajectoryArray.msg"
+  "msg/TrajectoryResult.msg"
   "msg/TrajectoryStamped.msg"
   DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
 )

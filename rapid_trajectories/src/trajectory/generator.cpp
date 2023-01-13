@@ -22,7 +22,7 @@
 #include <algorithm>
 #include <limits>
 
-#include "rapid_trajectories/roots/quartic.hpp"
+#include "rapid_trajectories/trajectory/quartic.hpp"
 
 namespace rapid_trajectories {
 namespace minimum_jerk {
@@ -264,17 +264,16 @@ Trajectory::StateFeasibilityResult Trajectory::CheckPositionFeasibility(
   roots[0] = 0;
   roots[1] = t_final_;
 
-  size_t rootCount;
+  int rootCount;
   if (fabs(c[0]) > 1e-6) {
-    rootCount = magnet::math::quarticSolve(c[1] / c[0], c[2] / c[0],
-                                           c[3] / c[0], c[4] / c[0], roots[2],
-                                           roots[3], roots[4], roots[5]);
+    rootCount = quartic::solve_quartic(c[1] / c[0], c[2] / c[0], c[3] / c[0],
+                                       c[4] / c[0], &roots[2]);
   } else {
-    rootCount = magnet::math::cubicSolve(c[2] / c[1], c[3] / c[1], c[4] / c[1],
-                                         roots[2], roots[3], roots[4]);
+    rootCount =
+        quartic::solveP3(c[2] / c[1], c[3] / c[1], c[4] / c[1], &roots[2]);
   }
 
-  for (unsigned i = 0; i < (rootCount + 2); i++) {
+  for (int i = 0; i < (rootCount + 2); i++) {
     // don't evaluate points outside the domain
     if (roots[i] < 0) continue;
     if (roots[i] > t_final_) continue;

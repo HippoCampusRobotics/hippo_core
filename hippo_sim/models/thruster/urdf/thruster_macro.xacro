@@ -116,6 +116,7 @@
                 <rpm_scaler>${rpm_scaler}</rpm_scaler>
                 <torque_coeff>${torque_constant}</torque_coeff>
                 <linear_coeff>${thrust_linear_coeff}</linear_coeff>
+                <constant_coeff>${thrust_constant_coeff}</constant_coeff>
                 <quadratic_coeff>${thrust_quadratic_coeff}</quadratic_coeff>
                 <timeconstant_up>${timeconstant_up}</timeconstant_up>
                 <timeconstant_down>${timeconstant_down}</timeconstant_down>

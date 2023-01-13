@@ -30,6 +30,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/EstimatorSensorBias.msg"
   "msg/EstimatorState.msg"
   "msg/Float64Stamped.msg"
+  "msg/Int64Stamped.msg"
   "msg/RatesTarget.msg"
   "msg/ThrusterForces.msg"
   DEPENDENCIES builtin_interfaces std_msgs geometry_msgs

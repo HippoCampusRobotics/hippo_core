@@ -24,7 +24,7 @@
 #include <algorithm>  //For min/max
 #include <limits>     //for max double
 
-#include "rapid_trajectories/roots/quartic.hpp"
+#include "rapid_trajectories/trajectory/quartic.hpp"
 
 namespace rapid_trajectories {
 namespace minimum_jerk {
@@ -235,14 +235,13 @@ std::vector<double> SingleAxisTrajectory::GetThrustDerivativeRoots() {
   std::vector<double> result;
   result.reserve(kMaxForceDerivateRoots);
   double roots_array[kMaxForceDerivateRoots];
-  size_t n_roots;
+  int n_roots;
   // normalize the polynomial and solve for the roots
   double div = df_poly_coeff_.at(3);
-  n_roots = magnet::math::cubicSolve(df_poly_coeff_.at(2) / div,
-                                     df_poly_coeff_.at(1) / div,
-                                     df_poly_coeff_.at(0) / div, roots_array[0],
-                                     roots_array[1], roots_array[2]);
-  for (size_t i = 0; i < n_roots; ++i) {
+  n_roots =
+      quartic::solveP3(f_poly_coeff_.at(2) / div, df_poly_coeff_.at(1) / div,
+                       df_poly_coeff_.at(0) / div, roots_array);
+  for (int i = 0; i < n_roots; ++i) {
     // only add roots inside the time horizon of the whole trajectory.
     if (roots_array[i] < t_final_ && roots_array[i] > 0.0) {
       result.push_back(roots_array[i]);

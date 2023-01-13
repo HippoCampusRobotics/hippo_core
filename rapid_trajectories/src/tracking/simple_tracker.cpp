@@ -95,6 +95,15 @@ void SimpleTracker::InitPublishers() {
   topic = "~/final_pose";
   final_pose_pub_ =
       create_publisher<geometry_msgs::msg::PoseStamped>(topic, qos);
+
+  topic = "~/trajectory_result";
+  trajectory_result_pub_ =
+      create_publisher<rapid_trajectories_msgs::msg::TrajectoryResult>(topic,
+                                                                       qos);
+
+  topic = "~/trajectory_counter";
+  trajectory_counter_pub_ =
+      create_publisher<hippo_msgs::msg::Int64Stamped>(topic, qos);
 }
 
 void SimpleTracker::InitSubscribers() {
@@ -331,6 +340,7 @@ bool SimpleTracker::RunTrajectory(const rclcpp::Time &_t_now) {
     dt_avg = 0.1 * dt + 0.9 * dt_avg;
   }
   if (SectionFinished(_t_now)) {
+    PublishTrajectoryResult(_t_now);
     return true;
   }
 
@@ -340,10 +350,63 @@ bool SimpleTracker::RunTrajectory(const rclcpp::Time &_t_now) {
   } else {
     PublishControlInput(t_traj, _t_now);
   }
+  PublishTrajectory(_t_now);
   PublishVisualizationTopics(_t_now);
   PublishCurrentStateDebug(trajectory_.TimeOnTrajectory(_t_now.nanoseconds()),
                            _t_now);
   return false;
+}
+
+void SimpleTracker::PublishTrajectory(const rclcpp::Time &_t_now) {
+  rapid_trajectories_msgs::msg::TrajectoryStamped msg;
+  msg.header.stamp = _t_now;
+  hippo_common::convert::EigenToRos(trajectory_.GetAlphas(),
+                                    msg.trajectory.alpha);
+  hippo_common::convert::EigenToRos(trajectory_.GetBetas(),
+                                    msg.trajectory.beta);
+  hippo_common::convert::EigenToRos(trajectory_.GetGammas(),
+                                    msg.trajectory.gamma);
+  msg.trajectory.mass_rb = trajectory_.GetMassRigidBody();
+  msg.trajectory.mass_added = trajectory_.GetMassAdded();
+  msg.trajectory.damping = trajectory_.GetDamping();
+  msg.trajectory.duration = trajectory_.GetFinalTime();
+  msg.trajectory.t_start_abs_ns = trajectory_.GetStartTimeNs();
+  hippo_common::convert::EigenToRos(trajectory_.GetPosition(0.0),
+                                    msg.trajectory.p0);
+  hippo_common::convert::EigenToRos(trajectory_.GetVelocity(0.0),
+                                    msg.trajectory.v0);
+  hippo_common::convert::EigenToRos(trajectory_.GetAcceleration(0.0),
+                                    msg.trajectory.a0);
+  hippo_common::convert::EigenToRos(trajectory_.GetRotation(),
+                                    msg.trajectory.rotation);
+  target_trajectory_pub_->publish(msg);
+}
+
+void SimpleTracker::PublishTrajectoryResult(const rclcpp::Time &_t_now) {
+  rapid_trajectories_msgs::msg::TrajectoryResult msg;
+  msg.header.stamp = _t_now;
+  double t_final = trajectory_.GetFinalTime();
+  double t_ring = (_t_now - t_start_section_).nanoseconds() * 1e-9;
+  Eigen::Vector3d tmp;
+  tmp = trajectory_.ToWorld(trajectory_.GetPosition(t_final));
+  hippo_common::convert::EigenToRos(tmp, msg.state_desired.position);
+  tmp = trajectory_.ToWorld(trajectory_.GetVelocity(t_final));
+  hippo_common::convert::EigenToRos(tmp, msg.state_desired.velocity);
+  tmp = trajectory_.ToWorld(trajectory_.GetAcceleration(t_final));
+  hippo_common::convert::EigenToRos(tmp, msg.state_desired.acceleration);
+  hippo_common::convert::EigenToRos(position_, msg.state_actual.position);
+  hippo_common::convert::EigenToRos(velocity_, msg.state_actual.velocity);
+  hippo_common::convert::EigenToRos(acceleration_,
+                                    msg.state_actual.acceleration);
+  hippo_common::convert::EigenToRos(orientation_, msg.orientation);
+  msg.target_radius = Sampling::kPositionRadius;
+  hippo_common::convert::EigenToRos(target_.Position(t_ring),
+                                    msg.target_position);
+  hippo_common::convert::EigenToRos(target_.Orientation(t_ring),
+                                    msg.target_orientation);
+  msg.average_computation_time = -1.0;
+  msg.success = true;
+  trajectory_result_pub_->publish(msg);
 }
 
 void SimpleTracker::PublishVisualizationTopics(const rclcpp::Time &_t_now) {

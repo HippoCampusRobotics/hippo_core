@@ -6,6 +6,7 @@
 #include <hippo_common/param_utils.hpp>
 #include <hippo_msgs/msg/actuator_setpoint.hpp>
 #include <hippo_msgs/msg/attitude_target.hpp>
+#include <hippo_msgs/msg/int64_stamped.hpp>
 #include <hippo_msgs/msg/rates_target.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rapid_trajectories/rviz_helper.hpp>
@@ -13,6 +14,7 @@
 #include <rapid_trajectories/trajectory/target.hpp>
 #include <rapid_trajectories_msgs/msg/current_state_debug.hpp>
 #include <rapid_trajectories_msgs/msg/target_state.hpp>
+#include <rapid_trajectories_msgs/msg/trajectory_result.hpp>
 #include <rapid_trajectories_msgs/msg/trajectory_stamped.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -46,11 +48,7 @@ static constexpr double kPositionAngleDeg = 360.0;
 static constexpr double kPositionRadius = 0.15;
 }  // namespace Sampling
 
-enum class MissionState {
-  HOMING,
-  ROTATING,
-  TRAJECTORY
-};
+enum class MissionState { HOMING, ROTATING, TRAJECTORY };
 
 class SimpleTracker : public rclcpp::Node {
  public:
@@ -87,7 +85,7 @@ class SimpleTracker : public rclcpp::Node {
     } home_position;
     double homing_thrust{0.1};
     double home_tolerance{0.1};
-    double  home_yaw{3.14};
+    double home_yaw{3.14};
     struct TargetPosition {
       double x{1.0};
       double y{0.8};
@@ -116,6 +114,8 @@ class SimpleTracker : public rclcpp::Node {
   void PublishCurrentStateDebug(double _t_trajectory,
                                 const rclcpp::Time &_t_now);
   void PublishVisualizationTopics(const rclcpp::Time &_t_now);
+  void PublishTrajectory(const rclcpp::Time &_t_now);
+  void PublishTrajectoryResult(const rclcpp::Time &_t_now);
   void OnOdometry(const Odometry::SharedPtr _msg);
   void OnTarget(const TargetState::SharedPtr _msg);
   bool ShouldGenerateNewTrajectories(const rclcpp::Time &t_now);
@@ -151,6 +151,10 @@ class SimpleTracker : public rclcpp::Node {
       state_debug_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr ring_pose_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr final_pose_pub_;
+  rclcpp::Publisher<rapid_trajectories_msgs::msg::TrajectoryResult>::SharedPtr
+      trajectory_result_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::Int64Stamped>::SharedPtr
+      trajectory_counter_pub_;
 
   //////////////////////////////////////////////////////////////////////////////
   // subscriptions

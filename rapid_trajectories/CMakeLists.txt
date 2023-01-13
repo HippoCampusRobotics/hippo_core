@@ -42,6 +42,7 @@ add_library(${lib_name}
   src/trajectory/generator.cpp
   src/trajectory/single_axis.cpp
   src/trajectory/target.cpp
+  src/trajectory/quartic.cpp
 )
 target_include_directories(${lib_name}
   PUBLIC
