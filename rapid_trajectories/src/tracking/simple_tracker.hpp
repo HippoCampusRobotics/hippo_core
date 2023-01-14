@@ -41,7 +41,7 @@ static constexpr int kNormals = kNormalFirstAxisSteps * kNormalSecondAxisSteps;
 static constexpr int kSamples = kTimeSteps * kThrustSteps *
                                 kPositionRadialSteps * kPositionAngleSteps *
                                 kNormalFirstAxisSteps * kNormalSecondAxisSteps;
-static constexpr double kNormalFirstAngleDeg = 15.0;
+static constexpr double kNormalFirstAngleDeg = 5.0;
 static constexpr double kNormalSecondAngleDeg = 360.0;
 static constexpr double kNormalLength = 0.15;
 static constexpr double kPositionAngleDeg = 360.0;
@@ -70,9 +70,9 @@ class SimpleTracker : public rclcpp::Node {
     double generation_update_period{0.5};
     double open_loop_threshold_time{0.5};
     struct WallDistance {
-      double x{0.3};
-      double y{0.6};
-      double z{0.5};
+      double x{0.2};
+      double y{0.2};
+      double z{0.1};
     } min_wall_distance;
     struct Gravity {
       double x{0.0};

@@ -216,6 +216,29 @@ bool SimpleTracker::CheckFeasibility(Trajectory &_traj) {
   if (input_result != Trajectory::InputFeasible) {
     return false;
   }
+  static constexpr size_t n_walls = 6;
+  std::array<Eigen::Vector3d, n_walls> boundary_points = {
+      Eigen::Vector3d{0 + trajectory_params_.min_wall_distance.x, 0.0, 0.0},
+      Eigen::Vector3d{2.0 - trajectory_params_.min_wall_distance.x, 0.0, 0.0},
+      Eigen::Vector3d{0.0, 0.0 + trajectory_params_.min_wall_distance.y, 0.0},
+      Eigen::Vector3d{0.0, 4.0 - trajectory_params_.min_wall_distance.y, 0.0},
+      Eigen::Vector3d{0.0, 0.0, -1.5 + trajectory_params_.min_wall_distance.z},
+      Eigen::Vector3d{0.0, 0.0, 0.0 - trajectory_params_.min_wall_distance.y}};
+  std::array<Eigen::Vector3d, n_walls> boundary_normals = {
+      Eigen::Vector3d{1.0, 0.0, 0.0}, Eigen::Vector3d{-1.0, 0.0, 0.0},
+      Eigen::Vector3d{0.0, 1.0, 0.0}, Eigen::Vector3d{0.0, -1.0, 0.0},
+      Eigen::Vector3d{0.0, 0.0, 1.0}, Eigen::Vector3d{0.0, 0.0, -1.0}};
+
+  // check for collision with all six walls. If a single check fails, the
+  // trajectory is invalid.
+  // for (size_t i = 0; i < n_walls; ++i) {
+  //   Trajectory::StateFeasibilityResult result;
+  //   result = _traj.CheckPositionFeasibility(boundary_points.at(i),
+  //                                           boundary_normals.at(i));
+  //   if (result != Trajectory::StateFeasibilityResult::StateFeasible) {
+  //     return false;
+  //   }
+  // }
   return true;
 }
 
@@ -329,6 +352,7 @@ bool SimpleTracker::MoveHome() {
 }
 
 bool SimpleTracker::OrientateHome() {
+  static int counter = 0;
   hippo_msgs::msg::AttitudeTarget msg;
   msg.header.stamp = now();
   msg.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
@@ -347,7 +371,11 @@ bool SimpleTracker::OrientateHome() {
   double error = (axis_current - axis_desired).norm();
 
   if (error < trajectory_params_.home_axis_tolerance) {
-    return true;
+    counter++;
+    if (counter > 20) {
+      counter = 0;
+      return true;
+    }
   }
   return false;
 }
@@ -356,6 +384,10 @@ bool SimpleTracker::RunTrajectory(const rclcpp::Time &_t_now) {
   static double dt_avg = 0.0;
   if (initial_sampling_) {
     RCLCPP_INFO(get_logger(), "Computation time [ms]: %lf", dt_avg);
+    acceleration_ = Eigen::Vector3d::Zero();
+    velocity_ = Eigen::AngleAxis{trajectory_params_.home_yaw,
+                                 Eigen::Vector3d::UnitZ()} *
+                Eigen::Vector3d::UnitX() * 0.05;
     if (!SampleTrajectories(_t_now)) {
       RCLCPP_FATAL(get_logger(),
                    "Failed to find feasibile solution for initial trajectory.");
@@ -382,8 +414,7 @@ bool SimpleTracker::RunTrajectory(const rclcpp::Time &_t_now) {
   }
   PublishTrajectory(_t_now);
   PublishVisualizationTopics(_t_now);
-  PublishCurrentStateDebug(trajectory_.TimeOnTrajectory(_t_now.nanoseconds()),
-                           _t_now);
+  PublishCurrentStateDebug(t_traj, _t_now);
   return false;
 }
 
@@ -576,12 +607,15 @@ void SimpleTracker::PublishCurrentStateDebug(double _t_trajectory,
   hippo_common::convert::EigenToRos(position_, msg.p_current);
   hippo_common::convert::EigenToRos(velocity_, msg.v_current);
   hippo_common::convert::EigenToRos(acceleration_, msg.a_current);
-  hippo_common::convert::EigenToRos(trajectory_.GetPosition(_t_trajectory),
-                                    msg.p_desired);
-  hippo_common::convert::EigenToRos(trajectory_.GetVelocity(_t_trajectory),
-                                    msg.v_desired);
-  hippo_common::convert::EigenToRos(trajectory_.GetAcceleration(_t_trajectory),
-                                    msg.a_desired);
+  hippo_common::convert::EigenToRos(
+      trajectory_.ToWorld(trajectory_.GetPosition(_t_trajectory)),
+      msg.p_desired);
+  hippo_common::convert::EigenToRos(
+      trajectory_.ToWorld(trajectory_.GetVelocity(_t_trajectory)),
+      msg.v_desired);
+  hippo_common::convert::EigenToRos(
+      trajectory_.ToWorld(trajectory_.GetAcceleration(_t_trajectory)),
+      msg.a_desired);
   state_debug_pub_->publish(msg);
 }
 
