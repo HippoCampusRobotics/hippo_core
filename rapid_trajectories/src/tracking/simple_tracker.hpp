@@ -154,7 +154,7 @@ class SimpleTracker : public rclcpp::Node {
   rclcpp::Publisher<rapid_trajectories_msgs::msg::TrajectoryResult>::SharedPtr
       trajectory_result_pub_;
   rclcpp::Publisher<hippo_msgs::msg::Int64Stamped>::SharedPtr
-      trajectory_counter_pub_;
+      section_counter_pub_;
 
   //////////////////////////////////////////////////////////////////////////////
   // subscriptions
@@ -189,6 +189,8 @@ class SimpleTracker : public rclcpp::Node {
   std::vector<Eigen::Vector3d> target_positions_;
   std::vector<Eigen::Vector3d> target_velocities_;
   std::vector<Eigen::Vector3d> target_accelerations_;
+
+  int section_counter_{0};
 
   MissionState mission_state_{MissionState::HOMING};
 

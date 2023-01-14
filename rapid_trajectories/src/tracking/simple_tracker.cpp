@@ -101,8 +101,8 @@ void SimpleTracker::InitPublishers() {
       create_publisher<rapid_trajectories_msgs::msg::TrajectoryResult>(topic,
                                                                        qos);
 
-  topic = "~/trajectory_counter";
-  trajectory_counter_pub_ =
+  topic = "~/section_counter";
+  section_counter_pub_ =
       create_publisher<hippo_msgs::msg::Int64Stamped>(topic, qos);
 }
 
@@ -474,12 +474,19 @@ void SimpleTracker::Update() {
         t_final_section_ = t_now + rclcpp::Duration(duration);
         mission_state_ = MissionState::TRAJECTORY;
         initial_sampling_ = true;
+
+        // publish section counter
+        hippo_msgs::msg::Int64Stamped msg;
+        msg.header.stamp = t_now;
+        msg.data = section_counter_;
+        section_counter_pub_->publish(msg);
       }
       break;
     case MissionState::TRAJECTORY:
       if (RunTrajectory(t_now)) {
         mission_state_ = MissionState::HOMING;
         RCLCPP_INFO(get_logger(), "Trajectory finished.");
+        section_counter_++;
       }
       break;
     default:
