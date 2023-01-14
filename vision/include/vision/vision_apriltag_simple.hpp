@@ -10,6 +10,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <px4_msgs/msg/sensor_combined.hpp>
 #include <px4_msgs/msg/vehicle_attitude.hpp>
 #include <px4_msgs/msg/vehicle_local_position.hpp>
 #include <px4_msgs/msg/vehicle_odometry.hpp>
@@ -27,6 +28,7 @@ class AprilTagSimple : public rclcpp::Node {
     std::string bundle_frame{"map_bundle"};
   };
   void OnOdometry(px4_msgs::msg::VehicleOdometry::ConstSharedPtr _msg);
+  void OnSensorCombined(px4_msgs::msg::SensorCombined::ConstSharedPtr _msg);
   void OnAprilTagDetections(
       apriltag_ros::msg::AprilTagDetectionArray::ConstSharedPtr _msg);
   void OnLocalPosition(
@@ -45,6 +47,7 @@ class AprilTagSimple : public rclcpp::Node {
       vision_pose_pub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr vision_delay_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr accel_pub_;
 
   rclcpp::Subscription<apriltag_ros::msg::AprilTagDetectionArray>::SharedPtr
       apriltag_sub_;
@@ -54,6 +57,8 @@ class AprilTagSimple : public rclcpp::Node {
   //     px4_attitude_sub_;
   rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr
       px4_vehicle_odometry_sub_;
+  rclcpp::Subscription<px4_msgs::msg::SensorCombined>::SharedPtr
+      px4_sensor_combined_sub_;
 
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -63,6 +68,7 @@ class AprilTagSimple : public rclcpp::Node {
   Eigen::Quaterniond orientation_px4_;
   Eigen::Vector3d velocity_px4_;
   Eigen::Vector3d body_rates_px4_;
+  Eigen::Vector3d body_accel_px4_{0.0, 0.0, 0.0};
   bool px4_position_updated_{false};
   bool px4_attitude_update_{false};
   bool px4_odometry_updated_{false};

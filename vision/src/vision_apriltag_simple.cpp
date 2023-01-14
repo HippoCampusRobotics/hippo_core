@@ -30,6 +30,8 @@ AprilTagSimple::AprilTagSimple(rclcpp::NodeOptions const &_options)
           "vision_pose", rclcpp::SystemDefaultsQoS());
   odometry_pub_ = create_publisher<nav_msgs::msg::Odometry>(
       "odometry", rclcpp::SystemDefaultsQoS());
+  accel_pub_ = create_publisher<geometry_msgs::msg::Vector3Stamped>(
+      "acceleration", rclcpp::SystemDefaultsQoS());
   apriltag_sub_ =
       create_subscription<apriltag_ros::msg::AprilTagDetectionArray>(
           "tag_detections", rclcpp::SystemDefaultsQoS(),
@@ -50,6 +52,11 @@ AprilTagSimple::AprilTagSimple(rclcpp::NodeOptions const &_options)
       create_subscription<px4_msgs::msg::VehicleOdometry>(
           "fmu/out/vehicle_odometry", px4_qos,
           std::bind(&AprilTagSimple::OnOdometry, this, std::placeholders::_1));
+
+  px4_sensor_combined_sub_ = create_subscription<px4_msgs::msg::SensorCombined>(
+      "fmu/out/sensor_combined", px4_qos,
+      std::bind(&AprilTagSimple::OnSensorCombined, this,
+                std::placeholders::_1));
 
   update_timer_ =
       rclcpp::create_timer(this, get_clock(), std::chrono::milliseconds(20),
@@ -134,6 +141,13 @@ void AprilTagSimple::OnUpdateOdometry() {
   odometry.twist.twist.angular = angular_velocity;
   odometry_pub_->publish(odometry);
 
+  geometry_msgs::msg::Vector3Stamped acceleration;
+  acceleration.header = pose.header;
+  Eigen::Vector3d accel_world = orientation_px4_ * body_accel_px4_;
+  accel_world.z() -= 9.81;
+  hippo_common::convert::EigenToRos(accel_world, acceleration.vector);
+  accel_pub_->publish(acceleration);
+
   // publish transformation for vehicle pose
   geometry_msgs::msg::TransformStamped t;
   hippo_common::convert::VectorPoint(odometry.pose.pose.position,
@@ -142,6 +156,13 @@ void AprilTagSimple::OnUpdateOdometry() {
   t.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
   t.child_frame_id = hippo_common::tf2_utils::frame_id::BaseLink(this);
   tf_broadcaster_->sendTransform(t);
+}
+
+void AprilTagSimple::OnSensorCombined(
+    px4_msgs::msg::SensorCombined::ConstSharedPtr _msg) {
+  body_accel_px4_.x() = _msg->accelerometer_m_s2[0];
+  body_accel_px4_.y() = _msg->accelerometer_m_s2[1];
+  body_accel_px4_.z() = _msg->accelerometer_m_s2[2];
 }
 
 void AprilTagSimple::OnOdometry(
