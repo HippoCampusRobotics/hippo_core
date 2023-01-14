@@ -86,6 +86,7 @@ class SimpleTracker : public rclcpp::Node {
     double homing_thrust{0.1};
     double home_tolerance{0.1};
     double home_yaw{3.14};
+    double home_axis_tolerance{0.2};
     struct TargetPosition {
       double x{1.0};
       double y{0.8};

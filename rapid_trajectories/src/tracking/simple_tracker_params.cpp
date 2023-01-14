@@ -212,6 +212,16 @@ void SimpleTracker::DeclareParams() {
     param = declare_parameter(name, param, descr);
   }
 
+  name = "home_axis_tolerance";
+  descr_text =
+      "Home orientation is reached if (axis_desired - axis_curent).norm < "
+      "tolerance.";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.home_axis_tolerance;
+    param = declare_parameter(name, param, descr);
+  }
+
   name = "home_position.x";
   descr_text = "Axis component of home position.";
   descr = hippo_common::param_utils::Description(descr_text, true);
@@ -338,6 +348,10 @@ rcl_interfaces::msg::SetParametersResult SimpleTracker::OnSetTrajectoryParams(
     } else if (hippo_common::param_utils::AssignIfMatch(
                    parameter, "home_yaw", trajectory_params_.home_yaw,
                    result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "home_axis_tolerance",
+                   trajectory_params_.home_axis_tolerance, result_text)) {
       result.reason = result_text;
     } else if (hippo_common::param_utils::AssignIfMatch(
                    parameter, "min_wall_distance.x",

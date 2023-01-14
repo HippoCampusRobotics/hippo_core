@@ -25,12 +25,13 @@
       x: 0.0
       y: 0.0
       z: -0.1
-    homing_thrust: 0.1
+    homing_thrust: 5.0
     home_tolerance: 0.1
     home_position:
-      x: 1.0
+      x: 0.5
       y: 3.3
       z: -0.5
     home_yaw: -1.57
+    home_axis_tolerance: 0.05
     
 

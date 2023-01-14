@@ -309,16 +309,16 @@ bool SimpleTracker::OrientateHome() {
   msg.attitude.z = trajectory_params_.home_yaw;
   attitude_target_pub_->publish(msg);
 
-  Eigen::Vector3d attitude =
-      hippo_common::tf2_utils::QuaternionToEuler(orientation_);
-  double threshold = 10.0 / 180.0 * 3.14;
-  double value = std::abs(trajectory_params_.home_yaw - attitude.z());
-  if (value < threshold) {
+  Eigen::Vector3d axis_current = orientation_ * Eigen::Vector3d::UnitX();
+  Eigen::Quaterniond q_desired = hippo_common::tf2_utils::EulerToQuaternion(
+      0.0, 0.0, trajectory_params_.home_yaw);
+  Eigen::Vector3d axis_desired = q_desired * Eigen::Vector3d::UnitX();
+
+  double error = (axis_current - axis_desired).norm();
+  
+  if (error < trajectory_params_.home_axis_tolerance) {
     return true;
   }
-  RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000,
-                       "Rotation error %.2lf. Required %.2lf.", value,
-                       threshold);
   return false;
 }
 
