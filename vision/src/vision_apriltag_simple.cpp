@@ -143,7 +143,9 @@ void AprilTagSimple::OnUpdateOdometry() {
 
   geometry_msgs::msg::Vector3Stamped acceleration;
   acceleration.header = pose.header;
-  Eigen::Vector3d accel_world = orientation_px4_ * body_accel_px4_;
+  Eigen::Quaterniond orientation;
+  hippo_common::convert::RosToEigen(pose.pose.orientation, orientation);
+  Eigen::Vector3d accel_world = orientation * body_accel_;
   accel_world.z() -= 9.81;
   hippo_common::convert::EigenToRos(accel_world, acceleration.vector);
   accel_pub_->publish(acceleration);
@@ -160,9 +162,9 @@ void AprilTagSimple::OnUpdateOdometry() {
 
 void AprilTagSimple::OnSensorCombined(
     px4_msgs::msg::SensorCombined::ConstSharedPtr _msg) {
-  body_accel_px4_.x() = _msg->accelerometer_m_s2[0];
-  body_accel_px4_.y() = _msg->accelerometer_m_s2[1];
-  body_accel_px4_.z() = _msg->accelerometer_m_s2[2];
+  body_accel_.x() = 0.3 * body_accel_.x() + 0.7 * _msg->accelerometer_m_s2[0];
+  body_accel_.y() = 0.3 * body_accel_.y() - 0.7 * _msg->accelerometer_m_s2[1];
+  body_accel_.z() = 0.3 * body_accel_.z() - 0.7 * _msg->accelerometer_m_s2[2];
 }
 
 void AprilTagSimple::OnOdometry(

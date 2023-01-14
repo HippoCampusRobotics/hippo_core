@@ -68,7 +68,7 @@ class AprilTagSimple : public rclcpp::Node {
   Eigen::Quaterniond orientation_px4_;
   Eigen::Vector3d velocity_px4_;
   Eigen::Vector3d body_rates_px4_;
-  Eigen::Vector3d body_accel_px4_{0.0, 0.0, 0.0};
+  Eigen::Vector3d body_accel_{0.0, 0.0, 0.0};
   bool px4_position_updated_{false};
   bool px4_attitude_update_{false};
   bool px4_odometry_updated_{false};
