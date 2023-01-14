@@ -15,6 +15,14 @@ void SimpleTracker::DeclareParams() {
     param = declare_parameter(name, param, descr);
   }
 
+  name = "thrust_min_at_target";
+  descr_text = "Minimum thrust used in final state during sampling in [N].";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.thrust_min_at_target;
+    param = declare_parameter(name, param, descr);
+  }
+
   name = "thrust_max";
   descr_text = "Maximum allowed thrust [f_max] = N";
   descr = hippo_common::param_utils::Description(descr_text, false);
@@ -308,6 +316,10 @@ rcl_interfaces::msg::SetParametersResult SimpleTracker::OnSetTrajectoryParams(
     if (hippo_common::param_utils::AssignIfMatch(parameter, "thrust_min",
                                                  trajectory_params_.thrust_min,
                                                  result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "thrust_min_at_target",
+                   trajectory_params_.thrust_min_at_target, result_text)) {
       result.reason = result_text;
     } else if (hippo_common::param_utils::AssignIfMatch(
                    parameter, "thrust_max", trajectory_params_.thrust_max,

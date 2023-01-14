@@ -57,6 +57,7 @@ class SimpleTracker : public rclcpp::Node {
  private:
   struct TrajectorySettings {
     double thrust_min{0.0};
+    double thrust_min_at_target{0.0};
     double thrust_max{16.0};
     double body_rate_max{3.0};
     double mass_rb{1.5};

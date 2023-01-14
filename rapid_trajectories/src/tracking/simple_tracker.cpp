@@ -229,7 +229,7 @@ bool SimpleTracker::SampleTrajectories(const rclcpp::Time &_t_now) {
       Eigen::Vector<double, Sampling::kTimeSteps>::LinSpaced(t_start, t_stop);
 
   auto f_vec = Eigen::Vector<double, Sampling::kThrustSteps>::LinSpaced(
-      2.0, trajectory_params_.thrust_max);
+      trajectory_params_.thrust_min_at_target, trajectory_params_.thrust_max);
   for (int i_time = 0; i_time < Sampling::kTimeSteps; ++i_time) {
     GenerateTargetPoints(t_section + t_vec[i_time]);
     Eigen::Quaterniond q = target_.Orientation(t_section + t_vec[i_time]);
@@ -345,7 +345,7 @@ bool SimpleTracker::OrientateHome() {
   Eigen::Vector3d axis_desired = q_desired * Eigen::Vector3d::UnitX();
 
   double error = (axis_current - axis_desired).norm();
-  
+
   if (error < trajectory_params_.home_axis_tolerance) {
     return true;
   }
