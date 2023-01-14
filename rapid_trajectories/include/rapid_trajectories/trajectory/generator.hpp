@@ -196,22 +196,26 @@ class Trajectory {
 
   //! Return the jerk along the trajectory at time _t
   Eigen::Vector3d GetJerk(double _t) const {
+    _t = _t > t_final_ ? t_final_ : _t;
     return Eigen::Vector3d(axis_[0].GetJerk(_t), axis_[1].GetJerk(_t),
                            axis_[2].GetJerk(_t));
   };
   //! Return the acceleration along the trajectory at time _t
   Eigen::Vector3d GetAcceleration(double _t) const {
+    _t = _t > t_final_ ? t_final_ : _t;
     return Eigen::Vector3d{axis_[0].GetAcceleration(_t),
                            axis_[1].GetAcceleration(_t),
                            axis_[2].GetAcceleration(_t)};
   };
   //! Return the velocity along the trajectory at time _t
   Eigen::Vector3d GetVelocity(double _t) const {
+    _t = _t > t_final_ ? t_final_ : _t;
     return Eigen::Vector3d(axis_[0].GetVelocity(_t), axis_[1].GetVelocity(_t),
                            axis_[2].GetVelocity(_t));
   };
   //! Return the position along the trajectory at time t
   Eigen::Vector3d GetPosition(double _t) const {
+    _t = _t > t_final_ ? t_final_ : _t;
     return Eigen::Vector3d(axis_[0].GetPosition(_t), axis_[1].GetPosition(_t),
                            axis_[2].GetPosition(_t));
   };
@@ -223,6 +227,7 @@ class Trajectory {
   //! Return the quadrocopter's normal vector along the trajectory at time _t
   inline Eigen::Vector3d GetNormalVector(double _t) const {
     // add almost zero vector to ensure we do not normalize a zero vector
+    _t = _t > t_final_ ? t_final_ : _t;
     return Eigen::Vector3d{axis_[0].GetForce(_t), axis_[1].GetForce(_t),
                            axis_[2].GetForce(_t)}
         .normalized();
@@ -243,6 +248,7 @@ class Trajectory {
   }
 
   inline Eigen::Vector3d GetThrustVector(double _t) const {
+    _t = _t > t_final_ ? t_final_ : _t;
     return Eigen::Vector3d{axis_[0].GetForce(_t), axis_[1].GetForce(_t),
                            axis_[2].GetForce(_t)};
   }
@@ -267,9 +273,7 @@ class Trajectory {
     return _t < t_final_ ? (t_final_ - _t) : 0.0;
   }
 
-  inline uint64_t GetStartTimeNs() const {
-    return t_start_abs_ns_;
-  }
+  inline uint64_t GetStartTimeNs() const { return t_start_abs_ns_; }
 
   /*! Return the quadrocopter's body rates along the trajectory at time _t
    *
