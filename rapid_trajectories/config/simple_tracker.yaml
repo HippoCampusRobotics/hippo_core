@@ -24,7 +24,7 @@
     target_v0:
       x: 0.0
       y: 0.0
-      z: -0.1
+      z: -0.05
     homing_thrust: 5.0
     home_tolerance: 0.1
     home_position:
