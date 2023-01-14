@@ -48,7 +48,7 @@ static constexpr double kPositionAngleDeg = 360.0;
 static constexpr double kPositionRadius = 0.15;
 }  // namespace Sampling
 
-enum class MissionState { HOMING, ROTATING, TRAJECTORY };
+enum class MissionState { TARGET_HOME, HOMING, ROTATING, TRAJECTORY };
 
 class SimpleTracker : public rclcpp::Node {
  public:
@@ -124,6 +124,7 @@ class SimpleTracker : public rclcpp::Node {
   void GenerateTargetPoints(const double _t);
   void GenerateNormals();
   bool MoveHome();
+  bool TargetHome();
   bool OrientateHome();
   bool RunTrajectory(const rclcpp::Time &_t_now);
   bool CheckFeasibility(Trajectory &_traj);
@@ -193,7 +194,7 @@ class SimpleTracker : public rclcpp::Node {
 
   int section_counter_{0};
 
-  MissionState mission_state_{MissionState::HOMING};
+  MissionState mission_state_{MissionState::TARGET_HOME};
 
   double dt_odometry_average_;
   bool initial_sampling_{true};
