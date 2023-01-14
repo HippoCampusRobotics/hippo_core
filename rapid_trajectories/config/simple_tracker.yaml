@@ -3,7 +3,7 @@
     thrust_min: 0.0
     thrust_max: 24.0
     body_rate_max: 6.0
-    mass_rb: 1.5
+    mass_rb: 2.31
     mass_added: 1.5
     damping: 5.4
     t_final: 5.0
