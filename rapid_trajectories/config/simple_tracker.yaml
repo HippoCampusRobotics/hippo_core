@@ -19,7 +19,7 @@
       z: 0.0
     target_p0:
       x: 1.0
-      y: 0.8
+      y: 1.0
       z: -0.3
     target_v0:
       x: 0.0
@@ -29,7 +29,7 @@
     home_tolerance: 0.1
     home_position:
       x: 0.5
-      y: 3.3
+      y: 3.0
       z: -0.5
     home_yaw: -1.57
     home_axis_tolerance: 0.05
