@@ -10,6 +10,8 @@ float64 duration
 
 uint64 t_start_abs_ns
 
+float64 time_margin # time left after trajectory finished until section is done
+
 geometry_msgs/Vector3 p0
 geometry_msgs/Vector3 v0
 geometry_msgs/Vector3 a0
