@@ -147,7 +147,7 @@ class Trajectory {
    * @param _duration The trajectory duration, in [s].
    * @param _t_now_abs_ns Absolute time in [ns].
    */
-  void Generate(const double _duration, const uint64_t _t_now_abs_ns);
+  void Generate(const double _duration, const int64_t _t_now_abs_ns);
 
   /*! Test the trajectory for input feasibility.
    *
@@ -186,9 +186,9 @@ class Trajectory {
    * No test is done for degenerate normals (of the form (0,0,0)).
    *
    * @param boundaryPoint The coordinates of any point on the plane defining the
-   * boundary.
+   * boundary. Expressed in world frame.
    * @param boundaryNormal A vector pointing in the allowable direction, away
-   * from the boundary.
+   * from the boundary. Must be a unit vector. Expressed in world frame.
    * @return An instance of StateFeasibilityResult.
    */
   StateFeasibilityResult CheckPositionFeasibility(
@@ -222,7 +222,7 @@ class Trajectory {
 
   inline double GetFinalTime() const { return t_final_; }
 
-  inline uint64_t GetFinalTimeAbsNs() const { return t_final_abs_ns_; }
+  inline int64_t GetFinalTimeAbsNs() const { return t_final_abs_ns_; }
 
   //! Return the quadrocopter's normal vector along the trajectory at time _t
   inline Eigen::Vector3d GetNormalVector(double _t) const {
@@ -233,17 +233,16 @@ class Trajectory {
         .normalized();
   };
 
-  inline Eigen::Vector3d GetNormalVector(uint64_t _t_abs_ns) const {
+  inline Eigen::Vector3d GetNormalVector(int64_t _t_abs_ns) const {
     return GetNormalVector((_t_abs_ns - t_start_abs_ns_) * 1e-9);
   }
   //! Return the quadrocopter's thrust input along the trajectory at time _t
   inline double GetThrust(double _t) const {
-    // return (GetAcceleration(_t) * mass_param_ + GetVelocity(_t) * damping_)
-    //     .norm();
+    _t = _t > t_final_ ? t_final_ : _t;
     return GetThrustVector(_t).norm();
   };
 
-  inline double GetThrust(uint64_t _t_abs_ns) const {
+  inline double GetThrust(int64_t _t_abs_ns) const {
     return GetThrust((_t_abs_ns - t_start_abs_ns_) * 1e-9);
   }
 
@@ -253,19 +252,23 @@ class Trajectory {
                            axis_[2].GetForce(_t)};
   }
 
-  inline Eigen::Vector3d GetThrustVector(uint64_t _t_abs_ns) const {
+  inline Eigen::Vector3d GetThrustVector(int64_t _t_abs_ns) const {
     return GetThrustVector((_t_abs_ns - t_start_abs_ns_) * 1e-9);
   }
 
-  inline uint64_t TimeLeft(uint64_t _t_now_ns) const {
+  inline Eigen::Vector3d GetOmega(int64_t _t_abs_ns, double _dt) const {
+    return GetOmega((_t_abs_ns - t_start_abs_ns_) * 1e-9, _dt);
+  }
+
+  inline int64_t TimeLeft(int64_t _t_now_ns) const {
     return t_final_abs_ns_ > _t_now_ns ? (t_final_abs_ns_ - _t_now_ns) : 0;
   }
 
-  inline uint64_t TimeOnTrajectoryNs(uint64_t _t_now_ns) const {
+  inline int64_t TimeOnTrajectoryNs(int64_t _t_now_ns) const {
     return _t_now_ns > t_start_abs_ns_ ? (_t_now_ns - t_start_abs_ns_) : 0;
   }
 
-  inline double TimeOnTrajectory(uint64_t _t_now_ns) const {
+  inline double TimeOnTrajectory(int64_t _t_now_ns) const {
     return TimeOnTrajectoryNs(_t_now_ns) * 1e-9;
   }
 
@@ -273,7 +276,7 @@ class Trajectory {
     return _t < t_final_ ? (t_final_ - _t) : 0.0;
   }
 
-  inline uint64_t GetStartTimeNs() const { return t_start_abs_ns_; }
+  inline int64_t GetStartTimeNs() const { return t_start_abs_ns_; }
 
   /*! Return the quadrocopter's body rates along the trajectory at time _t
    *
@@ -313,6 +316,9 @@ class Trajectory {
   inline Eigen::Vector3d ToWorld(const Eigen::Vector3d &_vec) const {
     return rotation_ * _vec;
   }
+  inline Eigen::Vector3d ToLocal(const Eigen::Vector3d &_vec) const {
+    return rotation_.inverse() * _vec;
+  }
 
  private:
   //! Test a section of the trajectory for input feasibility (recursion).
@@ -323,8 +329,8 @@ class Trajectory {
                                                       double _dt_min);
 
   std::array<SingleAxisTrajectory, 3> axis_;
-  uint64_t t_start_abs_ns_{0};
-  uint64_t t_final_abs_ns_{0};
+  int64_t t_start_abs_ns_{0};
+  int64_t t_final_abs_ns_{0};
   double t_final_{0.0};  //!< trajectory end time [s]
   double damping_{5.4};
   double mass_rb_{1.5};
