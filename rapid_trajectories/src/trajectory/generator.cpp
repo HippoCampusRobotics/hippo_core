@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <rclcpp/rclcpp.hpp>
 
 #include "rapid_trajectories/trajectory/quartic.hpp"
 
@@ -112,8 +113,7 @@ void Trajectory::Reset(void) {
 }
 
 // Generate the trajectory:
-void Trajectory::Generate(const double _duration,
-                          const uint64_t _t_now_abs_ns) {
+void Trajectory::Generate(const double _duration, const int64_t _t_now_abs_ns) {
   t_final_ = _duration;
   t_start_abs_ns_ = _t_now_abs_ns;
   t_final_abs_ns_ = t_start_abs_ns_ + _duration * 1e9;
@@ -235,8 +235,8 @@ Trajectory::InputFeasibilityResult Trajectory::CheckInputFeasibility(
 
 Trajectory::StateFeasibilityResult Trajectory::CheckPositionFeasibility(
     Eigen::Vector3d &_boundary_point, Eigen::Vector3d &_boundary_normal) {
-  // Ensure that the normal is a unit vector:
-  _boundary_normal.normalize();
+  Eigen::Vector3d normal = ToLocal(_boundary_normal);
+  Eigen::Vector3d point = ToLocal(_boundary_point);
 
   // first, we will build the polynomial describing the velocity of the a
   // quadrocopter in the direction of the normal. Then we will solve for
@@ -252,11 +252,11 @@ Trajectory::StateFeasibilityResult Trajectory::CheckPositionFeasibility(
   double c[5] = {0, 0, 0, 0, 0};
 
   for (int dim = 0; dim < 3; dim++) {
-    c[0] += _boundary_normal[dim] * axis_[dim].GetParamAlpha() / 24.0;  // t**4
-    c[1] += _boundary_normal[dim] * axis_[dim].GetParamBeta() / 6.0;    // t**3
-    c[2] += _boundary_normal[dim] * axis_[dim].GetParamGamma() / 2.0;   // t**2
-    c[3] += _boundary_normal[dim] * axis_[dim].GetInitialAcceleration();  // t
-    c[4] += _boundary_normal[dim] * axis_[dim].GetInitialVelocity();      // 1
+    c[0] += normal[dim] * axis_[dim].GetParamAlpha() / 24.0;    // t**4
+    c[1] += normal[dim] * axis_[dim].GetParamBeta() / 6.0;      // t**3
+    c[2] += normal[dim] * axis_[dim].GetParamGamma() / 2.0;     // t**2
+    c[3] += normal[dim] * axis_[dim].GetInitialAcceleration();  // t
+    c[4] += normal[dim] * axis_[dim].GetInitialVelocity();      // 1
   }
 
   // Solve the roots (we prepend the times 0 and tf):
@@ -275,11 +275,20 @@ Trajectory::StateFeasibilityResult Trajectory::CheckPositionFeasibility(
 
   for (int i = 0; i < (rootCount + 2); i++) {
     // don't evaluate points outside the domain
-    if (roots[i] < 0) continue;
-    if (roots[i] > t_final_) continue;
+    if (roots[i] < 0 || roots[i] > t_final_) {
+      continue;
+    }
 
-    if ((GetPosition(roots[i]) - _boundary_point).dot(_boundary_normal) <= 0) {
+    if ((GetPosition(roots[i]) - point).dot(normal) <= 0) {
       // touching, or on the wrong side of, the boundary!
+      // Eigen::Vector3d p = ToWorld(GetPosition(roots[i]));
+      // RCLCPP_INFO(rclcpp::get_logger("test"),
+      //             "\nAt t=%.3lf\n(%.2lf/%.2lf/%.2lf) is outside "
+      //             "\np=(%.2lf/%.2lf/%.2lf) and\nn=(%.2lf/%.2lf/%.2lf)",
+      //             roots[i], p.x(), p.y(), p.z(), _boundary_point.x(),
+      //             _boundary_point.y(), _boundary_point.z(),
+      //             _boundary_normal.x(), _boundary_normal.y(),
+      //             _boundary_normal.z());
       return StateInfeasible;
     }
   }
