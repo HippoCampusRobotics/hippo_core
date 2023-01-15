@@ -22,6 +22,14 @@ void SimpleTracker::DeclareParams() {
     auto &param = trajectory_params_.thrust_min_at_target;
     param = declare_parameter(name, param, descr);
   }
+  
+  name = "thrust_max_at_target";
+  descr_text = "Maximum thrust used in final state during sampling in [N].";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.thrust_max_at_target;
+    param = declare_parameter(name, param, descr);
+  }
 
   name = "thrust_max";
   descr_text = "Maximum allowed thrust [f_max] = N";
@@ -37,6 +45,44 @@ void SimpleTracker::DeclareParams() {
   descr = hippo_common::param_utils::Description(descr_text, false);
   {
     auto &param = trajectory_params_.body_rate_max;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "lookahead_thrust";
+  descr_text =
+      "Lookahead factor k for thrust sampling. t_sample = t_now + k * "
+      "dt_update";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.lookahead_thrust;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "lookahead_attitude";
+  descr_text =
+      "Lookahead factor k for attitude sampling. t_sample = t_now + k * "
+      "dt_update";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.lookahead_attitude;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "lookahead_body_rate";
+  descr_text =
+      "Lookahead factor k for body rate sampling. t_sample = t_now + k * "
+      "dt_update";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.lookahead_body_rate;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "enable_position_check";
+  descr_text = "Enable/Disable position feasibility check.";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.enable_position_check;
     param = declare_parameter(name, param, descr);
   }
 
@@ -322,12 +368,32 @@ rcl_interfaces::msg::SetParametersResult SimpleTracker::OnSetTrajectoryParams(
                    trajectory_params_.thrust_min_at_target, result_text)) {
       result.reason = result_text;
     } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "thrust_max_at_target",
+                   trajectory_params_.thrust_max_at_target, result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
                    parameter, "thrust_max", trajectory_params_.thrust_max,
                    result_text)) {
       result.reason = result_text;
     } else if (hippo_common::param_utils::AssignIfMatch(
                    parameter, "body_rate_max", trajectory_params_.body_rate_max,
                    result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "lookahead_thrust",
+                   trajectory_params_.lookahead_thrust, result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "lookahead_attitude",
+                   trajectory_params_.lookahead_attitude, result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "lookahead_body_rate",
+                   trajectory_params_.lookahead_body_rate, result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "enable_position_check",
+                   trajectory_params_.enable_position_check, result_text)) {
       result.reason = result_text;
     } else if (hippo_common::param_utils::AssignIfMatch(
                    parameter, "mass_rb", trajectory_params_.mass_rb,

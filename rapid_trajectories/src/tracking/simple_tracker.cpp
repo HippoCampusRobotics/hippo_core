@@ -141,6 +141,10 @@ bool SimpleTracker::ShouldGenerateNewTrajectories(const rclcpp::Time &_t_now) {
   if (TimeOnSectionLeft(_t_now) < trajectory_params_.open_loop_threshold_time) {
     return false;
   }
+  if (trajectory_.TimeLeft(_t_now.nanoseconds()) * 1e-9 <
+      trajectory_params_.open_loop_threshold_time) {
+    return false;
+  }
   if ((dt_since_start >= trajectory_params_.generation_update_period)) {
     return true;
   }
@@ -149,7 +153,7 @@ bool SimpleTracker::ShouldGenerateNewTrajectories(const rclcpp::Time &_t_now) {
 
 bool SimpleTracker::SectionFinished(const rclcpp::Time &_t_now) {
   section_finished_ = (_t_now >= t_final_section_) ||
-                      !trajectory_.TimeLeft((uint64_t)_t_now.nanoseconds());
+                      !trajectory_.TimeLeft(_t_now.nanoseconds());
   return section_finished_;
 }
 
@@ -208,7 +212,8 @@ void SimpleTracker::GenerateTargetPoints(const double _t) {
   }
 }
 
-bool SimpleTracker::CheckFeasibility(Trajectory &_traj) {
+bool SimpleTracker::CheckFeasibility(Trajectory &_traj,
+                                     const rclcpp::Time _t_now) {
   Trajectory::InputFeasibilityResult input_result;
   input_result = _traj.CheckInputFeasibility(
       trajectory_params_.thrust_min, trajectory_params_.thrust_max,
@@ -216,34 +221,21 @@ bool SimpleTracker::CheckFeasibility(Trajectory &_traj) {
   if (input_result != Trajectory::InputFeasible) {
     return false;
   }
-  static constexpr size_t n_walls = 6;
-  std::array<Eigen::Vector3d, n_walls> boundary_points = {
-      Eigen::Vector3d{0 + trajectory_params_.min_wall_distance.x, 0.0, 0.0},
-      Eigen::Vector3d{2.0 - trajectory_params_.min_wall_distance.x, 0.0, 0.0},
-      Eigen::Vector3d{0.0, 0.0 + trajectory_params_.min_wall_distance.y, 0.0},
-      Eigen::Vector3d{0.0, 4.0 - trajectory_params_.min_wall_distance.y, 0.0},
-      Eigen::Vector3d{0.0, 0.0, -1.5 + trajectory_params_.min_wall_distance.z},
-      Eigen::Vector3d{0.0, 0.0, 0.0 - trajectory_params_.min_wall_distance.y}};
-  std::array<Eigen::Vector3d, n_walls> boundary_normals = {
-      Eigen::Vector3d{1.0, 0.0, 0.0}, Eigen::Vector3d{-1.0, 0.0, 0.0},
-      Eigen::Vector3d{0.0, 1.0, 0.0}, Eigen::Vector3d{0.0, -1.0, 0.0},
-      Eigen::Vector3d{0.0, 0.0, 1.0}, Eigen::Vector3d{0.0, 0.0, -1.0}};
-
-  // check for collision with all six walls. If a single check fails, the
-  // trajectory is invalid.
-  // for (size_t i = 0; i < n_walls; ++i) {
-  //   Trajectory::StateFeasibilityResult result;
-  //   result = _traj.CheckPositionFeasibility(boundary_points.at(i),
-  //                                           boundary_normals.at(i));
-  //   if (result != Trajectory::StateFeasibilityResult::StateFeasible) {
-  //     return false;
-  //   }
-  // }
+  if (trajectory_params_.enable_position_check) {
+    if (CheckWallCollision(_traj) != Trajectory::StateFeasible) {
+      return false;
+    }
+    if (CheckFunnelCollision(_traj, _t_now) != Trajectory::StateFeasible) {
+      return false;
+    }
+  }
   return true;
 }
 
-bool SimpleTracker::SampleTrajectories(const rclcpp::Time &_t_now) {
+bool SimpleTracker::SampleTrajectories(const rclcpp::Time &_t_now,
+                                       bool initial) {
   double cost = std::numeric_limits<double>::max();
+  int cheaper_counter = 0;
   const double t_left = TimeOnSectionLeft(_t_now);
   const double t_section = TimeOnSection(_t_now);
   const double t_start = t_left / Sampling::kTimeSteps;
@@ -252,13 +244,18 @@ bool SimpleTracker::SampleTrajectories(const rclcpp::Time &_t_now) {
       Eigen::Vector<double, Sampling::kTimeSteps>::LinSpaced(t_start, t_stop);
 
   auto f_vec = Eigen::Vector<double, Sampling::kThrustSteps>::LinSpaced(
-      trajectory_params_.thrust_min_at_target, trajectory_params_.thrust_max);
+      trajectory_params_.thrust_min_at_target,
+      trajectory_params_.thrust_max_at_target);
   for (int i_time = 0; i_time < Sampling::kTimeSteps; ++i_time) {
     GenerateTargetPoints(t_section + t_vec[i_time]);
     Eigen::Quaterniond q = target_.Orientation(t_section + t_vec[i_time]);
     Eigen::Vector3d p = q.inverse() * position_;
     Eigen::Vector3d v = q.inverse() * velocity_;
     Eigen::Vector3d a = q.inverse() * acceleration_;
+    if (initial) {
+      v = 0.01 * (q.inverse() * StartAxis());
+      a = Eigen::Vector3d::Zero();
+    }
     Trajectory traj(p, v, a, Eigen::Vector3d::Zero(),
                     trajectory_params_.mass_rb, trajectory_params_.mass_added,
                     trajectory_params_.damping, q);
@@ -268,8 +265,8 @@ bool SimpleTracker::SampleTrajectories(const rclcpp::Time &_t_now) {
           traj.Reset();
           Eigen::Vector3d p_final =
               q.inverse() * target_points_[i_points] + normals_[i_normals];
-          Eigen::Vector3d v_final = -1.0 * normals_[i_normals] *
-                                    f_vec[i_thrust] /
+          Eigen::Vector3d v_final = -1.0 * normals_[i_normals] /
+                                    Sampling::kNormalLength * f_vec[i_thrust] /
                                     trajectory_params_.damping;
           Eigen::Vector3d a_final{Eigen::Vector3d::Zero()};
           traj.SetGoalPosition(p_final);
@@ -281,15 +278,21 @@ bool SimpleTracker::SampleTrajectories(const rclcpp::Time &_t_now) {
           if (traj.GetCost() >= cost) {
             continue;
           }
-          if (CheckFeasibility(traj)) {
+          cheaper_counter++;
+          if (CheckFeasibility(traj, _t_now)) {
             // whoop, whoop! We've found a cheaper and even feasible solution.
             cost = traj.GetCost();
             trajectory_ = traj;
+            RCLCPP_INFO(get_logger(), "f_final: %.2lf", f_vec[i_thrust]);
+            RCLCPP_INFO(get_logger(), "v_final: %.2lf",
+                        traj.GetVelocity(traj.GetFinalTime()).norm());
+            RCLCPP_INFO(get_logger(), "v_final: %.2lf", v_final.norm());
           }
         }
       }
     }
   }
+  RCLCPP_INFO(get_logger(), "Found %d cheaper trajectories.", cheaper_counter);
   return cost < std::numeric_limits<decltype(cost)>::max();
 }
 
@@ -364,9 +367,7 @@ bool SimpleTracker::OrientateHome() {
   attitude_target_pub_->publish(msg);
 
   Eigen::Vector3d axis_current = orientation_ * Eigen::Vector3d::UnitX();
-  Eigen::Quaterniond q_desired = hippo_common::tf2_utils::EulerToQuaternion(
-      0.0, 0.0, trajectory_params_.home_yaw);
-  Eigen::Vector3d axis_desired = q_desired * Eigen::Vector3d::UnitX();
+  Eigen::Vector3d axis_desired = StartAxis();
 
   double error = (axis_current - axis_desired).norm();
 
@@ -384,13 +385,10 @@ bool SimpleTracker::RunTrajectory(const rclcpp::Time &_t_now) {
   static double dt_avg = 0.0;
   if (initial_sampling_) {
     RCLCPP_INFO(get_logger(), "Computation time [ms]: %lf", dt_avg);
-    acceleration_ = Eigen::Vector3d::Zero();
-    velocity_ = Eigen::AngleAxis{trajectory_params_.home_yaw,
-                                 Eigen::Vector3d::UnitZ()} *
-                Eigen::Vector3d::UnitX() * 0.05;
-    if (!SampleTrajectories(_t_now)) {
+    if (!SampleTrajectories(_t_now, true)) {
       RCLCPP_FATAL(get_logger(),
                    "Failed to find feasibile solution for initial trajectory.");
+      mission_state_ = MissionState::TARGET_HOME;
       return false;
     }
     initial_sampling_ = false;
@@ -406,14 +404,14 @@ bool SimpleTracker::RunTrajectory(const rclcpp::Time &_t_now) {
     return true;
   }
 
-  double t_traj = trajectory_.TimeOnTrajectory(_t_now.nanoseconds());
   if (trajectory_params_.use_attitude_control) {
-    PublishAttitudeTarget(t_traj, _t_now);
+    PublishAttitudeTarget(_t_now);
   } else {
-    PublishControlInput(t_traj, _t_now);
+    PublishControlInput(_t_now);
   }
   PublishTrajectory(_t_now);
   PublishVisualizationTopics(_t_now);
+  double t_traj = trajectory_.TimeOnTrajectory(_t_now.nanoseconds());
   PublishCurrentStateDebug(t_traj, _t_now);
   return false;
 }
@@ -440,6 +438,8 @@ void SimpleTracker::PublishTrajectory(const rclcpp::Time &_t_now) {
                                     msg.trajectory.a0);
   hippo_common::convert::EigenToRos(trajectory_.GetRotation(),
                                     msg.trajectory.rotation);
+  msg.trajectory.time_margin =
+      (t_final_section_.nanoseconds() - trajectory_.GetFinalTimeAbsNs()) * 1e-9;
   target_trajectory_pub_->publish(msg);
 }
 
@@ -562,12 +562,10 @@ void SimpleTracker::Update() {
   }
 }
 
-void SimpleTracker::PublishControlInput(double _t_trajectory,
-                                        const rclcpp::Time &_t_now) {
+void SimpleTracker::PublishControlInput(const rclcpp::Time &_t_now) {
   hippo_msgs::msg::RatesTarget rates_target_msg;
   rates_target_msg.header.stamp = _t_now;
-  Eigen::Vector3d rates_world = trajectory_.ToWorld(
-      trajectory_.GetOmega(_t_trajectory, dt_odometry_average_));
+  Eigen::Vector3d rates_world = SampleBodyRates(trajectory_, _t_now);
   Eigen::Vector3d rates_local = orientation_.inverse() * rates_world;
   rates_target_msg.roll = rates_local.x();
   rates_target_msg.pitch = rates_local.y();
@@ -576,14 +574,12 @@ void SimpleTracker::PublishControlInput(double _t_trajectory,
 
   hippo_msgs::msg::ActuatorSetpoint thrust_msg;
   thrust_msg.header.stamp = _t_now;
-  thrust_msg.x = trajectory_.GetThrust(_t_trajectory + dt_odometry_average_);
+  thrust_msg.x = SampleThrust(trajectory_, _t_now);
   thrust_pub_->publish(thrust_msg);
 }
 
-void SimpleTracker::PublishAttitudeTarget(double _t_trajectory,
-                                          const rclcpp::Time &_t_now) {
-  Eigen::Vector3d trajectory_axis =
-      trajectory_.ToWorld(trajectory_.GetNormalVector(_t_trajectory));
+void SimpleTracker::PublishAttitudeTarget(const rclcpp::Time &_t_now) {
+  Eigen::Vector3d trajectory_axis = SampleDesiredAxis(trajectory_, _t_now);
   Eigen::Quaterniond q =
       hippo_common::tf2_utils::RotationBetweenNormalizedVectors(
           Eigen::Vector3d::UnitX(), trajectory_axis);
@@ -593,8 +589,7 @@ void SimpleTracker::PublishAttitudeTarget(double _t_trajectory,
   attitude_target_msg.header.frame_id =
       hippo_common::tf2_utils::frame_id::InertialFrame();
   attitude_target_msg.header.stamp = _t_now;
-  attitude_target_msg.thrust =
-      trajectory_.GetThrust(_t_trajectory + dt_odometry_average_);
+  attitude_target_msg.thrust = SampleThrust(trajectory_, _t_now);
   attitude_target_msg.mask = attitude_target_msg.IGNORE_RATES;
   hippo_common::convert::EigenToRos(rpy, attitude_target_msg.attitude);
   attitude_target_pub_->publish(attitude_target_msg);
@@ -662,9 +657,9 @@ Trajectory::StateFeasibilityResult SimpleTracker::CheckWallCollision(
       Eigen::Vector3d{0.0, 0.0, -1.5 + trajectory_params_.min_wall_distance.z},
       Eigen::Vector3d{0.0, 0.0, 0.0 - trajectory_params_.min_wall_distance.y}};
   std::array<Eigen::Vector3d, n_walls> boundary_normals = {
-      Eigen::Vector3d{1.0, 0.0, 0.0}, Eigen::Vector3d{-1.0, 0.0, 0.0},
-      Eigen::Vector3d{0.0, 1.0, 0.0}, Eigen::Vector3d{0.0, -1.0, 0.0},
-      Eigen::Vector3d{0.0, 0.0, 1.0}, Eigen::Vector3d{0.0, 0.0, -1.0}};
+      Eigen::Vector3d::UnitX(), -Eigen::Vector3d::UnitX(),
+      Eigen::Vector3d::UnitY(), -Eigen::Vector3d::UnitY(),
+      Eigen::Vector3d::UnitZ(), -Eigen::Vector3d::UnitZ()};
 
   // check for collision with all six walls. If a single check fails, the
   // trajectory is invalid.
@@ -677,6 +672,33 @@ Trajectory::StateFeasibilityResult SimpleTracker::CheckWallCollision(
     }
   }
   return Trajectory::StateFeasibilityResult::StateFeasible;
+}
+Trajectory::StateFeasibilityResult SimpleTracker::CheckFunnelCollision(
+    Trajectory &_trajectory, const rclcpp::Time &_t_now) {
+  static constexpr size_t n_walls = 2;
+  Eigen::Quaternion q = target_.Orientation(TimeOnSection(_t_now));
+  Eigen::Vector3d p_center = target_.Position(TimeOnSection(_t_now));
+  Eigen::Vector3d delta =
+      q * Eigen::Vector3d::UnitY() * (Sampling::kPositionRadius + 0.01);
+  Eigen::Vector3d p_left = p_center + delta;
+  Eigen::Vector3d p_right = p_center - delta;
+  Eigen::Vector3d n_left = -1.0 * Eigen::Vector3d::UnitY();
+  double angle = 45.0 / 180.0 * 3.14;
+  n_left = Eigen::AngleAxis(angle, Eigen::Vector3d::UnitZ()) * n_left;
+  n_left = q * n_left;
+  Eigen::Vector3d n_right = Eigen::Vector3d::UnitY();
+  n_right = Eigen::AngleAxis(-angle, Eigen::Vector3d::UnitZ()) * n_right;
+  n_right = q * n_right;
+  Trajectory::StateFeasibilityResult result;
+  result = _trajectory.CheckPositionFeasibility(p_left, n_left);
+  if (result != Trajectory::StateFeasible) {
+    return result;
+  }
+  result = _trajectory.CheckPositionFeasibility(p_right, n_right);
+  if (result != Trajectory::StateFeasible) {
+    return result;
+  }
+  return Trajectory::StateFeasible;
 }
 
 }  // namespace tracking

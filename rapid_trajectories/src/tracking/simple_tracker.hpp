@@ -30,7 +30,7 @@ using namespace std::chrono_literals;
 using std::placeholders::_1;
 
 namespace Sampling {
-static constexpr int kTimeSteps = 2;
+static constexpr int kTimeSteps = 10;
 static constexpr int kThrustSteps = 5;
 static constexpr int kPositionRadialSteps = 2;
 static constexpr int kPositionAngleSteps = 5;
@@ -58,8 +58,13 @@ class SimpleTracker : public rclcpp::Node {
   struct TrajectorySettings {
     double thrust_min{0.0};
     double thrust_min_at_target{0.0};
+    double thrust_max_at_target{5.0};
     double thrust_max{16.0};
     double body_rate_max{3.0};
+    double lookahead_thrust{0.0};
+    double lookahead_attitude{2.0};
+    double lookahead_body_rate{1.0};
+    bool enable_position_check{true};
     double mass_rb{1.5};
     double mass_added{1.5};
     double damping{5.4};
@@ -84,7 +89,7 @@ class SimpleTracker : public rclcpp::Node {
       double y{3.0};
       double z{-0.8};
     } home_position;
-    double homing_thrust{0.1};
+    double homing_thrust{5.0};
     double home_tolerance{0.1};
     double home_yaw{3.14};
     double home_axis_tolerance{0.2};
@@ -101,18 +106,43 @@ class SimpleTracker : public rclcpp::Node {
   } trajectory_params_;
 
  private:
-  inline double TimeOnSectionLeft(const rclcpp::Time &_t_now) {
+  inline double TimeOnSectionLeft(const rclcpp::Time &_t_now) const {
     return (t_final_section_ - _t_now).nanoseconds() * 1e-9;
   }
   inline double TimeOnSection(const rclcpp::Time &_t_now) {
     return (_t_now - t_start_section_).nanoseconds() * 1e-9;
   }
+  inline double SampleThrust(const Trajectory &_traj,
+                             const rclcpp::Time &_t_now) const {
+    return _traj.GetThrust(
+        _t_now.nanoseconds() +
+        (int64_t)(dt_odometry_average_ * trajectory_params_.lookahead_thrust *
+                  1e9));
+  }
+  inline Eigen::Vector3d SampleDesiredAxis(const Trajectory &_traj,
+                                           const rclcpp::Time &_t_now) const {
+    return _traj.ToWorld(_traj.GetNormalVector(
+        _t_now.nanoseconds() +
+        (int64_t)(dt_odometry_average_ * trajectory_params_.lookahead_attitude *
+                  1e9)));
+  }
+  inline Eigen::Vector3d SampleBodyRates(const Trajectory &_traj,
+                                         const rclcpp::Time &_t_now) const {
+    return _traj.ToWorld(_traj.GetOmega(
+        _t_now.nanoseconds(),
+        dt_odometry_average_ * trajectory_params_.lookahead_body_rate));
+  }
+  inline Eigen::Vector3d StartAxis() const {
+    return Eigen::AngleAxis(trajectory_params_.home_yaw,
+                            Eigen::Vector3d::UnitZ()) *
+           Eigen::Vector3d::UnitX();
+  }
   void InitPublishers();
   void InitSubscribers();
   void DeclareParams();
   void Update();
-  void PublishControlInput(double _t_trajectory, const rclcpp::Time &_t_now);
-  void PublishAttitudeTarget(double _t_trajectory, const rclcpp::Time &_t_now);
+  void PublishControlInput(const rclcpp::Time &_t_now);
+  void PublishAttitudeTarget(const rclcpp::Time &_t_now);
   void PublishCurrentStateDebug(double _t_trajectory,
                                 const rclcpp::Time &_t_now);
   void PublishVisualizationTopics(const rclcpp::Time &_t_now);
@@ -128,13 +158,15 @@ class SimpleTracker : public rclcpp::Node {
   bool TargetHome();
   bool OrientateHome();
   bool RunTrajectory(const rclcpp::Time &_t_now);
-  bool CheckFeasibility(Trajectory &_traj);
-  bool SampleTrajectories(const rclcpp::Time &_t_now);
+  bool CheckFeasibility(Trajectory &_traj, const rclcpp::Time _t_now);
+  bool SampleTrajectories(const rclcpp::Time &_t_now, bool initial = false);
   bool SectionFinished(const rclcpp::Time &t_now);
   void OnLinearAcceleration(
       const geometry_msgs::msg::Vector3Stamped::ConstSharedPtr _msg);
   Trajectory::StateFeasibilityResult CheckWallCollision(
       Trajectory &_trajectory);
+  Trajectory::StateFeasibilityResult CheckFunnelCollision(
+      Trajectory &_trajectory, const rclcpp::Time &_t_now);
   rcl_interfaces::msg::SetParametersResult OnSetTrajectoryParams(
       const std::vector<rclcpp::Parameter> &_parameters);
 

@@ -2,17 +2,22 @@
   ros__parameters:
     thrust_min: 0.0
     thrust_max: 24.0
+    thrust_min_at_target: 1.0
+    thrust_max_at_target: 5.0
     body_rate_max: 6.0
+    lookahead_thrust: 3.0
+    lookahead_attitude: 10.0
+    lookahead_body_rate: 1.0
+    enable_position_check: true
     mass_rb: 2.31
-    mass_added: 1.5
+    mass_added: 0.0
     damping: 5.4
-    t_final: 5.0
+    t_final: 7.0
     timestep_min: 0.02
     continuous: true
     use_attitude_control: true
-    generation_update_period: 0.5
-    open_loop_threshold_time: 0.6
-    lookahead_factor: 1
+    generation_update_period: 0.0
+    open_loop_threshold_time: 1.0
     gravity:
       x: 0.0
       y: 0.0
@@ -24,14 +29,18 @@
     target_v0:
       x: 0.0
       y: 0.0
-      z: -0.05
+      z: 0.0
     homing_thrust: 5.0
     home_tolerance: 0.1
     home_position:
       x: 0.5
       y: 3.0
-      z: -0.5
+      z: -0.3
     home_yaw: -1.57
     home_axis_tolerance: 0.05
+    min_wall_distance:
+      x: 0.0
+      y: 0.0
+      z: 0.0
     
 
