@@ -40,15 +40,16 @@ SimpleTracker::SimpleTracker(rclcpp::NodeOptions const &_options)
   DeclareParams();
   t_start_section_ = t_final_section_ = t_start_trajectory_ =
       t_final_trajecotry_ = t_last_odometry_ = now();
-  target_ = TargetUniform(Eigen::Vector3d{trajectory_params_.target_p0.x,
-                                          trajectory_params_.target_p0.y,
-                                          trajectory_params_.target_p0.z},
-                          Eigen::Vector3d{trajectory_params_.target_v0.x,
-                                          trajectory_params_.target_v0.y,
-                                          trajectory_params_.target_v0.z},
-                          Eigen::Vector3d::Zero(),
-                          Eigen::Quaterniond{Eigen::AngleAxis{
-                              3.14 / 2.0, Eigen::Vector3d::UnitZ()}});
+  target_ = TargetUniform(
+      Eigen::Vector3d{trajectory_params_.target_p0.x,
+                      trajectory_params_.target_p0.y,
+                      trajectory_params_.target_p0.z},
+      Eigen::Vector3d{trajectory_params_.target_v0.x,
+                      trajectory_params_.target_v0.y,
+                      trajectory_params_.target_v0.z},
+      Eigen::Vector3d::Zero(),
+      hippo_common::tf2_utils::EulerToQuaternion(
+          0.0, trajectory_params_.target_pitch, trajectory_params_.target_yaw));
   RCLCPP_INFO(get_logger(), "Generating disc points.");
   GenerateDiscPoints();
   RCLCPP_INFO(get_logger(), "Generating normals.");
@@ -155,6 +156,46 @@ bool SimpleTracker::SectionFinished(const rclcpp::Time &_t_now) {
   section_finished_ = (_t_now >= t_final_section_) ||
                       !trajectory_.TimeLeft(_t_now.nanoseconds());
   return section_finished_;
+}
+
+Success SimpleTracker::GoalReached(const rclcpp::Time &_t_now) {
+  double test_radius = 0.5;
+  double ring_radius = trajectory_params_.target_radius;
+  double t = TimeOnSection(_t_now);
+  Eigen::Vector3d p0 =
+      target_.Orientation(t).inverse() * (position_ - target_.Position(t));
+  Eigen::Vector3d n = target_.Orientation(t).inverse() *
+                      (orientation_ * Eigen::Vector3d::UnitX());
+  if (std::abs(n.x()) < 1e-6) {
+    return Success::NOT_FINISHED;
+  }
+  double k = -p0.x() / n.x();
+  if (k > Sampling::kNormalLength + 0.05 ||
+      k < Sampling::kNormalLength - 0.05) {
+    return Success::NOT_FINISHED;
+  }
+  Eigen::Vector3d p_intersec = p0 + n * k;
+  double distance = p_intersec.norm();
+  if (distance <= ring_radius) {
+    return Success::SUCCESS;
+  }
+  if (distance <= test_radius) {
+    return Success::FAILED;
+  }
+  return Success::NOT_FINISHED;
+}
+
+Eigen::Vector3d SimpleTracker::TargetIntersection(const rclcpp::Time &_t_now) {
+  double t = TimeOnSection(_t_now);
+  Eigen::Vector3d p0 =
+      target_.Orientation(t).inverse() * (position_ - target_.Position(t));
+  Eigen::Vector3d n = target_.Orientation(t).inverse() *
+                      (orientation_ * Eigen::Vector3d::UnitX());
+  if (std::abs(n.x()) < 1e-6) {
+    return Eigen::Vector3d{100.0, 100.0, 100.0};
+  }
+  double k = -p0.x() / n.x();
+  return p0 + n * k;
 }
 
 void SimpleTracker::GenerateDiscPoints() {
@@ -283,16 +324,11 @@ bool SimpleTracker::SampleTrajectories(const rclcpp::Time &_t_now,
             // whoop, whoop! We've found a cheaper and even feasible solution.
             cost = traj.GetCost();
             trajectory_ = traj;
-            RCLCPP_INFO(get_logger(), "f_final: %.2lf", f_vec[i_thrust]);
-            RCLCPP_INFO(get_logger(), "v_final: %.2lf",
-                        traj.GetVelocity(traj.GetFinalTime()).norm());
-            RCLCPP_INFO(get_logger(), "v_final: %.2lf", v_final.norm());
           }
         }
       }
     }
   }
-  RCLCPP_INFO(get_logger(), "Found %d cheaper trajectories.", cheaper_counter);
   return cost < std::numeric_limits<decltype(cost)>::max();
 }
 
@@ -400,7 +436,12 @@ bool SimpleTracker::RunTrajectory(const rclcpp::Time &_t_now) {
     dt_avg = 0.1 * dt + 0.9 * dt_avg;
   }
   if (SectionFinished(_t_now)) {
-    PublishTrajectoryResult(_t_now);
+    PublishTrajectoryResult(_t_now, GoalReached(_t_now));
+    return true;
+  }
+  Success success = GoalReached(_t_now);
+  if (success != Success::NOT_FINISHED) {
+    PublishTrajectoryResult(_t_now, success);
     return true;
   }
 
@@ -443,7 +484,8 @@ void SimpleTracker::PublishTrajectory(const rclcpp::Time &_t_now) {
   target_trajectory_pub_->publish(msg);
 }
 
-void SimpleTracker::PublishTrajectoryResult(const rclcpp::Time &_t_now) {
+void SimpleTracker::PublishTrajectoryResult(const rclcpp::Time &_t_now,
+                                            Success _result) {
   rapid_trajectories_msgs::msg::TrajectoryResult msg;
   msg.header.stamp = _t_now;
   double t_final = trajectory_.GetFinalTime();
@@ -460,13 +502,17 @@ void SimpleTracker::PublishTrajectoryResult(const rclcpp::Time &_t_now) {
   hippo_common::convert::EigenToRos(acceleration_,
                                     msg.state_actual.acceleration);
   hippo_common::convert::EigenToRos(orientation_, msg.orientation);
-  msg.target_radius = Sampling::kPositionRadius;
+  msg.target_radius = trajectory_params_.target_radius;
   hippo_common::convert::EigenToRos(target_.Position(t_ring),
                                     msg.target_position);
   hippo_common::convert::EigenToRos(target_.Orientation(t_ring),
                                     msg.target_orientation);
   msg.average_computation_time = -1.0;
-  msg.success = true;
+  if (_result != Success::NOT_FINISHED) {
+    hippo_common::convert::EigenToRos(TargetIntersection(_t_now),
+                                      msg.target_intersection);
+  }
+  msg.success = _result == Success::SUCCESS;
   trajectory_result_pub_->publish(msg);
 }
 

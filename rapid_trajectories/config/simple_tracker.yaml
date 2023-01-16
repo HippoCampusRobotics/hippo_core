@@ -30,6 +30,9 @@
       x: 0.0
       y: 0.0
       z: 0.0
+    target_radius: 0.15
+    target_yaw: 1.57
+    target_pitch: 0.0
     homing_thrust: 5.0
     home_tolerance: 0.1
     home_position:
@@ -42,5 +45,3 @@
       x: 0.0
       y: 0.0
       z: 0.0
-    
-

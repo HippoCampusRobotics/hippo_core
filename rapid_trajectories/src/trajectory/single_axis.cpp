@@ -153,6 +153,7 @@ void SingleAxisTrajectory::GenerateTrajectory(const double Tf) {
   cost_ = gamma_ * gamma_ + beta_ * gamma_ * Tf + beta_ * beta_ * T2 / 3.0 +
           alpha_ * gamma_ * T2 / 3.0 + alpha_ * beta_ * T3 / 4.0 +
           alpha_ * alpha_ * T4 / 20.0;
+  cost_ *= Tf * Tf;
   UpdatePolynomialCoefficients();
 }
 

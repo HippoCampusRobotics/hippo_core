@@ -348,6 +348,28 @@ void SimpleTracker::DeclareParams() {
     param = declare_parameter(name, param, descr);
   }
 
+  name = "target_radius";
+  descr_text = "Radius of the 'real' ring. Used for success condition.";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.target_radius;
+    param = declare_parameter(name, param, descr);
+  }
+  name = "target_yaw";
+  descr_text = "Yaw angle of the ring. Opening pointing in x-direction.";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.target_yaw;
+    param = declare_parameter(name, param, descr);
+  }
+  name = "target_pitch";
+  descr_text = "Pitch angle of the ring. Opening pointing in x-direction.";
+  descr = hippo_common::param_utils::Description(descr_text, true);
+  {
+    auto &param = trajectory_params_.target_pitch;
+    param = declare_parameter(name, param, descr);
+  }
+
   trajectory_params_cb_handle_ = add_on_set_parameters_callback(
       std::bind(&SimpleTracker::OnSetTrajectoryParams, this, _1));
 }

@@ -45,10 +45,11 @@ static constexpr double kNormalFirstAngleDeg = 5.0;
 static constexpr double kNormalSecondAngleDeg = 360.0;
 static constexpr double kNormalLength = 0.15;
 static constexpr double kPositionAngleDeg = 360.0;
-static constexpr double kPositionRadius = 0.15;
+static constexpr double kPositionRadius = 0.05;
 }  // namespace Sampling
 
 enum class MissionState { TARGET_HOME, HOMING, ROTATING, TRAJECTORY };
+enum class Success { NOT_FINISHED, FAILED, SUCCESS };
 
 class SimpleTracker : public rclcpp::Node {
  public:
@@ -103,6 +104,9 @@ class SimpleTracker : public rclcpp::Node {
       double y{0.0};
       double z{-0.1};
     } target_v0;
+    double target_radius{0.15};
+    double target_yaw{1.57};
+    double target_pitch{0.0};
   } trajectory_params_;
 
  private:
@@ -147,7 +151,7 @@ class SimpleTracker : public rclcpp::Node {
                                 const rclcpp::Time &_t_now);
   void PublishVisualizationTopics(const rclcpp::Time &_t_now);
   void PublishTrajectory(const rclcpp::Time &_t_now);
-  void PublishTrajectoryResult(const rclcpp::Time &_t_now);
+  void PublishTrajectoryResult(const rclcpp::Time &_t_now, Success _result);
   void OnOdometry(const Odometry::SharedPtr _msg);
   void OnTarget(const TargetState::SharedPtr _msg);
   bool ShouldGenerateNewTrajectories(const rclcpp::Time &t_now);
@@ -161,6 +165,8 @@ class SimpleTracker : public rclcpp::Node {
   bool CheckFeasibility(Trajectory &_traj, const rclcpp::Time _t_now);
   bool SampleTrajectories(const rclcpp::Time &_t_now, bool initial = false);
   bool SectionFinished(const rclcpp::Time &t_now);
+  Success GoalReached(const rclcpp::Time &_t_now);
+  Eigen::Vector3d TargetIntersection(const rclcpp::Time &_t_now);
   void OnLinearAcceleration(
       const geometry_msgs::msg::Vector3Stamped::ConstSharedPtr _msg);
   Trajectory::StateFeasibilityResult CheckWallCollision(
