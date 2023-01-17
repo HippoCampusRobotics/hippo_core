@@ -197,7 +197,11 @@ Eigen::Vector3d SimpleTracker::TargetIntersection(const rclcpp::Time &_t_now) {
   double k = -p0.x() / n.x();
   return p0 + n * k;
 }
-
+/**
+ * @brief Generate disc points as possible target points expressed in the
+ * target's frame.
+ *
+ */
 void SimpleTracker::GenerateDiscPoints() {
   constexpr double r_max =
       Sampling::kPositionRadius * Sampling::kPositionRadius;
@@ -310,6 +314,7 @@ bool SimpleTracker::SampleTrajectories(const rclcpp::Time &_t_now,
                                     Sampling::kNormalLength * f_vec[i_thrust] /
                                     trajectory_params_.damping;
           Eigen::Vector3d a_final{Eigen::Vector3d::Zero()};
+          traj.SetIntersection(disc_points_[i_points]);
           traj.SetGoalPosition(p_final);
           traj.SetGoalVelocity(v_final);
           // TODO(lennartalff): check if unspecified final acceleration is
@@ -489,13 +494,17 @@ void SimpleTracker::PublishTrajectoryResult(const rclcpp::Time &_t_now,
   rapid_trajectories_msgs::msg::TrajectoryResult msg;
   msg.header.stamp = _t_now;
   double t_final = trajectory_.GetFinalTime();
+  double t_current = trajectory_.TimeOnTrajectory(_t_now.nanoseconds());
   double t_ring = (_t_now - t_start_section_).nanoseconds() * 1e-9;
+  // sample desired state on current time, since goal condition could be met
+  // before the trajectory ends. Sampling on t_final in this case would yield
+  // wrong values. 
   Eigen::Vector3d tmp;
-  tmp = trajectory_.ToWorld(trajectory_.GetPosition(t_final));
+  tmp = trajectory_.ToWorld(trajectory_.GetPosition(t_current));
   hippo_common::convert::EigenToRos(tmp, msg.state_desired.position);
-  tmp = trajectory_.ToWorld(trajectory_.GetVelocity(t_final));
+  tmp = trajectory_.ToWorld(trajectory_.GetVelocity(t_current));
   hippo_common::convert::EigenToRos(tmp, msg.state_desired.velocity);
-  tmp = trajectory_.ToWorld(trajectory_.GetAcceleration(t_final));
+  tmp = trajectory_.ToWorld(trajectory_.GetAcceleration(t_current));
   hippo_common::convert::EigenToRos(tmp, msg.state_desired.acceleration);
   hippo_common::convert::EigenToRos(position_, msg.state_actual.position);
   hippo_common::convert::EigenToRos(velocity_, msg.state_actual.velocity);
@@ -507,6 +516,8 @@ void SimpleTracker::PublishTrajectoryResult(const rclcpp::Time &_t_now,
                                     msg.target_position);
   hippo_common::convert::EigenToRos(target_.Orientation(t_ring),
                                     msg.target_orientation);
+  hippo_common::convert::EigenToRos(trajectory_.GetIntersection(),
+                                    msg.target_intersection_planned);
   msg.average_computation_time = -1.0;
   if (_result != Success::NOT_FINISHED) {
     hippo_common::convert::EigenToRos(TargetIntersection(_t_now),

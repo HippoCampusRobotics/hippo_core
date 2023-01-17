@@ -114,6 +114,8 @@ class Trajectory {
   Eigen::Quaterniond GetRotation() const { return rotation_; }
   Eigen::Vector3d GetGravity() const { return gravity_; }
 
+  Eigen::Vector3d GetIntersection() const { return intersection_; }
+
   // set the final state for all axes:
   //! Fix the full position at the end time (see also the per-axis functions).
   void SetGoalPosition(const Eigen::Vector3d &_in);
@@ -137,6 +139,8 @@ class Trajectory {
   void SetGoalAccelerationInAxis(const unsigned _index, const double _in) {
     axis_[_index].SetGoalAcceleration(_in);
   };
+
+  void SetIntersection(const Eigen::Vector3d &_p) { intersection_ = _p; }
 
   //! Reset the trajectory, clearing any end state constraints.
   void Reset(void);
@@ -331,6 +335,8 @@ class Trajectory {
   std::array<SingleAxisTrajectory, 3> axis_;
   int64_t t_start_abs_ns_{0};
   int64_t t_final_abs_ns_{0};
+  /// @brief desired intersection in target coordinates
+  Eigen::Vector3d intersection_;
   double t_final_{0.0};  //!< trajectory end time [s]
   double damping_{5.4};
   double mass_rb_{1.5};
