@@ -17,8 +17,8 @@ os.path.expanduser('~/uuv/ros2/src')
 
 base_path = os.path.realpath(os.path.dirname(__file__))
 file_dir_name = 'perfect'
-file_dir_name = 'damping_5.0'
-path = os.path.join(base_path, 'files', file_dir_name)
+# file_dir_name = 'damping_5.0'
+path = os.path.join(base_path, 'files/sim', file_dir_name)
 
 
 def add_msgs(package_name):

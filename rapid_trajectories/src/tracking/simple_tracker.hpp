@@ -153,7 +153,6 @@ class SimpleTracker : public rclcpp::Node {
   void PublishTrajectory(const rclcpp::Time &_t_now);
   void PublishTrajectoryResult(const rclcpp::Time &_t_now, Success _result);
   void OnOdometry(const Odometry::SharedPtr _msg);
-  void OnTarget(const TargetState::SharedPtr _msg);
   bool ShouldGenerateNewTrajectories(const rclcpp::Time &t_now);
   void GenerateDiscPoints();
   void GenerateTargetPoints(const double _t);
@@ -202,8 +201,6 @@ class SimpleTracker : public rclcpp::Node {
   //////////////////////////////////////////////////////////////////////////////
   /// @brief Subscription to the vehicles state estimate.
   rclcpp::Subscription<Odometry>::SharedPtr state_sub_;
-  /// @brief Subscription for the current target state setpoint.
-  rclcpp::Subscription<TargetState>::SharedPtr target_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr
       linear_acceleration_sub_;
 
@@ -219,8 +216,6 @@ class SimpleTracker : public rclcpp::Node {
 
   rclcpp::Time t_start_section_;
   rclcpp::Time t_final_section_;
-  rclcpp::Time t_start_trajectory_;
-  rclcpp::Time t_final_trajecotry_;
   rclcpp::Time t_last_odometry_;
   bool section_finished_{true};
   std::array<Eigen::Vector3d, Sampling::kPositions> target_points_;

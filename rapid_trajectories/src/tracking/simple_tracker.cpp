@@ -38,8 +38,7 @@ SimpleTracker::SimpleTracker(rclcpp::NodeOptions const &_options)
   InitSubscribers();
   RCLCPP_INFO(get_logger(), "Declaring parameters.");
   DeclareParams();
-  t_start_section_ = t_final_section_ = t_start_trajectory_ =
-      t_final_trajecotry_ = t_last_odometry_ = now();
+  t_start_section_ = t_final_section_ = t_last_odometry_ = now();
   target_ = TargetUniform(
       Eigen::Vector3d{trajectory_params_.target_p0.x,
                       trajectory_params_.target_p0.y,
@@ -114,10 +113,6 @@ void SimpleTracker::InitSubscribers() {
   topic = "odometry";
   state_sub_ = create_subscription<Odometry>(
       topic, qos, std::bind(&SimpleTracker::OnOdometry, this, _1));
-
-  topic = "~/setpoint";
-  target_sub_ = create_subscription<TargetState>(
-      topic, qos, std::bind(&SimpleTracker::OnTarget, this, _1));
 
   topic = "acceleration";
   linear_acceleration_sub_ =
@@ -493,12 +488,11 @@ void SimpleTracker::PublishTrajectoryResult(const rclcpp::Time &_t_now,
                                             Success _result) {
   rapid_trajectories_msgs::msg::TrajectoryResult msg;
   msg.header.stamp = _t_now;
-  double t_final = trajectory_.GetFinalTime();
   double t_current = trajectory_.TimeOnTrajectory(_t_now.nanoseconds());
   double t_ring = (_t_now - t_start_section_).nanoseconds() * 1e-9;
   // sample desired state on current time, since goal condition could be met
   // before the trajectory ends. Sampling on t_final in this case would yield
-  // wrong values. 
+  // wrong values.
   Eigen::Vector3d tmp;
   tmp = trajectory_.ToWorld(trajectory_.GetPosition(t_current));
   hippo_common::convert::EigenToRos(tmp, msg.state_desired.position);
@@ -694,10 +688,6 @@ void SimpleTracker::OnOdometry(const Odometry::SharedPtr _msg) {
   Update();
 }
 
-void SimpleTracker::OnTarget(const TargetState::SharedPtr _msg) {
-  // TODO(lennartalff): implement
-}
-
 void SimpleTracker::OnLinearAcceleration(
     const geometry_msgs::msg::Vector3Stamped::ConstSharedPtr _msg) {
   hippo_common::convert::RosToEigen(_msg->vector, acceleration_);
@@ -732,7 +722,6 @@ Trajectory::StateFeasibilityResult SimpleTracker::CheckWallCollision(
 }
 Trajectory::StateFeasibilityResult SimpleTracker::CheckFunnelCollision(
     Trajectory &_trajectory, const rclcpp::Time &_t_now) {
-  static constexpr size_t n_walls = 2;
   Eigen::Quaternion q = target_.Orientation(TimeOnSection(_t_now));
   Eigen::Vector3d p_center = target_.Position(TimeOnSection(_t_now));
   Eigen::Vector3d delta =
@@ -760,6 +749,7 @@ Trajectory::StateFeasibilityResult SimpleTracker::CheckFunnelCollision(
 
 }  // namespace tracking
 }  // namespace rapid_trajectories
+
 
 #include <rclcpp_components/register_node_macro.hpp>
 RCLCPP_COMPONENTS_REGISTER_NODE(rapid_trajectories::tracking::SimpleTracker)

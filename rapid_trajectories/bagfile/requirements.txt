@@ -1,0 +1,4 @@
+rosbags
+matplotlib
+numpy
+pyquaternion
