@@ -10,9 +10,9 @@
     lookahead_body_rate: 1.0
     enable_position_check: true
     mass_rb: 2.31
-    mass_added: 0.0
+    mass_added: 1.0
     damping: 5.4
-    t_final: 7.0
+    t_final: 3.0
     timestep_min: 0.02
     continuous: true
     use_attitude_control: true
@@ -24,8 +24,8 @@
       z: 0.0
     target_p0:
       x: 1.0
-      y: 1.0
-      z: -0.3
+      y: 1.5
+      z: -0.4
     target_v0:
       x: 0.0
       y: 0.0
@@ -36,9 +36,9 @@
     homing_thrust: 5.0
     home_tolerance: 0.1
     home_position:
-      x: 0.5
-      y: 3.0
-      z: -0.3
+      x: 0.9
+      y: 2.5
+      z: -0.4
     home_yaw: -1.57
     home_axis_tolerance: 0.05
     min_wall_distance:

@@ -19,6 +19,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(hippo_common REQUIRED)
 
 add_library(qualisys
   src/qualisys/Markup.cpp
@@ -45,6 +46,7 @@ set(component_name bridge)
 add_library(${component_name}
   SHARED
   src/bridge/bridge.cpp
+  src/ekf.cpp
 )
 target_include_directories(${component_name}
   PUBLIC
@@ -58,6 +60,7 @@ ament_target_dependencies(${component_name}
   rclcpp
   rclcpp_components
   geometry_msgs
+  hippo_common
   nav_msgs
   tf2_ros
 )

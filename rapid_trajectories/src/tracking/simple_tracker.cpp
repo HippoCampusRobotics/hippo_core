@@ -342,6 +342,7 @@ bool SimpleTracker::TargetHome() {
           Eigen::Vector3d::UnitX(), d_vec.normalized());
   Eigen::Vector3d attitude =
       hippo_common::tf2_utils::QuaternionToEuler(q_desired);
+  attitude.x() = 0.0;
 
   hippo_msgs::msg::AttitudeTarget msg;
   msg.header.stamp = now();
@@ -368,7 +369,7 @@ bool SimpleTracker::MoveHome() {
                                 trajectory_params_.home_position.z};
   Eigen::Vector3d d_vec = (home_position - position_);
   double xz_dist_square = d_vec.x() * d_vec.x() + d_vec.y() * d_vec.y();
-  if (xz_dist_square <= trajectory_params_.home_tolerance) {
+  if (d_vec.y() <= 0.0) {
     // we reached the home position
     OrientateHome();
     return true;
@@ -378,6 +379,7 @@ bool SimpleTracker::MoveHome() {
           Eigen::Vector3d::UnitX(), d_vec.normalized());
   Eigen::Vector3d attitude =
       hippo_common::tf2_utils::QuaternionToEuler(orientation);
+  attitude.x() = 0.0;
 
   hippo_msgs::msg::AttitudeTarget msg;
   msg.header.stamp = now();
@@ -635,6 +637,7 @@ void SimpleTracker::PublishAttitudeTarget(const rclcpp::Time &_t_now) {
       hippo_common::tf2_utils::RotationBetweenNormalizedVectors(
           Eigen::Vector3d::UnitX(), trajectory_axis);
   Eigen::Vector3d rpy = hippo_common::tf2_utils::QuaternionToEuler(q);
+  rpy.x() = 0.0;
 
   AttitudeTarget attitude_target_msg;
   attitude_target_msg.header.frame_id =
@@ -749,7 +752,6 @@ Trajectory::StateFeasibilityResult SimpleTracker::CheckFunnelCollision(
 
 }  // namespace tracking
 }  // namespace rapid_trajectories
-
 
 #include <rclcpp_components/register_node_macro.hpp>
 RCLCPP_COMPONENTS_REGISTER_NODE(rapid_trajectories::tracking::SimpleTracker)
