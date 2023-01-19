@@ -14,3 +14,7 @@ def crop_data(data, time, t0, t1):
     tmp = np.abs(time - t1)
     b = tmp.argmin()
     return data[a:b], time[a:b]
+
+def resample(data, time, time_sample):
+    resampled_data = np.interp(time_sample, time, data)
+    return resampled_data

@@ -60,6 +60,13 @@ class Trajectory:
     rotation: np.ndarray
 
 
+@dataclass
+class AttitudeTarget:
+    t: np.ndarray
+    rpy: np.ndarray
+    thrust: np.ndarray
+
+
 def stamp_to_secs(msg):
     return msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
 
@@ -70,6 +77,19 @@ def quat(q):
 
 def vec(v):
     return [v.x, v.y, v.z]
+
+
+def attitude_target(msgs):
+    n = len(msgs)
+    t = np.zeros([n], dtype=float)
+    rpy = np.zeros([n, 3], dtype=float)
+    thrust = np.zeros([n], dtype=float)
+    for i in range(n):
+        msg, time = msgs[i]
+        t[i] = stamp_to_secs(msg)
+        rpy[i] = vec(msg.attitude)
+        thrust[i] = msg.thrust
+    return AttitudeTarget(t=t, rpy=rpy, thrust=thrust)
 
 
 def odometry(msgs):
@@ -179,6 +199,13 @@ def trajectory(msgs):
         alpha[i] = vec(msg.trajectory.alpha)
         beta[i] = vec(msg.trajectory.beta)
         gamma[i] = vec(msg.trajectory.gamma)
+        m_rb[i] = msg.trajectory.mass_rb
+        m_added[i] = msg.trajectory.mass_added
+        damping[i] = msg.trajectory.damping
+        t_start_abs[i] = msg.trajectory.t_start_abs_ns
+        time_margin[i] = msg.trajectory.time_margin
+        duration[i] = msg.trajectory.duration
+        rotation[i] = quat(msg.trajectory.rotation)
 
     return Trajectory(t=t,
                       alpha=alpha,

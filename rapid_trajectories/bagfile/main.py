@@ -11,6 +11,8 @@ import glob
 from ament_index_python.packages import get_package_share_directory
 import common
 import matplotlib as mpl
+import quadrocoptertrajectory as tg
+from pyquaternion import Quaternion
 # import pandas as pd
 
 os.path.expanduser('~/uuv/ros2/src')
@@ -18,7 +20,7 @@ os.path.expanduser('~/uuv/ros2/src')
 base_path = os.path.realpath(os.path.dirname(__file__))
 # file_dir_name = 'perfect'
 # file_dir_name = 'damping_5.0'
-file_dir_name = 'open_looop_01'
+file_dir_name = 'closed_loop_01'
 path = os.path.join(base_path, 'files/lab', file_dir_name)
 
 
@@ -39,6 +41,7 @@ def add_msgs(package_name):
 
 add_msgs('rapid_trajectories_msgs')
 add_msgs('hippo_msgs')
+add_msgs('buttons_msgs')
 
 
 def get_data(topic):
@@ -65,8 +68,80 @@ def get_homing_sections(t_sections):
     return sections
 
 
+def plot_positions_with_planned_trajectory(t0, t1):
+    cmap = plt.get_cmap('tab20')
+    fig, axes_xy = plt.subplots(2)
+
+    data = get_data('/uuv00/single_tracker/target_trajectory')
+    traj = to_pandas.trajectory(data)
+
+    data = get_data('/uuv00/odometry')
+    odom = to_pandas.odometry(data)
+
+    q, t_q = common.crop_data(odom.q, odom.t, t0, t1)
+    yaw_actual = [Quaternion(q[i]).yaw_pitch_roll[0] for i in range(len(q))]
+    data = get_data('/uuv00/attitude_target')
+    att_target = to_pandas.attitude_target(data)
+    rpy, t_yaw = common.crop_data(att_target.rpy, att_target.t, t0, t1)
+    plt.figure()
+    for i in range(3):
+        plt.plot(t_yaw, rpy[:, i])
+    plt.plot(t_q, yaw_actual)
+
+    p0, t = common.crop_data(traj.p0, traj.t, t0, t1)
+    v0, t = common.crop_data(traj.v0, traj.t, t0, t1)
+    a0, t = common.crop_data(traj.a0, traj.t, t0, t1)
+
+    duration, t = common.crop_data(traj.duration, traj.t, t0, t1)
+    alpha, t = common.crop_data(traj.alpha, traj.t, t0, t1)
+    beta, t = common.crop_data(traj.beta, traj.t, t0, t1)
+    gamma, t = common.crop_data(traj.gamma, traj.t, t0, t1)
+    rotation, t = common.crop_data(traj.rotation, traj.t, t0, t1)
+    m_rb = traj.m_rb[0]
+    m_added = traj.m_added[0]
+    damping = traj.damping[0]
+
+    counter = 0
+    for i in range(len(p0)):
+        counter += 1
+        if (counter < 5):
+            continue
+        counter = 0
+        trajectory = tg.RapidTrajectory(p0[i, :], v0[i, :], a0[i, :],
+                                        [0.0, 0.0, 0.0], m_rb, m_added, damping)
+        trajectory.generate(duration[i], alpha[i, :], beta[i, :], gamma[i, :])
+        t_sample = np.linspace(0.0, duration[i], 50)
+        p = np.zeros([len(t_sample), 3], dtype=float)
+        thrust = np.zeros([len(t_sample), 3], dtype=float)
+        for j in range(len(t_sample)):
+            q = Quaternion(rotation[i])
+            p[j] = q.rotate(trajectory.get_position(t_sample[j]))
+            thrust[j] = q.rotate(trajectory.get_thrust_vector(t_sample[j]))
+        axes_xy[0].plot(p[:, 1], p[:, 0], color=cmap(i))
+        axes_xy[1].plot(p[:, 1], p[:, 2], color=cmap(i))
+    plt.figure()
+    plt.plot(t_sample, thrust[:, 0])
+    plt.plot(t_sample, thrust[:, 1])
+
+    p_real, t_real = common.crop_data(odom.p, odom.t, t0, t1)
+
+    axes_xy[0].plot(p_real[:, 1], p_real[:, 0], color='red')
+    axes_xy[0].set_aspect('equal')
+    axes_xy[1].set_aspect('equal')
+    axes_xy[0].set_xlabel('y-coordinate [m]')
+    axes_xy[0].set_ylabel('x-coordinate [m]')
+    axes_xy[0].set_xlim((0.0, 4.0))
+    axes_xy[0].set_ylim((0.0, 2.0))
+    axes_xy[1].set_xlabel('y-coordinate [m]')
+    axes_xy[1].set_ylabel('z-coordinate [m]')
+    axes_xy[1].set_xlim((0.0, 4.0))
+    axes_xy[1].set_ylim((-1.5, 0.0))
+    axes_xy[0].invert_yaxis()
+
+
 def plot_positions(t_sections):
-    fig, axes = plt.subplots(2)
+    fig, axes_xy = plt.subplots(2)
+    fig, axes_time = plt.subplots(3)
     cmap = plt.get_cmap('tab20')
     data = get_data('/uuv00/odometry')
     odom = to_pandas.odometry(data)
@@ -76,20 +151,32 @@ def plot_positions(t_sections):
         x, t = common.crop_data(odom.p[:, 0], odom.t, t0, t1)
         y, t = common.crop_data(odom.p[:, 1], odom.t, t0, t1)
         z, t = common.crop_data(odom.p[:, 2], odom.t, t0, t1)
-        axes[0].plot(y, x, color=cmap(i))
-        axes[1].plot(y, z, color=cmap(i))
-    axes[0].invert_yaxis()
-    axes[1].invert_yaxis()
-    axes[0].set_aspect('equal')
-    axes[1].set_aspect('equal')
-    axes[0].set_xlabel('y-coordinate [m]')
-    axes[0].set_ylabel('x-coordinate [m]')
-    axes[0].set_xlim((0.0, 4.0))
-    axes[0].set_ylim((0.0, 2.0))
-    axes[1].set_xlabel('y-coordinate [m]')
-    axes[1].set_ylabel('z-coordinate [m]')
-    axes[1].set_xlim((0.0, 4.0))
-    axes[1].set_ylim((-1.5, 0.0))
+        axes_xy[0].plot(y, x, color=cmap(i))
+        axes_xy[1].plot(y, z, color=cmap(i))
+        xzy = [x, y, z]
+        print(len(t))
+        for j in range(3):
+            axes_time[j].plot(t - t0, xzy[j], color=cmap(i))
+    t_sections[len(t_sections) - 1, 1]
+    data = get_data('/uuv00/single_tracker/trajectory_result')
+    traj_result = to_pandas.trajectory_result(data)
+    t0 = t_sections[0, 0]
+    t1 = t_sections[len(t_sections) - 1, 1]
+    desired, _ = common.crop_data(traj_result.p_desired, traj_result.t, t0, t1)
+    for i in range(len(desired)):
+        axes_xy[0].scatter(desired[i, 1], desired[i, 0], color=cmap(i))
+        axes_xy[1].scatter(desired[i, 1], desired[i, 2], color=cmap(i))
+    axes_xy[0].set_aspect('equal')
+    axes_xy[1].set_aspect('equal')
+    axes_xy[0].set_xlabel('y-coordinate [m]')
+    axes_xy[0].set_ylabel('x-coordinate [m]')
+    axes_xy[0].set_xlim((0.0, 4.0))
+    axes_xy[0].set_ylim((0.0, 2.0))
+    axes_xy[1].set_xlabel('y-coordinate [m]')
+    axes_xy[1].set_ylabel('z-coordinate [m]')
+    axes_xy[1].set_xlim((0.0, 4.0))
+    axes_xy[1].set_ylim((-1.5, 0.0))
+    axes_xy[0].invert_yaxis()
 
 
 def plot_ring():
@@ -112,6 +199,7 @@ with Reader(path) as reader:
     t_homing_sections = get_homing_sections(t_sections)
     plot_positions(t_sections)
     plot_ring()
+    plot_positions_with_planned_trajectory(t_sections[5, 0], t_sections[5, 1])
     plt.show()
     # data = get_data('/uuv00/odometry')
     # print(len(data))
