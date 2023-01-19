@@ -165,7 +165,7 @@ Success SimpleTracker::GoalReached(const rclcpp::Time &_t_now) {
     return Success::NOT_FINISHED;
   }
   double k = -p0.x() / n.x();
-  if (k > Sampling::kNormalLength + 0.05 ||
+  if (k > Sampling::kNormalLength + 0.2 ||
       k < Sampling::kNormalLength - 0.05) {
     return Success::NOT_FINISHED;
   }
@@ -342,7 +342,6 @@ bool SimpleTracker::TargetHome() {
           Eigen::Vector3d::UnitX(), d_vec.normalized());
   Eigen::Vector3d attitude =
       hippo_common::tf2_utils::QuaternionToEuler(q_desired);
-  attitude.x() = 0.0;
 
   hippo_msgs::msg::AttitudeTarget msg;
   msg.header.stamp = now();
@@ -379,7 +378,6 @@ bool SimpleTracker::MoveHome() {
           Eigen::Vector3d::UnitX(), d_vec.normalized());
   Eigen::Vector3d attitude =
       hippo_common::tf2_utils::QuaternionToEuler(orientation);
-  // attitude.x() = 0.0;
 
   hippo_msgs::msg::AttitudeTarget msg;
   msg.header.stamp = now();
@@ -438,6 +436,7 @@ bool SimpleTracker::RunTrajectory(const rclcpp::Time &_t_now) {
     dt_avg = 0.1 * dt + 0.9 * dt_avg;
   }
   if (SectionFinished(_t_now)) {
+    RCLCPP_INFO(get_logger(), "\u001b[31mTime limit reached.\u001b[0m");
     PublishTrajectoryResult(_t_now, GoalReached(_t_now));
     return true;
   }
@@ -516,6 +515,11 @@ void SimpleTracker::PublishTrajectoryResult(const rclcpp::Time &_t_now,
                                     msg.target_intersection_planned);
   msg.average_computation_time = -1.0;
   if (_result != Success::NOT_FINISHED) {
+    if (_result == Success::SUCCESS) {
+      RCLCPP_INFO(get_logger(), "\u001b[32mHit the target!.\u001b[0m");
+    } else {
+      RCLCPP_INFO(get_logger(), "\u001b[33mMissed the target.\u001b[0m");
+    }
     hippo_common::convert::EigenToRos(TargetIntersection(_t_now),
                                       msg.target_intersection);
   }
@@ -576,18 +580,15 @@ void SimpleTracker::Update() {
     case MissionState::TARGET_HOME:
       if (TargetHome()) {
         mission_state_ = MissionState::HOMING;
-        RCLCPP_INFO(get_logger(), "Looking to home position.");
       }
       break;
     case MissionState::HOMING:
       if (MoveHome()) {
         mission_state_ = MissionState::ROTATING;
-        RCLCPP_INFO(get_logger(), "Home position reached.");
       }
       break;
     case MissionState::ROTATING:
       if (OrientateHome()) {
-        RCLCPP_INFO(get_logger(), "Home orientatin reached.");
         std::chrono::milliseconds duration(
             (int)(trajectory_params_.t_final * 1e3));
         t_start_section_ = t_now;
@@ -605,7 +606,6 @@ void SimpleTracker::Update() {
     case MissionState::TRAJECTORY:
       if (RunTrajectory(t_now)) {
         mission_state_ = MissionState::TARGET_HOME;
-        RCLCPP_INFO(get_logger(), "Trajectory finished.");
         section_counter_++;
       }
       break;
