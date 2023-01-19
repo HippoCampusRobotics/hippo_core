@@ -19,7 +19,9 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
+find_package(px4_msgs REQUIRED)
 
 add_library(qualisys
   src/qualisys/Markup.cpp
@@ -63,6 +65,9 @@ ament_target_dependencies(${component_name}
   hippo_common
   nav_msgs
   tf2_ros
+  tf2
+  tf2_geometry_msgs
+  px4_msgs
 )
 rclcpp_components_register_node(${component_name} PLUGIN "qualisys_bridge::Bridge" EXECUTABLE ${component_name}_node)
 

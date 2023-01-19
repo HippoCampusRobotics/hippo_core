@@ -18,7 +18,7 @@ os.path.expanduser('~/uuv/ros2/src')
 base_path = os.path.realpath(os.path.dirname(__file__))
 # file_dir_name = 'perfect'
 # file_dir_name = 'damping_5.0'
-file_dir_name = 'onboard'
+file_dir_name = 'open_looop_01'
 path = os.path.join(base_path, 'files/lab', file_dir_name)
 
 

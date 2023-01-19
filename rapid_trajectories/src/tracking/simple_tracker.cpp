@@ -379,7 +379,7 @@ bool SimpleTracker::MoveHome() {
           Eigen::Vector3d::UnitX(), d_vec.normalized());
   Eigen::Vector3d attitude =
       hippo_common::tf2_utils::QuaternionToEuler(orientation);
-  attitude.x() = 0.0;
+  // attitude.x() = 0.0;
 
   hippo_msgs::msg::AttitudeTarget msg;
   msg.header.stamp = now();
@@ -637,7 +637,7 @@ void SimpleTracker::PublishAttitudeTarget(const rclcpp::Time &_t_now) {
       hippo_common::tf2_utils::RotationBetweenNormalizedVectors(
           Eigen::Vector3d::UnitX(), trajectory_axis);
   Eigen::Vector3d rpy = hippo_common::tf2_utils::QuaternionToEuler(q);
-  rpy.x() = 0.0;
+  // rpy.x() = 0.0;
 
   AttitudeTarget attitude_target_msg;
   attitude_target_msg.header.frame_id =
