@@ -49,7 +49,7 @@ Bridge::Bridge(rclcpp::NodeOptions const &_options)
       "odometry", rclcpp::SystemDefaultsQoS());
 
   accel_pub_ = create_publisher<geometry_msgs::msg::Vector3Stamped>(
-      "ground_truth/acceleration", rclcpp::SystemDefaultsQoS());
+      "acceleration", rclcpp::SystemDefaultsQoS());
 
   naive_odometry_pub_ = create_publisher<nav_msgs::msg::Odometry>(
       "odometry_naive", rclcpp::SystemDefaultsQoS());
@@ -166,7 +166,7 @@ void Bridge::PublishNaive(const Eigen::Vector3d &_position_measurement,
   static Eigen::Quaterniond last_orientation{1.0, 0.0, 0.0, 0.0};
 
   Eigen::Vector3d v_lin = (_position_measurement - last_position) / dt;
-  Eigen::Vector3d accel = (last_v_lin - v_lin) / dt;
+  Eigen::Vector3d accel = (v_lin - last_v_lin) / dt;
   last_v_lin = v_lin;
   last_position = _position_measurement;
 
