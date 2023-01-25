@@ -64,9 +64,9 @@ class ESC : public rclcpp::Node {
         this, get_clock(), std::chrono::milliseconds(kThrottleInputTimeoutMs),
         std::bind(&ESC::OnInputTimeout, this));
 
-    send_throttle_timer_ = rclcpp::create_timer(
-        this, get_clock(), std::chrono::milliseconds(kSendThrottlePeriodMs),
-        std::bind(&ESC::OnSendThrottle, this));
+    // send_throttle_timer_ = rclcpp::create_timer(
+    //     this, get_clock(), std::chrono::milliseconds(kSendThrottlePeriodMs),
+    //     std::bind(&ESC::OnSendThrottle, this));
 
     read_battery_timer_ = rclcpp::create_timer(
         this, get_clock(), std::chrono::milliseconds(kVoltagePeriodMs),
@@ -190,6 +190,11 @@ class ESC : public rclcpp::Node {
                     "Setting non-zero thrust for unused ESC at index %d!", i);
       }
       escs_[i].SetThrottle(msg->control[i]);
+      if (escs_[i].WriteThrottle() != EscRetCode::kOk) {
+        RCLCPP_ERROR(get_logger(),
+                     "Failed to set motor speed for thruster %d at address %X",
+                     escs_[i].index(), escs_[i].address());
+      }
     }
   }
 

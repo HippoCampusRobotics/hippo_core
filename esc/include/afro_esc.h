@@ -35,11 +35,13 @@ class AfroESC : public ESCBase {
   EscRetCode WriteWordData(int _reg_address, int data);
 
  public:
-  AfroESC(const int _i2c_handle=0, const int _i2c_address=0,
+  AfroESC(const int _i2c_handle = 0, const int _i2c_address = 0,
           const int _pole_pairs = 6);
   EscRetCode WriteThrottle();
   EscRetCode Reset(int _i2c_handle, int _i2c_address);
-  void SetThrottle(double _throttle);
+  inline void SetThrottle(double _throttle) {
+    throttle_ = std::clamp(_throttle, -1.0, 1.0);
+  }
   EscRetCode UpdateRevolutionCount();
   int GetCommutationCount();
   double GetRevolutionCount();
@@ -49,8 +51,8 @@ class AfroESC : public ESCBase {
   EscRetCode ReadId(int &_id);
   EscRetCode VerifyID(bool &_is_ok);
   bool available();
-  void  SetAvailable(bool available);
-  void  SetIndex(int index);
+  void SetAvailable(bool available);
+  void SetIndex(int index);
   int index();
   void SetAddress(int _address);
   int address();

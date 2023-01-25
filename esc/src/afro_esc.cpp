@@ -92,10 +92,6 @@ EscRetCode AfroESC::WriteThrottle() {
   return WriteWordData(kRegSetSpeed, speed_data);
 }
 
-void AfroESC::SetThrottle(double _throttle) {
-  throttle_ = std::min(std::max(_throttle, -1.0), 1.0);
-}
-
 EscRetCode AfroESC::UpdateRevolutionCount() {
     EscRetCode status;
     status = ReadWordData(kRegGetSpeed, commutation_count_);
