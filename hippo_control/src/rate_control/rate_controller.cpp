@@ -61,8 +61,13 @@ void RateController::OnAngularVelocity(
   Eigen::Vector3d angular_acceleration;
 
   for (int i = 0; i < 3; ++i) {
-    angular_velocity(i) = _msg->xyz[i];
-    angular_acceleration(i) = _msg->xyz_derivative[i];
+    if (i < 1) {
+      angular_velocity(i) = _msg->xyz[i];
+      angular_acceleration(i) = _msg->xyz_derivative[i];
+    } else {
+	    angular_velocity(i) = -1.0 * _msg->xyz[i];
+	    angular_acceleration(i) = -1.0 * _msg->xyz_derivative[i];
+    }
   }
 
   auto t_now = now();
