@@ -20,6 +20,7 @@ find_package(hippo_common REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(px4_msgs REQUIRED)
 
 include_directories(
   include
@@ -57,7 +58,7 @@ target_include_directories(${lib_name}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(${lib_name} rclcpp Eigen3)
+ament_target_dependencies(${lib_name} rclcpp Eigen3 px4_msgs)
 ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
 ament_export_dependencies(rclcpp Eigen3)
 

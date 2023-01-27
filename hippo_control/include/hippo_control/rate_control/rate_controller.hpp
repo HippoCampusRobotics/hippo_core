@@ -5,6 +5,7 @@
 #include <hippo_msgs/msg/angular_velocity.hpp>
 #include <hippo_msgs/msg/rates_target.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <px4_msgs/msg/vehicle_angular_velocity.hpp>
 
 namespace hippo_control {
 namespace rate_control {
@@ -18,7 +19,7 @@ class RateController : public rclcpp::Node {
   void DeclareIntegralLimitParams();
   void InitController();
   void UpdateAllControllerParams();
-  void OnAngularVelocity(hippo_msgs::msg::AngularVelocity::ConstSharedPtr _msg);
+  void OnAngularVelocity(px4_msgs::msg::VehicleAngularVelocity::ConstSharedPtr _msg);
   void OnRatesSetpoint(hippo_msgs::msg::RatesTarget::ConstSharedPtr _msg);
   rcl_interfaces::msg::SetParametersResult OnGainParams(
       const std::vector<rclcpp::Parameter> &_parameters);
@@ -50,7 +51,7 @@ class RateController : public rclcpp::Node {
 
   rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr torque_pub_;
 
-  rclcpp::Subscription<hippo_msgs::msg::AngularVelocity>::SharedPtr
+  rclcpp::Subscription<px4_msgs::msg::VehicleAngularVelocity>::SharedPtr
       angular_velocity_sub_;
   rclcpp::Subscription<hippo_msgs::msg::RatesTarget>::SharedPtr
       body_rates_setpoint_sub_;

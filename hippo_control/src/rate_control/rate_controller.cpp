@@ -14,10 +14,11 @@ RateController::RateController(rclcpp::NodeOptions const &_options)
 
   rclcpp::SensorDataQoS qos;
 
-  angular_velocity_sub_ = create_subscription<hippo_msgs::msg::AngularVelocity>(
-      "angular_velocity", qos,
-      std::bind(&RateController::OnAngularVelocity, this,
-                std::placeholders::_1));
+  angular_velocity_sub_ =
+      create_subscription<px4_msgs::msg::VehicleAngularVelocity>(
+          "fmu/out/vehicle_angular_velocity", qos,
+          std::bind(&RateController::OnAngularVelocity, this,
+                    std::placeholders::_1));
 
   body_rates_setpoint_sub_ = create_subscription<hippo_msgs::msg::RatesTarget>(
       "rates_setpoint", rclcpp::SystemDefaultsQoS(),
@@ -50,7 +51,7 @@ void RateController::UpdateAllControllerParams() {
 }
 
 void RateController::OnAngularVelocity(
-    hippo_msgs::msg::AngularVelocity::ConstSharedPtr _msg) {
+    px4_msgs::msg::VehicleAngularVelocity::ConstSharedPtr _msg) {
   if (params_.updated) {
     UpdateAllControllerParams();
     params_.updated = false;
@@ -60,8 +61,8 @@ void RateController::OnAngularVelocity(
   Eigen::Vector3d angular_acceleration;
 
   for (int i = 0; i < 3; ++i) {
-    angular_velocity(i) = _msg->body_rates[i];
-    angular_acceleration(i) = _msg->body_rates_derivative[i];
+    angular_velocity(i) = _msg->xyz[i];
+    angular_acceleration(i) = _msg->xyz_derivative[i];
   }
 
   auto t_now = now();
