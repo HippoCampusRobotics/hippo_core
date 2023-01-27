@@ -40,7 +40,7 @@ class AfroESC : public ESCBase {
   EscRetCode WriteThrottle();
   EscRetCode Reset(int _i2c_handle, int _i2c_address);
   inline void SetThrottle(double _throttle) {
-    throttle_ = std::clamp(_throttle, -1.0, 1.0);
+    throttle_ = std::min(1.0, std::max(_throttle, -1.0));
   }
   EscRetCode UpdateRevolutionCount();
   int GetCommutationCount();
