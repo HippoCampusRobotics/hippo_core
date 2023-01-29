@@ -14,13 +14,14 @@ import matplotlib as mpl
 import quadrocoptertrajectory as tg
 from pyquaternion import Quaternion
 # import pandas as pd
+import tikzplotlib
 
 os.path.expanduser('~/uuv/ros2/src')
 
 base_path = os.path.realpath(os.path.dirname(__file__))
 # file_dir_name = 'perfect'
 # file_dir_name = 'damping_5.0'
-file_dir_name = 'closed_loop_01'
+file_dir_name = 'closed_loop_explicit_02'
 path = os.path.join(base_path, 'files/lab', file_dir_name)
 
 
@@ -192,6 +193,7 @@ def plot_ring():
     c = plt.Circle([0, 0], traj_result.r_target[0], fill=False)
     plt.gca().add_patch(c)
     plt.gca().set_aspect('equal', 'box')
+    tikzplotlib.save(base_path + "/ring.tex")
 
 
 with Reader(path) as reader:
