@@ -15,5 +15,5 @@ uint32 IGNORE_RATES = 56
 uint32 IGNORE_ATTITUDE = 7
 
 float64 thrust
-geometry_msgs/Vector3 attitude
+geometry_msgs/Quaternion attitude
 geometry_msgs/Vector3 body_rate

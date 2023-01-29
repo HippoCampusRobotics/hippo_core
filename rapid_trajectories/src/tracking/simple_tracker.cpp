@@ -165,8 +165,7 @@ Success SimpleTracker::GoalReached(const rclcpp::Time &_t_now) {
     return Success::NOT_FINISHED;
   }
   double k = -p0.x() / n.x();
-  if (k > Sampling::kNormalLength + 0.2 ||
-      k < Sampling::kNormalLength - 0.05) {
+  if (k > Sampling::kNormalLength + 0.2 || k < Sampling::kNormalLength - 0.05) {
     return Success::NOT_FINISHED;
   }
   Eigen::Vector3d p_intersec = p0 + n * k;
@@ -340,13 +339,11 @@ bool SimpleTracker::TargetHome() {
   Eigen::Quaterniond q_desired =
       hippo_common::tf2_utils::RotationBetweenNormalizedVectors(
           Eigen::Vector3d::UnitX(), d_vec.normalized());
-  Eigen::Vector3d attitude =
-      hippo_common::tf2_utils::QuaternionToEuler(q_desired);
 
   hippo_msgs::msg::AttitudeTarget msg;
   msg.header.stamp = now();
   msg.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
-  hippo_common::convert::EigenToRos(attitude, msg.attitude);
+  hippo_common::convert::EigenToRos(q_desired, msg.attitude);
   msg.mask = msg.IGNORE_RATES;
   msg.thrust = 0.0;
   attitude_target_pub_->publish(msg);
@@ -376,13 +373,11 @@ bool SimpleTracker::MoveHome() {
   Eigen::Quaterniond orientation =
       hippo_common::tf2_utils::RotationBetweenNormalizedVectors(
           Eigen::Vector3d::UnitX(), d_vec.normalized());
-  Eigen::Vector3d attitude =
-      hippo_common::tf2_utils::QuaternionToEuler(orientation);
 
   hippo_msgs::msg::AttitudeTarget msg;
   msg.header.stamp = now();
   msg.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
-  hippo_common::convert::EigenToRos(attitude, msg.attitude);
+  hippo_common::convert::EigenToRos(orientation, msg.attitude);
   msg.mask = msg.IGNORE_RATES;
   msg.thrust = trajectory_params_.homing_thrust;
   attitude_target_pub_->publish(msg);
@@ -396,10 +391,10 @@ bool SimpleTracker::OrientateHome() {
   msg.header.stamp = now();
   msg.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
   msg.mask = msg.IGNORE_RATES;
+  Eigen::Quaternion q = hippo_common::tf2_utils::EulerToQuaternion(
+      0.0, 0.0, trajectory_params_.home_yaw);
   msg.thrust = 0.0;
-  msg.attitude.x = 0.0;
-  msg.attitude.y = 0.0;
-  msg.attitude.z = trajectory_params_.home_yaw;
+  hippo_common::convert::EigenToRos(q, msg.attitude);
   attitude_target_pub_->publish(msg);
 
   Eigen::Vector3d axis_current = orientation_ * Eigen::Vector3d::UnitX();
@@ -435,7 +430,7 @@ bool SimpleTracker::RunTrajectory(const rclcpp::Time &_t_now) {
     double dt = std::chrono::duration<double, std::milli>(toc - tic).count();
     dt_avg = 0.1 * dt + 0.9 * dt_avg;
   }
-  if (SectionFinished(_t_now)) {
+  if (SectionFinished(_t_now - rclcpp::Duration(std::chrono::milliseconds(500)))) {
     RCLCPP_INFO(get_logger(), "\u001b[31mTime limit reached.\u001b[0m");
     PublishTrajectoryResult(_t_now, GoalReached(_t_now));
     return true;
@@ -636,8 +631,6 @@ void SimpleTracker::PublishAttitudeTarget(const rclcpp::Time &_t_now) {
   Eigen::Quaterniond q =
       hippo_common::tf2_utils::RotationBetweenNormalizedVectors(
           Eigen::Vector3d::UnitX(), trajectory_axis);
-  Eigen::Vector3d rpy = hippo_common::tf2_utils::QuaternionToEuler(q);
-  // rpy.x() = 0.0;
 
   AttitudeTarget attitude_target_msg;
   attitude_target_msg.header.frame_id =
@@ -645,7 +638,7 @@ void SimpleTracker::PublishAttitudeTarget(const rclcpp::Time &_t_now) {
   attitude_target_msg.header.stamp = _t_now;
   attitude_target_msg.thrust = SampleThrust(trajectory_, _t_now);
   attitude_target_msg.mask = attitude_target_msg.IGNORE_RATES;
-  hippo_common::convert::EigenToRos(rpy, attitude_target_msg.attitude);
+  hippo_common::convert::EigenToRos(q, attitude_target_msg.attitude);
   attitude_target_pub_->publish(attitude_target_msg);
 }
 

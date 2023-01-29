@@ -5,6 +5,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <hippo_common/convert.hpp>
 
 #include "hippo_control/attitude_control/geometric_attitude_control.hpp"
 
@@ -179,15 +180,7 @@ class AttitudeControlNode : public rclcpp::Node {
       return;
     }
     std::lock_guard<std::mutex> lock(mutex_);
-    if (!(_msg->mask & _msg->IGNORE_ROLL_ANGLE)) {
-      attitude_target_.attitude.x = _msg->attitude.x;
-    }
-    if (!(_msg->mask & _msg->IGNORE_PITCH_ANGLE)) {
-      attitude_target_.attitude.y = _msg->attitude.y;
-    }
-    if (!(_msg->mask & _msg->IGNORE_YAW_ANGLE)) {
-      attitude_target_.attitude.z = _msg->attitude.z;
-    }
+    attitude_target_.attitude = _msg->attitude;
     if (!(_msg->mask & _msg->IGNORE_ROLL_RATE)) {
       attitude_target_.body_rate.x = _msg->body_rate.x;
     }
@@ -203,9 +196,9 @@ class AttitudeControlNode : public rclcpp::Node {
     controller_.SetAngularVelocityTarget(attitude_target_.body_rate.x,
                                          attitude_target_.body_rate.y,
                                          attitude_target_.body_rate.z);
-    controller_.SetOrientationTarget(attitude_target_.attitude.x,
-                                     attitude_target_.attitude.y,
-                                     attitude_target_.attitude.z);
+    Eigen::Quaterniond attitude;
+    hippo_common::convert::RosToEigen(attitude_target_.attitude, attitude);
+    controller_.SetOrientationTarget(attitude);
     setpoint_pub_->publish(attitude_target_);
     if (feedthrough_) {
       hippo_msgs::msg::ActuatorSetpoint thrust_msg;
