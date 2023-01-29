@@ -330,6 +330,35 @@ bool SimpleTracker::SampleTrajectories(const rclcpp::Time &_t_now,
   }
   return cost < std::numeric_limits<decltype(cost)>::max();
 }
+Eigen::Vector3d SimpleTracker::ControlThrust(const rclcpp::Time &_t_now) {
+  double t_traj = trajectory_.TimeOnTrajectory(_t_now.nanoseconds());
+  Eigen::Vector3d p = trajectory_.ToWorld(trajectory_.GetPosition(t_traj));
+  Eigen::Vector3d v = trajectory_.ToWorld(trajectory_.GetVelocity(t_traj));
+  Eigen::Vector3d e_p = p - position_;
+  Eigen::Vector3d e_v = v - velocity_;
+  Eigen::Vector3d ff = SampleDesiredThrustVec(trajectory_, _t_now);
+  return e_p * trajectory_params_.gain_position +
+         e_v * trajectory_params_.gain_velocity + ff;
+}
+Eigen::Quaterniond SimpleTracker::ThrustToAttitude(
+    const Eigen::Vector3d &_thrust) {
+  Eigen::Vector3d x_des = _thrust;
+  if (_thrust.squaredNorm() < __FLT_EPSILON__) {
+    x_des = orientation_ * Eigen::Vector3d::UnitX();
+  }
+  x_des.normalize();
+  // always zero roll
+  const Eigen::Vector3d z_C{0.0, 0.0, 1.0};
+  Eigen::Vector3d y_des = z_C.cross(x_des).normalized();
+  Eigen::Vector3d z_des = x_des.cross(y_des);
+  Eigen::Matrix3d R;
+  for (int i = 0; i < 3; ++i) {
+    R(i, 0) = x_des(i);
+    R(i, 1) = y_des(i);
+    R(i, 2) = z_des(i);
+  }
+  return Eigen::Quaterniond{R};
+}
 
 bool SimpleTracker::TargetHome() {
   Eigen::Vector3d home_position{trajectory_params_.home_position.x,
@@ -430,7 +459,9 @@ bool SimpleTracker::RunTrajectory(const rclcpp::Time &_t_now) {
     double dt = std::chrono::duration<double, std::milli>(toc - tic).count();
     dt_avg = 0.1 * dt + 0.9 * dt_avg;
   }
-  if (SectionFinished(_t_now - rclcpp::Duration(std::chrono::milliseconds(500)))) {
+  if (SectionFinished(_t_now -
+                      rclcpp::Duration(std::chrono::milliseconds(
+                          (int)trajectory_params_.time_tolerance * 1e-3)))) {
     RCLCPP_INFO(get_logger(), "\u001b[31mTime limit reached.\u001b[0m");
     PublishTrajectoryResult(_t_now, GoalReached(_t_now));
     return true;
@@ -442,7 +473,7 @@ bool SimpleTracker::RunTrajectory(const rclcpp::Time &_t_now) {
   }
 
   if (trajectory_params_.use_attitude_control) {
-    PublishAttitudeTarget(_t_now);
+    PublishAttitudeTarget(_t_now, true);
   } else {
     PublishControlInput(_t_now);
   }
@@ -626,19 +657,27 @@ void SimpleTracker::PublishControlInput(const rclcpp::Time &_t_now) {
   thrust_pub_->publish(thrust_msg);
 }
 
-void SimpleTracker::PublishAttitudeTarget(const rclcpp::Time &_t_now) {
-  Eigen::Vector3d trajectory_axis = SampleDesiredAxis(trajectory_, _t_now);
-  Eigen::Quaterniond q =
-      hippo_common::tf2_utils::RotationBetweenNormalizedVectors(
-          Eigen::Vector3d::UnitX(), trajectory_axis);
-
+void SimpleTracker::PublishAttitudeTarget(const rclcpp::Time &_t_now,
+                                          bool use_feedback) {
+  double thrust;
+  Eigen::Quaterniond q_des;
+  if (use_feedback) {
+    Eigen::Vector3d f_vec = ControlThrust(_t_now);
+    q_des = ThrustToAttitude(f_vec);
+    Eigen::Vector3d x_des = q_des * Eigen::Vector3d::UnitX();
+    thrust = x_des.dot(f_vec);
+  } else {
+    thrust = SampleThrust(trajectory_, _t_now);
+    Eigen::Vector3d x_des = SampleDesiredAxis(trajectory_, _t_now);
+    q_des.setFromTwoVectors(Eigen::Vector3d::UnitX(), x_des);
+  }
   AttitudeTarget attitude_target_msg;
   attitude_target_msg.header.frame_id =
       hippo_common::tf2_utils::frame_id::InertialFrame();
   attitude_target_msg.header.stamp = _t_now;
-  attitude_target_msg.thrust = SampleThrust(trajectory_, _t_now);
+  attitude_target_msg.thrust = thrust;
   attitude_target_msg.mask = attitude_target_msg.IGNORE_RATES;
-  hippo_common::convert::EigenToRos(q, attitude_target_msg.attitude);
+  hippo_common::convert::EigenToRos(q_des, attitude_target_msg.attitude);
   attitude_target_pub_->publish(attitude_target_msg);
 }
 

@@ -66,6 +66,8 @@ class SimpleTracker : public rclcpp::Node {
     double lookahead_attitude{2.0};
     double lookahead_body_rate{1.0};
     bool enable_position_check{true};
+    double gain_position{10.0};
+    double gain_velocity{10.0};
     double mass_rb{1.5};
     double mass_added{1.5};
     double damping{5.4};
@@ -107,6 +109,7 @@ class SimpleTracker : public rclcpp::Node {
     double target_radius{0.15};
     double target_yaw{1.57};
     double target_pitch{0.0};
+    double time_tolerance{0.5};
   } trajectory_params_;
 
  private:
@@ -130,6 +133,13 @@ class SimpleTracker : public rclcpp::Node {
         (int64_t)(dt_odometry_average_ * trajectory_params_.lookahead_attitude *
                   1e9)));
   }
+  inline Eigen::Vector3d SampleDesiredThrustVec(
+      const Trajectory &_traj, const rclcpp::Time &_t_now) const {
+    return _traj.ToWorld(_traj.GetThrustVector(
+        _t_now.nanoseconds() +
+        (int64_t)(dt_odometry_average_ * trajectory_params_.lookahead_thrust *
+                  1e9)));
+  }
   inline Eigen::Vector3d SampleBodyRates(const Trajectory &_traj,
                                          const rclcpp::Time &_t_now) const {
     return _traj.ToWorld(_traj.GetOmega(
@@ -145,8 +155,10 @@ class SimpleTracker : public rclcpp::Node {
   void InitSubscribers();
   void DeclareParams();
   void Update();
+  Eigen::Vector3d ControlThrust(const rclcpp::Time &_t_now);
+  Eigen::Quaterniond ThrustToAttitude(const Eigen::Vector3d &_thrust);
   void PublishControlInput(const rclcpp::Time &_t_now);
-  void PublishAttitudeTarget(const rclcpp::Time &_t_now);
+  void PublishAttitudeTarget(const rclcpp::Time &_t_now, bool use_feedback = false);
   void PublishCurrentStateDebug(double _t_trajectory,
                                 const rclcpp::Time &_t_now);
   void PublishVisualizationTopics(const rclcpp::Time &_t_now);

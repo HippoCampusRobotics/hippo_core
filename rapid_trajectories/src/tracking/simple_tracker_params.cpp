@@ -22,7 +22,7 @@ void SimpleTracker::DeclareParams() {
     auto &param = trajectory_params_.thrust_min_at_target;
     param = declare_parameter(name, param, descr);
   }
-  
+
   name = "thrust_max_at_target";
   descr_text = "Maximum thrust used in final state during sampling in [N].";
   descr = hippo_common::param_utils::Description(descr_text, false);
@@ -129,6 +129,22 @@ void SimpleTracker::DeclareParams() {
     param = declare_parameter(name, param, descr);
   }
 
+  name = "gain_position";
+  descr_text = "Gain for position control";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.gain_position;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "gain_velocity";
+  descr_text = "Gain for velocity control";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.gain_velocity;
+    param = declare_parameter(name, param, descr);
+  }
+
   name = "continuous";
   descr_text = "Should the trajectory be recalculated in each time step?";
   descr = hippo_common::param_utils::Description(descr_text, true);
@@ -175,6 +191,14 @@ void SimpleTracker::DeclareParams() {
   descr = hippo_common::param_utils::Description(descr_text, false);
   {
     auto &param = trajectory_params_.open_loop_threshold_time;
+    param = declare_parameter(name, param, descr);
+  }
+
+  name = "time_tolerance";
+  descr_text = "Tolerance for reaching the target.";
+  descr = hippo_common::param_utils::Description(descr_text, false);
+  {
+    auto &param = trajectory_params_.time_tolerance;
     param = declare_parameter(name, param, descr);
   }
 
@@ -434,6 +458,14 @@ rcl_interfaces::msg::SetParametersResult SimpleTracker::OnSetTrajectoryParams(
                    result_text)) {
       result.reason = result_text;
     } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "gain_position", trajectory_params_.gain_position,
+                   result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "gain_velocity", trajectory_params_.gain_position,
+                   result_text)) {
+      result.reason = result_text;
+    } else if (hippo_common::param_utils::AssignIfMatch(
                    parameter, "timestep_min", trajectory_params_.timestep_min,
                    result_text)) {
       result.reason = result_text;
@@ -441,6 +473,10 @@ rcl_interfaces::msg::SetParametersResult SimpleTracker::OnSetTrajectoryParams(
                    parameter, "open_loop_threshold_time",
                    trajectory_params_.open_loop_threshold_time, result_text)) {
       result.reason = "Set open_loop_threshold_time";
+    } else if (hippo_common::param_utils::AssignIfMatch(
+                   parameter, "time_tolerance",
+                   trajectory_params_.time_tolerance, result_text)) {
+      result.reason = result_text;
     } else if (hippo_common::param_utils::AssignIfMatch(
                    parameter, "homing_thrust", trajectory_params_.homing_thrust,
                    result_text)) {
