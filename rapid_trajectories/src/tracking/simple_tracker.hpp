@@ -14,6 +14,7 @@
 #include <rapid_trajectories/trajectory/target.hpp>
 #include <rapid_trajectories_msgs/msg/current_state_debug.hpp>
 #include <rapid_trajectories_msgs/msg/target_state.hpp>
+#include <rapid_trajectories_msgs/msg/tracking_debug.hpp>
 #include <rapid_trajectories_msgs/msg/trajectory_result.hpp>
 #include <rapid_trajectories_msgs/msg/trajectory_stamped.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
@@ -158,7 +159,8 @@ class SimpleTracker : public rclcpp::Node {
   Eigen::Vector3d ControlThrust(const rclcpp::Time &_t_now);
   Eigen::Quaterniond ThrustToAttitude(const Eigen::Vector3d &_thrust);
   void PublishControlInput(const rclcpp::Time &_t_now);
-  void PublishAttitudeTarget(const rclcpp::Time &_t_now, bool use_feedback = false);
+  void PublishAttitudeTarget(const rclcpp::Time &_t_now,
+                             bool use_feedback = false);
   void PublishCurrentStateDebug(double _t_trajectory,
                                 const rclcpp::Time &_t_now);
   void PublishVisualizationTopics(const rclcpp::Time &_t_now);
@@ -207,6 +209,8 @@ class SimpleTracker : public rclcpp::Node {
       trajectory_result_pub_;
   rclcpp::Publisher<hippo_msgs::msg::Int64Stamped>::SharedPtr
       section_counter_pub_;
+  rclcpp::Publisher<rapid_trajectories_msgs::msg::TrackingDebug>::SharedPtr
+      tracking_debug_pub_;
 
   //////////////////////////////////////////////////////////////////////////////
   // subscriptions

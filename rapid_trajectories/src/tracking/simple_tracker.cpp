@@ -104,6 +104,10 @@ void SimpleTracker::InitPublishers() {
   topic = "~/section_counter";
   section_counter_pub_ =
       create_publisher<hippo_msgs::msg::Int64Stamped>(topic, qos);
+
+  topic = "~/tracking_debug";
+  tracking_debug_pub_ =
+      create_publisher<rapid_trajectories_msgs::msg::TrackingDebug>(topic, qos);
 }
 
 void SimpleTracker::InitSubscribers() {
@@ -165,7 +169,7 @@ Success SimpleTracker::GoalReached(const rclcpp::Time &_t_now) {
     return Success::NOT_FINISHED;
   }
   double k = -p0.x() / n.x();
-  if (k > Sampling::kNormalLength + 0.2 || k < Sampling::kNormalLength - 0.05) {
+  if (k > Sampling::kNormalLength + 0.0 || k < 0.0) {
     return Success::NOT_FINISHED;
   }
   Eigen::Vector3d p_intersec = p0 + n * k;
@@ -334,11 +338,20 @@ Eigen::Vector3d SimpleTracker::ControlThrust(const rclcpp::Time &_t_now) {
   double t_traj = trajectory_.TimeOnTrajectory(_t_now.nanoseconds());
   Eigen::Vector3d p = trajectory_.ToWorld(trajectory_.GetPosition(t_traj));
   Eigen::Vector3d v = trajectory_.ToWorld(trajectory_.GetVelocity(t_traj));
-  Eigen::Vector3d e_p = p - position_;
-  Eigen::Vector3d e_v = v - velocity_;
+  Eigen::Vector3d f_p = (p - position_) * trajectory_params_.gain_position;
+  Eigen::Vector3d f_v = (v - velocity_) * trajectory_params_.gain_velocity;
   Eigen::Vector3d ff = SampleDesiredThrustVec(trajectory_, _t_now);
-  return e_p * trajectory_params_.gain_position +
-         e_v * trajectory_params_.gain_velocity + ff;
+  rapid_trajectories_msgs::msg::TrackingDebug msg;
+  msg.header.stamp = _t_now;
+  hippo_common::convert::EigenToRos(p, msg.p_des);
+  hippo_common::convert::EigenToRos(v, msg.v_des);
+  hippo_common::convert::EigenToRos(position_, msg.p);
+  hippo_common::convert::EigenToRos(velocity_, msg.v);
+  hippo_common::convert::EigenToRos(f_p, msg.f_p);
+  hippo_common::convert::EigenToRos(f_v, msg.f_v);
+  hippo_common::convert::EigenToRos(ff, msg.f_ff);
+  tracking_debug_pub_->publish(msg);
+  return f_p + f_v + ff;
 }
 Eigen::Quaterniond SimpleTracker::ThrustToAttitude(
     const Eigen::Vector3d &_thrust) {
@@ -461,7 +474,7 @@ bool SimpleTracker::RunTrajectory(const rclcpp::Time &_t_now) {
   }
   if (SectionFinished(_t_now -
                       rclcpp::Duration(std::chrono::milliseconds(
-                          (int)trajectory_params_.time_tolerance * 1e-3)))) {
+                          (int)(trajectory_params_.time_tolerance * 1e3))))) {
     RCLCPP_INFO(get_logger(), "\u001b[31mTime limit reached.\u001b[0m");
     PublishTrajectoryResult(_t_now, GoalReached(_t_now));
     return true;
@@ -664,7 +677,7 @@ void SimpleTracker::PublishAttitudeTarget(const rclcpp::Time &_t_now,
   if (use_feedback) {
     Eigen::Vector3d f_vec = ControlThrust(_t_now);
     q_des = ThrustToAttitude(f_vec);
-    Eigen::Vector3d x_des = q_des * Eigen::Vector3d::UnitX();
+    Eigen::Vector3d x_des = orientation_ * Eigen::Vector3d::UnitX();
     thrust = x_des.dot(f_vec);
   } else {
     thrust = SampleThrust(trajectory_, _t_now);

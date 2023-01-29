@@ -6,6 +6,7 @@
 #include <hippo_msgs/msg/rates_target.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <px4_msgs/msg/vehicle_angular_velocity.hpp>
+#include <hippo_msgs/msg/rates_debug.hpp>
 
 namespace hippo_control {
 namespace rate_control {
@@ -50,6 +51,7 @@ class RateController : public rclcpp::Node {
   } params_;
 
   rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr torque_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::RatesDebug>::SharedPtr rates_debug_pub_;
 
   rclcpp::Subscription<px4_msgs::msg::VehicleAngularVelocity>::SharedPtr
       angular_velocity_sub_;

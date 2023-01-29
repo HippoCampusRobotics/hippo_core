@@ -22,6 +22,7 @@ find_package(std_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/CurrentStateDebug.msg"
   "msg/TargetState.msg"
+  "msg/TrackingDebug.msg"
   "msg/Trajectory.msg"
   "msg/TrajectoryArray.msg"
   "msg/TrajectoryResult.msg"

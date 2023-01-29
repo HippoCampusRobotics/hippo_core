@@ -40,7 +40,7 @@ void RateController::DeclareGainParams() {
   name = "gains.roll.p";
   description = "Proportional gain for roll rate.";
   descriptor = hippo_common::param_utils::Description(description, false);
-  range.set__from_value(0.01).set__to_value(10.0).set__step(0.01);
+  range.set__from_value(0.01).set__to_value(100.0).set__step(0.1);
   descriptor.floating_point_range = {range};
   {
     auto &param = params_.gains.roll.p;
@@ -50,7 +50,7 @@ void RateController::DeclareGainParams() {
   name = "gains.roll.i";
   description = "Integral gain for roll rate.";
   descriptor = hippo_common::param_utils::Description(description, false);
-  range.set__from_value(0.0).set__to_value(5.0).set__step(0.01);
+  range.set__from_value(0.0).set__to_value(20.0).set__step(0.1);
   descriptor.floating_point_range = {range};
   {
     auto &param = params_.gains.roll.i;
@@ -83,7 +83,7 @@ void RateController::DeclareGainParams() {
   name = "gains.pitch.p";
   description = "Proportional gain for pitch rate.";
   descriptor = hippo_common::param_utils::Description(description, false);
-  range.set__from_value(0.01).set__to_value(10.0).set__step(0.01);
+  range.set__from_value(0.01).set__to_value(100.0).set__step(0.1);
   descriptor.floating_point_range = {range};
   {
     auto &param = params_.gains.pitch.p;
@@ -93,7 +93,7 @@ void RateController::DeclareGainParams() {
   name = "gains.pitch.i";
   description = "Integral gain for pitch rate.";
   descriptor = hippo_common::param_utils::Description(description, false);
-  range.set__from_value(0.0).set__to_value(5.0).set__step(0.01);
+  range.set__from_value(0.0).set__to_value(20.0).set__step(0.1);
   descriptor.floating_point_range = {range};
   {
     auto &param = params_.gains.pitch.i;
@@ -126,7 +126,7 @@ void RateController::DeclareGainParams() {
   name = "gains.yaw.p";
   description = "Proportional gain for yaw rate.";
   descriptor = hippo_common::param_utils::Description(description, false);
-  range.set__from_value(0.01).set__to_value(10.0).set__step(0.01);
+  range.set__from_value(0.01).set__to_value(100.0).set__step(0.1);
   descriptor.floating_point_range = {range};
   {
     auto &param = params_.gains.yaw.p;
@@ -136,7 +136,7 @@ void RateController::DeclareGainParams() {
   name = "gains.yaw.i";
   description = "Integral gain for yaw rate.";
   descriptor = hippo_common::param_utils::Description(description, false);
-  range.set__from_value(0.0).set__to_value(5.0).set__step(0.01);
+  range.set__from_value(0.0).set__to_value(20.0).set__step(0.1);
   descriptor.floating_point_range = {range};
   {
     auto &param = params_.gains.yaw.i;
@@ -174,7 +174,7 @@ void RateController::DeclareIntegralLimitParams() {
   name = "integral_limits.roll";
   description = "Limit of the integral for the roll rate.";
   descriptor = hippo_common::param_utils::Description(description, false);
-  range.set__from_value(0.0).set__to_value(2.0).set__step(0.001);
+  range.set__from_value(0.0).set__to_value(50.0).set__step(0.1);
   descriptor.floating_point_range = {range};
   {
     auto &param = params_.integral_limits.roll;
@@ -184,7 +184,7 @@ void RateController::DeclareIntegralLimitParams() {
   name = "integral_limits.pitch";
   description = "Limit of the integral for the pitch rate.";
   descriptor = hippo_common::param_utils::Description(description, false);
-  range.set__from_value(0.0).set__to_value(2.0).set__step(0.001);
+  range.set__from_value(0.0).set__to_value(50.0).set__step(0.1);
   descriptor.floating_point_range = {range};
   {
     auto &param = params_.integral_limits.pitch;
@@ -194,7 +194,7 @@ void RateController::DeclareIntegralLimitParams() {
   name = "integral_limits.yaw";
   description = "Limit of the integral for the yaw rate.";
   descriptor = hippo_common::param_utils::Description(description, false);
-  range.set__from_value(0.0).set__to_value(2.0).set__step(0.001);
+  range.set__from_value(0.0).set__to_value(50.0).set__step(0.1);
   descriptor.floating_point_range = {range};
   {
     auto &param = params_.integral_limits.yaw;

@@ -1,3 +1,4 @@
+#include <hippo_common/convert.hpp>
 #include <hippo_common/param_utils.hpp>
 #include <hippo_control/rate_control/rate_controller.hpp>
 
@@ -11,6 +12,9 @@ RateController::RateController(rclcpp::NodeOptions const &_options)
 
   torque_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(
       "torque_setpoint", rclcpp::SensorDataQoS());
+
+  rates_debug_pub_ = create_publisher<hippo_msgs::msg::RatesDebug>(
+      "~/rates_debug", rclcpp::SensorDataQoS());
 
   rclcpp::SensorDataQoS qos;
 
@@ -65,8 +69,8 @@ void RateController::OnAngularVelocity(
       angular_velocity(i) = _msg->xyz[i];
       angular_acceleration(i) = _msg->xyz_derivative[i];
     } else {
-	    angular_velocity(i) = -1.0 * _msg->xyz[i];
-	    angular_acceleration(i) = -1.0 * _msg->xyz_derivative[i];
+      angular_velocity(i) = -1.0 * _msg->xyz[i];
+      angular_acceleration(i) = -1.0 * _msg->xyz_derivative[i];
     }
   }
 
@@ -93,6 +97,12 @@ void RateController::OnAngularVelocity(
     msg.z = u_rpy.z();
   }
   torque_pub_->publish(msg);
+  hippo_msgs::msg::RatesDebug debug_msg;
+  debug_msg.header.stamp = t_now;
+  hippo_common::convert::EigenToRos(body_rates_setpoint_,
+                                    debug_msg.rates_desired);
+  hippo_common::convert::EigenToRos(angular_velocity, debug_msg.rates);
+  rates_debug_pub_->publish(debug_msg);
 }
 
 void RateController::OnRatesSetpoint(
