@@ -40,7 +40,7 @@ void RateController::DeclareGainParams() {
   name = "gains.roll.p";
   description = "Proportional gain for roll rate.";
   descriptor = hippo_common::param_utils::Description(description, false);
-  range.set__from_value(0.01).set__to_value(100.0).set__step(0.1);
+  range.set__from_value(0.1).set__to_value(100.0).set__step(0.1);
   descriptor.floating_point_range = {range};
   {
     auto &param = params_.gains.roll.p;
@@ -83,7 +83,7 @@ void RateController::DeclareGainParams() {
   name = "gains.pitch.p";
   description = "Proportional gain for pitch rate.";
   descriptor = hippo_common::param_utils::Description(description, false);
-  range.set__from_value(0.01).set__to_value(100.0).set__step(0.1);
+  range.set__from_value(0.1).set__to_value(100.0).set__step(0.1);
   descriptor.floating_point_range = {range};
   {
     auto &param = params_.gains.pitch.p;
@@ -126,7 +126,7 @@ void RateController::DeclareGainParams() {
   name = "gains.yaw.p";
   description = "Proportional gain for yaw rate.";
   descriptor = hippo_common::param_utils::Description(description, false);
-  range.set__from_value(0.01).set__to_value(100.0).set__step(0.1);
+  range.set__from_value(0.1).set__to_value(100.0).set__step(0.1);
   descriptor.floating_point_range = {range};
   {
     auto &param = params_.gains.yaw.p;

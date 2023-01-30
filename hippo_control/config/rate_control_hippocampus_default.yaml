@@ -3,17 +3,17 @@
     feedthrough: false
     gains:
       roll:
-        p: 0.5
+        p: 5.0
         i: 0.5
         d: 0.001
         feed_forward: 0.0
       pitch:
-        p: 0.5
+        p: 5.0 
         i: 0.5
         d: 0.001
         feed_forward: 0.0
       yaw:
-        p: 0.5
+        p: 5.0
         i: 0.5
         d: 0.001
         feed_forward: 0.0
