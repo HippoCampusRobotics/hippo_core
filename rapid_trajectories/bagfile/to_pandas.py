@@ -61,6 +61,18 @@ class Trajectory:
 
 
 @dataclass
+class TrackingError:
+    t: np.ndarray
+    p: np.ndarray
+    v: np.ndarray
+    p_des: np.ndarray
+    v_des: np.ndarray
+    f_p: np.ndarray
+    f_v: np.ndarray
+    f_ff: np.ndarray
+
+
+@dataclass
 class AttitudeTarget:
     t: np.ndarray
     rpy: np.ndarray
@@ -77,6 +89,36 @@ def quat(q):
 
 def vec(v):
     return [v.x, v.y, v.z]
+
+
+def tracking_error(msgs):
+    n = len(msgs)
+    t = np.zeros([n], dtype=float)
+    p = np.zeros([n, 3], dtype=float)
+    v = np.zeros([n, 3], dtype=float)
+    p_des = np.zeros([n, 3], dtype=float)
+    v_des = np.zeros([n, 3], dtype=float)
+    f_p = np.zeros([n, 3], dtype=float)
+    f_v = np.zeros([n, 3], dtype=float)
+    f_ff = np.zeros([n, 3], dtype=float)
+    for i in range(n):
+        msg, time = msgs[i]
+        t[i] = stamp_to_secs(msg)
+        p[i] = vec(msg.p)
+        v[i] = vec(msg.v)
+        p_des[i] = vec(msg.p_des)
+        v_des[i] = vec(msg.v_des)
+        f_p[i] = vec(msg.f_p)
+        f_v[i] = vec(msg.f_v)
+        f_ff[i] = vec(msg.f_ff)
+    return TrackingError(t=t,
+                         p=p,
+                         v=v,
+                         p_des=p_des,
+                         v_des=v_des,
+                         f_p=f_p,
+                         f_v=f_v,
+                         f_ff=f_ff)
 
 
 def attitude_target(msgs):

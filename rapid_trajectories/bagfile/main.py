@@ -21,7 +21,7 @@ os.path.expanduser('~/uuv/ros2/src')
 base_path = os.path.realpath(os.path.dirname(__file__))
 # file_dir_name = 'perfect'
 # file_dir_name = 'damping_5.0'
-file_dir_name = 'closed_loop_explicit_02'
+file_dir_name = 'closed_loop_implicit_01'
 path = os.path.join(base_path, 'files/lab', file_dir_name)
 
 
@@ -67,6 +67,27 @@ def get_homing_sections(t_sections):
         sections[i, 0] = t_sections[i, 1]
         sections[i, 1] = t_sections[i + 1, 0]
     return sections
+
+def plot_tracking_error(t_sections):
+    fig = plt.figure()
+    data = get_data('/uuv00/single_tracker/tracking_debug')
+    debug = to_pandas.tracking_error(data)
+    for i in range(len(t_sections)):
+        if i > 5:
+            break
+        t0 = t_sections[i, 0]
+        t1 = t_sections[i, 1]
+        p, t = common.crop_data(debug.p, debug.t, t0, t1)
+        p_des, t = common.crop_data(debug.p_des, debug.t, t0, t1)
+        v, t = common.crop_data(debug.v, debug.t, t0, t1)
+        v_des, t = common.crop_data(debug.v_des, debug.t, t0, t1)
+        if len(t) < 2:
+            print("skipping empty tracking error section")
+            continue
+        print(p_des.shape)
+        print(p.shape)
+        plt.plot(t-t0, np.linalg.norm(p-p_des, axis=1))
+
 
 
 def plot_positions_with_planned_trajectory(t0, t1):
@@ -202,6 +223,7 @@ with Reader(path) as reader:
     plot_positions(t_sections)
     plot_ring()
     plot_positions_with_planned_trajectory(t_sections[5, 0], t_sections[5, 1])
+    plot_tracking_error(t_sections)
     plt.show()
     # data = get_data('/uuv00/odometry')
     # print(len(data))
