@@ -43,6 +43,7 @@ add_library(${lib_name}
   src/trajectory/single_axis.cpp
   src/trajectory/target.cpp
   src/trajectory/quartic.cpp
+  src/trajectory/collision_checker.cpp
 )
 target_include_directories(${lib_name}
   PUBLIC
@@ -149,6 +150,17 @@ install(TARGETS ${component_name}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+)
+
+################################################################################
+# performance test
+################################################################################
+set(exec_name perf_test)
+add_executable(${exec_name} src/performance_test.cpp)
+ament_target_dependencies(${exec_name} Eigen3)
+target_link_libraries(${exec_name} trajectory)
+install(TARGETS ${exec_name}
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 ################################################################################

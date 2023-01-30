@@ -23,6 +23,7 @@
  * Changed function arguments
  * Added new Quartic namespace
  */
+#pragma once
 #include <complex>
 
 namespace quartic {

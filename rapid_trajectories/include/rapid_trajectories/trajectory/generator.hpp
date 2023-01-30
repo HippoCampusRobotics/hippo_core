@@ -21,6 +21,8 @@
 #include <eigen3/Eigen/Dense>
 
 #include "rapid_trajectories/trajectory/single_axis.hpp"
+#include "rapid_trajectories/trajectory_math/trajectory.hpp"
+#include "rapid_trajectories/trajectory/collision_checker.hpp"
 
 namespace rapid_trajectories {
 namespace minimum_jerk {
@@ -141,6 +143,12 @@ class Trajectory {
   };
 
   void SetIntersection(const Eigen::Vector3d &_p) { intersection_ = _p; }
+  trajectory_math::Trajectory GetTrajectory() {
+    return trajectory_math::Trajectory(GetAlphas() / 120.0, GetBetas() / 24.0,
+                             GetGammas() / 6.0, GetAcceleration(0.0) / 2.0,
+                             GetVelocity(0.0), GetPosition(0.0), 0.0,
+                             GetFinalTime());
+  }
 
   //! Reset the trajectory, clearing any end state constraints.
   void Reset(void);
@@ -180,7 +188,6 @@ class Trajectory {
                                                double _f_max_allowed,
                                                double _w_max_allowed,
                                                double _dt_min);
-
   /*! Test the trajectory for position feasibility.
    *
    * Test whether the position flown along the trajectory is feasible with
