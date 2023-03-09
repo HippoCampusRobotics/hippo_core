@@ -26,9 +26,10 @@
                 <background_color>1.0 1.0 1.0</background_color>
                 <camera_pose>8.3 7 7.8 0 0.5 -2.4</camera_pose>
                 <camera_clip>
-                    <near>0.25</near>
+                    <near>0.01</near>
                     <far>100</far>
                 </camera_clip>
+                <horizontal_fov>60</horizontal_fov>
             </plugin>
             <plugin filename="EntityContextMenuPlugin" name="Entity context menu">
                 <ignition-gui>
