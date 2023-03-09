@@ -16,8 +16,9 @@ static constexpr int kCount = 6;
 }  // namespace InputChannels
 
 struct Mapping {
-  std::array<double, InputChannels::kCount> limits{};
-  std::array<double, InputChannels::kCount> scalings{};
+  std::array<double, InputChannels::kCount> input_limits{};
+  std::array<double, InputChannels::kCount> input_scalings{};
+  double output_scaling;
 };
 
 struct Output {
@@ -30,9 +31,10 @@ class SimpleMixer {
   SimpleMixer();
   double test;
 
+
   void SetMapping(int _index, const Mapping &_mapping);
-  void SetZeroThrustThreshold(double _v) { zero_thrust_threshold_ = _v; }
-  inline double ZeroThrustThreshold() const { return zero_thrust_threshold_; }
+  void SetZeroThrustThreshold(double _v) { zero_throttle_threshold_ = _v; }
+  inline double ZeroThrustThreshold() const { return zero_throttle_threshold_; }
   void SetConstantCoefficient(double _v) { constant_coefficient_ = _v; }
   inline double ConstantCoefficient() const { return constant_coefficient_; }
   void SetLinearCoefficient(double _v) { linear_coefficient_ = _v; }
@@ -46,13 +48,15 @@ class SimpleMixer {
       const std::array<double, InputChannels::kCount> &_actuator_controls);
 
  private:
-  /// @brief per motor mappings of torque/thrust
+  double ThrustToRevsPerSec(double _thrust);
+  /// @brief per motor mappings of torque/thrust commands
   Mapping mappings_[kOutputChannels];
   Output outputs_[kOutputChannels];
-  double zero_thrust_threshold_;
+  double zero_throttle_threshold_;
   double constant_coefficient_;
   double linear_coefficient_;
   double quadratic_coefficient_;
+  // used as a scaler to normalize the motor command
   double max_rotations_per_second_{1.0};
   double ApplyInput(
       const std::array<double, InputChannels::kCount> &_actuator_controls);

@@ -104,7 +104,7 @@ install(TARGETS ${component_name}
 # mixer library
 ################################################################################
 set(lib_name mixer)
-add_library(${lib_name} src/simple_mixer.cpp)
+add_library(${lib_name} src/mixer/simple_mixer.cpp)
 target_include_directories(${lib_name}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -134,10 +134,13 @@ install(TARGETS ${exec_name}
 )
 
 ################################################################################
-# actuator_command_mixer_node
+# actuator_mixer_node
 ################################################################################
-set(exec_name actuator_command_mixer_node)
-add_executable(${exec_name} src/nodes/actuator_command_mixer_node.cpp)
+set(exec_name actuator_mixer_node)
+add_executable(${exec_name}
+  src/mixer/actuator_mixer_node.cpp
+  src/mixer/actuator_mixer_node_params.cpp
+)
 ament_target_dependencies(${exec_name} rclcpp hippo_msgs hippo_common hippo_msgs)
 target_link_libraries(${exec_name} mixer)
 install (TARGETS ${exec_name}

@@ -17,7 +17,7 @@ def generate_launch_description():
         mixer_launch_arg,
         launch_ros.actions.Node(
             package=package_name,
-            executable='actuator_command_mixer_node',
+            executable='actuator_mixer_node',
             parameters=[launch.substitutions.LaunchConfiguration('mixer_path')],
             output='screen'),
     ])

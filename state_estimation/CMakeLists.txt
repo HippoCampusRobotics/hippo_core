@@ -77,10 +77,10 @@ target_link_libraries(estimator
 
 ament_target_dependencies(estimator ${dependencies})
 
-install(
-    DIRECTORY launch
-    DESTINATION share/${PROJECT_NAME}
-)
+# install(
+#     DIRECTORY launch
+#     DESTINATION share/${PROJECT_NAME}
+# )
 install(TARGETS
   ekf
   ARCHIVE DESTINATION lib

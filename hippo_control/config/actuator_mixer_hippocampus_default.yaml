@@ -9,7 +9,6 @@
       thrust_z: 5
 
     # OUTPUT = MixerMatrix * INPUT
-    # 8x1 = 8x8 * 8x1
 
     mixer_matrix: [
       +0.25, -0.25, +0.25, -0.25, +0.00, +0.00, # motor 0
@@ -22,7 +21,7 @@
       +0.00, +0.00, +0.00, +0.00, +0.00, +0.00, # motor 7
     ]
 
-    limit_matrix: [
+    input_limits: [
      +1.0, +1.0, +1.0, +1.0, +0.0, +0.0, # motor 0
      +1.0, +1.0, +1.0, +1.0, +0.0, +0.0, # motor 1
      +1.0, +1.0, +1.0, +1.0, +0.0, +0.0, # motor 2
@@ -32,10 +31,14 @@
      +1.0, +1.0, +1.0, +1.0, +0.0, +0.0, # motor 6
      +1.0, +1.0, +1.0, +1.0, +0.0, +0.0, # motor 7
     ]
+
+    # scaling factor for motor signals after normalization to [-1.0,1.0]
+    output_scalings: [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]
+
     # Thrust is assumed to be a quadratic function of revs per second.
     quadratic_coefficient: 3.313e-3
     linear_coefficient: 0.1086
     constant_coefficient: -0.8576
     # thrust [N] below which a zero output is generated
-    zero_thrust_threshold: 0.000001
+    zero_throttle_threshold: 0.000001
     max_rotations_per_second: 50.0

@@ -1,0 +1,44 @@
+/**: # wildcard for the node name
+  ros__parameters:
+    channels:
+      torque_x: 0
+      torque_y: 1
+      torque_z: 2
+      thrust_x: 3
+      thrust_y: 4
+      thrust_z: 5
+
+    # OUTPUT = MixerMatrix * INPUT
+
+    mixer_matrix: [
+      +0.00, +0.00, +0.25, +0.25, +0.25, +0.00, # motor 0
+      +0.00, +0.00, -0.25, +0.25, -0.25, +0.00, # motor 1
+      +0.00, +0.00, +0.25, +0.25, -0.25, +0.00, # motor 2
+      +0.00, +0.00, -0.25, +0.25, +0.25, +0.00, # motor 3
+      -0.25, -0.25, +0.00, +0.00, +0.00, +0.25, # motor 4
+      -0.25, +0.25, +0.00, +0.00, +0.00, -0.25, # motor 5
+      +0.25, -0.25, +0.00, +0.00, +0.00, -0.25, # motor 6
+      +0.25, +0.25, +0.00, +0.00, +0.00, +0.25, # motor 7
+    ]
+
+    input_limits: [
+     +0.0, +0.0, +1.0, +1.0, +1.0, +0.0, # motor 0
+     +0.0, +0.0, +1.0, +1.0, +1.0, +0.0, # motor 1
+     +0.0, +0.0, +1.0, +1.0, +1.0, +0.0, # motor 2
+     +0.0, +0.0, +1.0, +1.0, +1.0, +0.0, # motor 3
+     +1.0, +1.0, +0.0, +0.0, +0.0, +1.0, # motor 4
+     +1.0, +1.0, +0.0, +0.0, +0.0, +1.0, # motor 5
+     +1.0, +1.0, +0.0, +0.0, +0.0, +1.0, # motor 6
+     +1.0, +1.0, +0.0, +0.0, +0.0, +1.0, # motor 7
+    ]
+
+    # scaling factor for motor signals after normalization to [-1.0,1.0]
+    output_scalings: [0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4]
+
+    # Thrust is assumed to be a quadratic function of revs per second.
+    quadratic_coefficient: 3.313e-3
+    linear_coefficient: 0.1086
+    constant_coefficient: -0.8576
+    # thrust [N] below which a zero output is generated
+    zero_throttle_threshold: 0.000001
+    max_rotations_per_second: 50.0
