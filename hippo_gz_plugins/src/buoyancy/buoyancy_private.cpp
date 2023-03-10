@@ -40,6 +40,13 @@ bool PluginPrivate::InitModel(ignition::gazebo::EntityComponentManager &_ecm,
 
 void PluginPrivate::ApplyBuoyancy(
     ignition::gazebo::EntityComponentManager &_ecm) {
+  if (!_ecm.HasEntity(link_.Entity())) {
+    return;
+  }
+  if (!_ecm.EntityHasComponentType(
+          link_.Entity(), ignition::gazebo::components::Inertial().TypeId())) {
+    return;
+  }
   auto inertial =
       _ecm.Component<ignition::gazebo::components::Inertial>(link_.Entity());
   double mass = inertial->Data().MassMatrix().Mass();

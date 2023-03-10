@@ -108,6 +108,9 @@ void HydrodynamicsPlugin::ParseHydrodynamics(
 
 void HydrodynamicsPlugin::UpdateForcesAndMoments(
     ignition::gazebo::EntityComponentManager &_ecm) {
+  if (!_ecm.HasEntity(link_.Entity())) {
+    return;
+  }
   auto velocity_linear =
       link_.WorldLinearVelocity(_ecm).value_or(ignition::math::Vector3d::Zero);
   auto velocity_angular =

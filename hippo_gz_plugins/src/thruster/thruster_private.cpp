@@ -64,6 +64,10 @@ bool PluginPrivate::InitModel(ignition::gazebo::EntityComponentManager &_ecm,
 
 void PluginPrivate::ApplyWrench(
     ignition::gazebo::EntityComponentManager &_ecm) {
+  if (!_ecm.HasEntity(link_.Entity())) {
+    // ignerr << "Entity not exsting/deleted.";
+    return;
+  }
   auto pose = link_.WorldPose(_ecm);
   auto parent_pose = parent_link_.WorldPose(_ecm);
   auto pose_diff = *pose - *parent_pose;
@@ -121,7 +125,7 @@ void PluginPrivate::SetRotorVelocity(
       _ecm.Component<ignition::gazebo::components::JointVelocityCmd>(
           joint_entity_);
   if (!velocity_component) {
-    ignerr << "Missing JointVelocityCmd component!" << std::endl;
+    // ignerr << "Missing JointVelocityCmd component!" << std::endl;
     return;
   }
   if (!velocity_component->Data().empty()) {
@@ -135,13 +139,13 @@ double PluginPrivate::RotorVelocity(
       _ecm.Component<ignition::gazebo::components::JointVelocity>(
           joint_entity_);
   if (!velocity_component) {
-    ignerr << "Joint has no JointVelocity component!" << std::endl;
+    // ignerr << "Joint has no JointVelocity component!" << std::endl;
     return 0.0;
   }
   if (!velocity_component->Data().empty()) {
     return velocity_component->Data()[0] * sdf_params_.rpm_scaler;
   }
-  ignerr << "Joint velocity data component is empty!" << std::endl;
+  // ignerr << "Joint velocity data component is empty!" << std::endl;
   return 0.0;
 }
 
