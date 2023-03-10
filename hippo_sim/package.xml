@@ -13,6 +13,7 @@
   <depend>ignition-msgs8</depend>
   <depend>ignition-transport11</depend>
   <depend>ignition-math6</depend>
+  <depend>ignition-gazebo6</depend>
   <depend>tf_transformations</depend>
   <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>

@@ -56,6 +56,7 @@ target_link_libraries(${exec_name}
   ignition-math${GZ_MATH_VER}::core
   ignition-msgs${GZ_MSGS_VER}::core
   ignition-transport${GZ_TRANSPORT_VER}::core
+  ignition-gazebo${GZ_GAZEBO_VER}::core
 )
 list(APPEND exec_targets ${exec_name})
 

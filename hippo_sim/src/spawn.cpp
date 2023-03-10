@@ -1,6 +1,9 @@
 #include <gflags/gflags.h>
 #include <ignition/msgs/entity_factory.pb.h>
 
+#include <ignition/gazebo/EntityComponentManager.hh>
+#include <ignition/gazebo/components/Model.hh>
+#include <ignition/gazebo/components/Name.hh>
 #include <ignition/math/Pose3.hh>
 #include <ignition/msgs/Utility.hh>
 #include <ignition/transport/Node.hh>
@@ -57,6 +60,53 @@ std::string get_sdf(rclcpp::Node::SharedPtr ros_node) {
   RCLCPP_ERROR(ros_node->get_logger(), "Failed to get SDF from parameter [%s].",
                FLAGS_param.c_str());
   return "";
+}
+
+bool DeleteModel(const std::string &_model_name,
+                 const std::string &_world_name) {
+  std::string service{"/world/" + _world_name + "/state"};
+  ignition::msgs::SerializedStepMap response;
+  ignition::transport::Node node;
+  bool result{false};
+  if (!node.Request(service, 5000, response, result)) {
+    std::cerr << std::endl
+              << "Request of state of world [" << _world_name << "] timed out."
+              << std::endl;
+    return false;
+  }
+  if (!result) {
+    std::cerr << std::endl
+              << "Service call of [" << service << "] failed." << std::endl;
+    return false;
+  }
+  ignition::gazebo::EntityComponentManager ecm;
+  ecm.SetState(response.state());
+
+  service = "/world/" + _world_name + "/remove";
+  ignition::msgs::Entity request;
+  ignition::gazebo::Entity entity =
+      ecm.EntityByComponents(ignition::gazebo::components::Name(_model_name),
+                             ignition::gazebo::components::Model());
+  if (entity == ignition::gazebo::kNullEntity) {
+    std::cerr << "Model with name [" << _model_name << "] does not exist.";
+    return false;
+  }
+  // request.set_name(_model_name);
+  request.set_id(entity);
+  ignition::msgs::Boolean delete_response;
+  if (!node.Request(service, request, 5000, delete_response, result)) {
+    std::cerr << std::endl
+              << "Delete model [" << _model_name << "] timed out."
+              << std::endl;
+    return false;
+  }
+  if (!result || !delete_response.data()) {
+    std::cerr << std::endl
+              << "Service call of [" << service << "] failed." << std::endl;
+    return false;
+
+  }
+  return true;
 }
 
 int main(int _argc, char **_argv) {
@@ -120,5 +170,7 @@ int main(int _argc, char **_argv) {
   } else {
     RCLCPP_ERROR(ros_node->get_logger(), "Entity creation timed out.");
   }
+  rclcpp::spin(ros_node);
+  DeleteModel(req.name(), world_name);
   return 0;
 }
