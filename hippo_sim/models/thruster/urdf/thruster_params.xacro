@@ -7,6 +7,11 @@
     <xacro:property name="thrust_quadratic_coeff" value="3.313e-3" />
     <xacro:property name="thrust_linear_coeff" value="0.1086" />
     <xacro:property name="thrust_constant_coeff" value="-0.8576" />
+    <!-- Throttle = f(revs/s) -->
+    <xacro:property name="velocity_quadratic_coeff" value="1.2679e-4"/>
+    <xacro:property name="velocity_linear_coeff" value="1.1105e-2"/>
+    <xacro:property name="velocity_constant_coeff" value="0.0"/>
+    
     <xacro:property name="torque_constant" value="1e-2" />
     <xacro:property name="rpm_scaler" value="1" />
     <xacro:property name="max_rpm" value="3000" />
