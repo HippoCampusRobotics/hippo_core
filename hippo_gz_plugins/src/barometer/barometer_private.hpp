@@ -1,3 +1,4 @@
+#pragma once
 #include <ignition/msgs/fluid_pressure.pb.h>
 
 #include <ignition/gazebo/Link.hh>

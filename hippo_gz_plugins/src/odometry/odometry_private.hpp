@@ -1,3 +1,4 @@
+#pragma once
 #include <ignition/msgs/odometry.pb.h>
 
 #include <ignition/gazebo/Link.hh>
