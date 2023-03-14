@@ -1,0 +1,8 @@
+package hippo_gz_plugins_msgs.msgs;
+import "range_measurement.proto"
+import "header.proto"
+
+message RangeMeasurementArray {
+    Header header = 1;
+    repeated RangeMeasurement range_measurements = 2;
+}
