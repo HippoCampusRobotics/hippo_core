@@ -8,6 +8,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <ros_gz_bridge/convert.hpp>
 #include <sensor_msgs/msg/fluid_pressure.hpp>
+#include <hippo_gz_msgs/msg/range_measurement.pb.h>
 
 using namespace geometry_msgs::msg;
 using namespace sensor_msgs::msg;

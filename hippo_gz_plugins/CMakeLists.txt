@@ -24,6 +24,16 @@ set(GZ_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
 find_package(ignition-common4 REQUIRED)
 set(GZ_COMMON_VER ${ignition-common4_VERSION_MAJOR})
 
+# find_package(ignition-msgs8 REQUIRED)
+# set(GZ_MSGS_VER ${ignition-msgs8_VERSION_MAJOR})
+
+# find_package(Protobuf REQUIRED)
+# set(Protobuf_IMPORT_DIRS ${ignition-msgs8_INCLUDE_DIRS})
+# add_subdirectory(proto/msgs)
+# set_source_files_properties(${PROTO_SRC} ${PROTO_HEADER} PROPERTIES GENERATED TRUE)
+# ament_export_include_directories(${CMAKE_BINARY_DIR}/proto/msgs)
+
+
 function(add_plugin plugin_name)
   add_library(${plugin_name} SHARED
   src/${plugin_name}/${plugin_name}.cpp

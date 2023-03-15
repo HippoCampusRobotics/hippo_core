@@ -1,8 +1,0 @@
-package hippo_gz_plugins_msgs.msgs;
-import "header.proto"
-
-message {
-    Header header = 1;
-    double range = 2;
-    int32 id = 3;
-}
