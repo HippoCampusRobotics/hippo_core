@@ -1,5 +1,5 @@
 syntax = "proto3";
-package hippo_gz_plugins.msgs;
+package hippo_gz_msgs.msg;
 import "ignition/msgs/header.proto";
 
 message RangeMeasurement {

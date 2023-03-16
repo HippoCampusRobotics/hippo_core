@@ -32,6 +32,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/EstimatorState.msg"
   "msg/Float64Stamped.msg"
   "msg/Int64Stamped.msg"
+  "msg/RangeMeasurement.msg"
+  "msg/RangeMeasurementArray.msg"
   "msg/RatesDebug.msg"
   "msg/RatesTarget.msg"
   "msg/ThrusterForces.msg"

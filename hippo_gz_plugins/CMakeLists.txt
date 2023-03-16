@@ -14,6 +14,7 @@ set(CXX_FLAGS -Wall -Wextra -Wpedantic -Wshadow -std=c++17 -O2)
 add_compile_options(${CXX_FLAGS})
 
 find_package(ament_cmake REQUIRED)
+find_package(hippo_gz_msgs REQUIRED)
 
 find_package(ignition-plugin1 REQUIRED COMPONENTS register)
 set(GZ_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
@@ -44,6 +45,7 @@ function(add_plugin plugin_name)
   ignition-plugin${GZ_PLUGIN_VER}
   ignition-gazebo${GZ_GAZEBO_VER}
   ignition-common${GZ_COMMON_VER}
+  hippo_gz_msgs
   )
 
   install(TARGETS ${plugin_name}
@@ -57,6 +59,7 @@ add_plugin(barometer)
 add_plugin(buoyancy)
 add_plugin(odometry)
 add_plugin(thruster)
+add_plugin(range_sensor)
 # add_subdirectory(src/barometer)
 # add_subdirectory(src/buoyancy)
 add_subdirectory(src/hydrodynamics)

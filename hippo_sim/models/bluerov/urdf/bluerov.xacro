@@ -74,6 +74,11 @@
             <position>-0.15 0 0</position>
         </plugin>
 
+        <plugin filename="range_sensor" name="hippo_gz_plugins::range_sensor">
+            <link>base_link</link>
+            <range_topic>range_topic</range_topic>
+        </plugin>
+
     </gazebo>
 
 

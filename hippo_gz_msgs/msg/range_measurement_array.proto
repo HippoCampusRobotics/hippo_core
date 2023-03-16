@@ -1,9 +1,9 @@
 syntax = "proto3";
-package hippo_gz_plugins.msgs;
+package hippo_gz_msgs.msg;
 import "range_measurement.proto";
 import "ignition/msgs/header.proto";
 
 message RangeMeasurementArray {
     ignition.msgs.Header header = 1;
-    repeated RangeMeasurement range_measurements = 2;
+    repeated RangeMeasurement measurements = 2;
 }

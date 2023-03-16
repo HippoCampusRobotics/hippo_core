@@ -10,6 +10,7 @@
   <depend>ignition-plugin1</depend>
   <depend>ignition-gazebo6</depend>
   <depend>ignition-common4</depend>
+  <depend>hippo_gz_msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
