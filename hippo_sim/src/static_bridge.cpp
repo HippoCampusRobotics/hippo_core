@@ -8,7 +8,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <ros_gz_bridge/convert.hpp>
 #include <sensor_msgs/msg/fluid_pressure.hpp>
-#include <hippo_gz_msgs/msg/range_measurement.pb.h>
+#include <hippo_gz_msgs/msg/range_measurement_array.pb.h>
 
 using namespace geometry_msgs::msg;
 using namespace sensor_msgs::msg;
@@ -18,7 +18,6 @@ using namespace ignition;
 using namespace nav_msgs::msg;
 namespace gz_msgs = ignition::msgs;
 using std::placeholders::_1;
-using std::placeholders::_2;
 
 class Bridge {
  public:
