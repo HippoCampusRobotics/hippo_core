@@ -7,6 +7,7 @@
 namespace range_sensor {
 class Plugin : public ignition::gazebo::System,
                public ignition::gazebo::ISystemConfigure,
+               public ignition::gazebo::ISystemUpdate,
                public ignition::gazebo::ISystemPostUpdate {
  public:
   Plugin();
@@ -14,6 +15,8 @@ class Plugin : public ignition::gazebo::System,
                  const std::shared_ptr<const sdf::Element> &_sdf,
                  ignition::gazebo::EntityComponentManager &_ecm,
                  ignition::gazebo::EventManager &_eventMgr) override;
+  void Update(const ignition::gazebo::UpdateInfo &_info,
+              ignition::gazebo::EntityComponentManager &_ecm) override;
   void PostUpdate(
       const ignition::gazebo::UpdateInfo &_info,
       const ignition::gazebo::EntityComponentManager &_ecm) override;

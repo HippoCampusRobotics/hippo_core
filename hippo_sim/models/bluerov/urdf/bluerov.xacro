@@ -77,6 +77,23 @@
         <plugin filename="range_sensor" name="hippo_gz_plugins::range_sensor">
             <link>base_link</link>
             <range_topic>range_topic</range_topic>
+            <update_rate>20.0</update_rate>
+            <model name="range_tag_00">
+                <link>base_link</link>
+                <id>0</id>
+            </model>
+            <model name="range_tag_01">
+                <link>base_link</link>
+                <id>1</id>
+            </model>
+            <model name="range_tag_02">
+                <link>base_link</link>
+                <id>2</id>
+            </model>
+            <model name="range_tag_03">
+                <link>base_link</link>
+                <id>3</id>
+            </model>
         </plugin>
 
     </gazebo>
