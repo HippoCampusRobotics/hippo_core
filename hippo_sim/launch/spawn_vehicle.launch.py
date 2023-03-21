@@ -41,6 +41,8 @@ def generate_launch_description():
                                 arguments=[
                                     '--param',
                                     'robot_description',
+                                    '--remove_on_exit',
+                                    'true',
                                     '--x',
                                     '1.0',
                                     '--y',

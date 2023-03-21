@@ -19,6 +19,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ActuatorControls.msg"
   "msg/ActuatorSetpoint.msg"
@@ -31,6 +32,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/EstimatorState.msg"
   "msg/Float64Stamped.msg"
   "msg/Int64Stamped.msg"
+  "msg/RangeMeasurement.msg"
+  "msg/RangeMeasurementArray.msg"
   "msg/RatesDebug.msg"
   "msg/RatesTarget.msg"
   "msg/ThrusterForces.msg"

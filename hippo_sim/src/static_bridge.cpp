@@ -17,7 +17,6 @@ using namespace ignition;
 using namespace nav_msgs::msg;
 namespace gz_msgs = ignition::msgs;
 using std::placeholders::_1;
-using std::placeholders::_2;
 
 class Bridge {
  public:

@@ -21,6 +21,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(hippo_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
+find_package(hippo_gz_plugins REQUIRED)
+find_package(hippo_gz_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -64,6 +66,7 @@ set(exec_name bridge)
 add_executable(${exec_name} src/static_bridge.cpp)
 ament_target_dependencies(${exec_name}
   rclcpp
+  hippo_gz_msgs
   ros_gz_bridge
   ignition-transport${GZ_TRANSPORT_VER}
   geometry_msgs

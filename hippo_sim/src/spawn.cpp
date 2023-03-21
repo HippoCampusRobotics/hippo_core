@@ -13,6 +13,8 @@ DEFINE_string(world, "", "World name.");
 DEFINE_string(param, "", "Load XML from a ROS param.");
 DEFINE_string(name, "", "Name for spawned entity.");
 DEFINE_bool(allow_renaming, false, "Rename entity if name already used.");
+DEFINE_bool(remove_on_exit, false,
+            "Keep the spawner running. Remove model on exit.");
 DEFINE_double(x, 0, "X component of initial position, in meters.");
 DEFINE_double(y, 0, "Y component of initial position, in meters.");
 DEFINE_double(z, 0, "Z component of initial position, in meters.");
@@ -96,15 +98,13 @@ bool DeleteModel(const std::string &_model_name,
   ignition::msgs::Boolean delete_response;
   if (!node.Request(service, request, 5000, delete_response, result)) {
     std::cerr << std::endl
-              << "Delete model [" << _model_name << "] timed out."
-              << std::endl;
+              << "Delete model [" << _model_name << "] timed out." << std::endl;
     return false;
   }
   if (!result || !delete_response.data()) {
     std::cerr << std::endl
               << "Service call of [" << service << "] failed." << std::endl;
     return false;
-
   }
   return true;
 }
@@ -170,7 +170,9 @@ int main(int _argc, char **_argv) {
   } else {
     RCLCPP_ERROR(ros_node->get_logger(), "Entity creation timed out.");
   }
-  rclcpp::spin(ros_node);
-  DeleteModel(req.name(), world_name);
+  if (FLAGS_remove_on_exit) {
+    rclcpp::spin(ros_node);
+    DeleteModel(req.name(), world_name);
+  }
   return 0;
 }
