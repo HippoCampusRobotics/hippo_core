@@ -47,6 +47,14 @@ void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf) {
     update_period_ =
         std::chrono::duration_cast<std::chrono::steady_clock::duration>(period);
   }
+  AssignSdfParam(_sdf, "range_noise_stddev", sdf_params_.range_noise_stddev);
+  AssignSdfParam(_sdf, "fov_angle", sdf_params_.fov_angle);
+  AssignSdfParam(_sdf, "max_viewing_angle", sdf_params_.max_viewing_angle);
+  AssignSdfParam(_sdf, "drop_probability", sdf_params_.drop_probability);
+  AssignSdfParam(_sdf, "max_detection_distance",
+                 sdf_params_.max_detection_distance);
+  AssignSdfParam(_sdf, "drop_probability_exp",
+                 sdf_params_.drop_probability_exp);
 }
 
 bool PluginPrivate::InitModel(ignition::gazebo::EntityComponentManager &_ecm,
@@ -63,6 +71,28 @@ bool PluginPrivate::InitModel(ignition::gazebo::EntityComponentManager &_ecm,
 std::optional<double> PluginPrivate::GetRange(
     const TargetModel &_target,
     const ignition::gazebo::EntityComponentManager &_ecm) {
+  auto pose = GetPose(_ecm);
+  auto target_pose = GetTargetPose(_ecm, _target);
+  if (!pose) {
+    ignerr << "Cannot get own model position" << std::endl;
+    return std::nullopt;
+  }
+  if (!target_pose) {
+    ignwarn << "Cannot get target model postion" << std::endl;
+    return std::nullopt;
+  }
+  ignition::math::Vector3<double> diff = (*pose).Pos() - (*target_pose).Pos();
+  return diff.Length();
+}
+
+std::optional<ignition::math::Pose3d> PluginPrivate::GetPose(
+    const ignition::gazebo::EntityComponentManager &_ecm) {
+  return link_.WorldPose(_ecm);
+}
+
+std::optional<ignition::math::Pose3d> PluginPrivate::GetTargetPose(
+    const ignition::gazebo::EntityComponentManager &_ecm,
+    const TargetModel &_target) {
   ignition::gazebo::Entity model =
       _ecm.EntityByComponents(ignition::gazebo::components::Name(_target.name),
                               ignition::gazebo::components::Model());
@@ -76,19 +106,50 @@ std::optional<double> PluginPrivate::GetRange(
     ignerr << "Link for model [" << _target.name << "] not available.";
     return std::nullopt;
   }
+  return link.WorldPose(_ecm);
+}
 
-  auto pose = link_.WorldPose(_ecm);
-  auto target_pose = link.WorldPose(_ecm);
-  if (!pose) {
-    ignerr << "Cannot get own model position" << std::endl;
-    return std::nullopt;
+bool PluginPrivate::DropMeasurement(
+    const ignition::gazebo::EntityComponentManager &_ecm,
+    const TargetModel &_target) {
+  auto target_pose = GetTargetPose(_ecm, _target);
+  auto pose = GetPose(_ecm);
+
+  if (!(target_pose && pose)) {
+    return false;
   }
-  if (!target_pose) {
-    ignwarn << "Cannot get target model postion" << std::endl;
-    return std::nullopt;
+  ignition::math::Vector3d target_vec =
+      target_pose.value().Pos() - pose.value().Pos();
+
+  ignition::math::Vector3d target_normal_vec =
+      target_pose.value().Rot().RotateVector(-1.0 *
+                                             ignition::math::Vector3d::UnitZ);
+
+  ignition::math::Vector3d normal_vec =
+      pose.value().Rot().RotateVector(ignition::math::Vector3d::UnitX);
+
+  double fov_angle = acos(target_vec.Dot(normal_vec) /
+                          (target_vec.Length() * normal_vec.Length()));
+  double viewing_angle =
+      acos(target_normal_vec.Dot(normal_vec) /
+           (target_normal_vec.Length() * normal_vec.Length()));
+  bool is_visible = (fov_angle < sdf_params_.fov_angle) &&
+                    (viewing_angle < sdf_params_.max_viewing_angle);
+  if (!is_visible) {
+    return true;
   }
-  ignition::math::Vector3<double> diff = (*pose).Pos() - (*target_pose).Pos();
-  return diff.Length();
+  double p = uniform_distribution_(random_generator_);
+  double p_dist = uniform_distribution_(random_generator_);
+  double drop_prob_dist = DistanceDropProbability(target_vec.Length());
+
+  bool is_dropped = p < sdf_params_.drop_probability || p_dist < drop_prob_dist;
+  return is_dropped;
+}
+
+double PluginPrivate::DistanceDropProbability(double _distance) {
+  double p = pow(_distance / sdf_params_.max_detection_distance,
+                 sdf_params_.drop_probability_exp);
+  return std::clamp(p, 0.0, 1.0);
 }
 
 void PluginPrivate::UpdateTargetComponents(
@@ -143,6 +204,9 @@ void PluginPrivate::PublishRanges(
   for (auto &target : sdf_params_.target_models) {
     auto range = GetRange(target, _ecm);
     if (range) {
+      if (DropMeasurement(_ecm, target)) {
+        continue;
+      }
       hippo_gz_msgs::msg::RangeMeasurement *meas =
           range_array.add_measurements();
       meas->set_id(target.id);

@@ -25,6 +25,9 @@ set(GZ_GAZEBO_VER ${ignition-gazebo6_VERSION_MAJOR})
 find_package(ignition-common4 REQUIRED)
 set(GZ_COMMON_VER ${ignition-common4_VERSION_MAJOR})
 
+find_package(sdformat12 REQUIRED)
+set(GZ_SDF_VER ${sdformat12_VERSION_MAJOR})
+
 # find_package(ignition-msgs8 REQUIRED)
 # set(GZ_MSGS_VER ${ignition-msgs8_VERSION_MAJOR})
 
@@ -45,6 +48,7 @@ function(add_plugin plugin_name)
   ignition-plugin${GZ_PLUGIN_VER}
   ignition-gazebo${GZ_GAZEBO_VER}
   ignition-common${GZ_COMMON_VER}
+  sdformat${GZ_SDF_VER}
   hippo_gz_msgs
   )
 

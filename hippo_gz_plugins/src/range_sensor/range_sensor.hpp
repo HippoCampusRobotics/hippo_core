@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ignition/gazebo/System.hh>
-
+#include <sdformat.hh>
 #include "range_sensor_private.hpp"
 
 namespace range_sensor {
