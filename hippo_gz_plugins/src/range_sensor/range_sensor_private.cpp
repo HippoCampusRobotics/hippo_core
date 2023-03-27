@@ -23,7 +23,7 @@ void PluginPrivate::ParseSdf(const std::shared_ptr<const sdf::Element> &_sdf) {
     }
     std::string name{"no-name"};
     std::string link{"no-name"};
-    int id;
+    int id = -1;
     param->Get(name);
     if (!AssignSdfParam(model_element, "link", link)) {
       ignerr << "No link specified. Ignoring model [" << name << "]"
