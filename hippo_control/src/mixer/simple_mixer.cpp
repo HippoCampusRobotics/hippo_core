@@ -48,7 +48,6 @@ double SimpleMixer::ApplyInput(
 }
 
 double SimpleMixer::ThrustToRevsPerSec(double _thrust) {
-  double revs;
   if (_thrust < zero_throttle_threshold_) {
     return 0.0;
   }
