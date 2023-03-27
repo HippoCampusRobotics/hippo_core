@@ -7,7 +7,7 @@
   <maintainer email="lennart.alff@gmail.com">vscode</maintainer>
   <license>TODO: License declaration</license>
 
-  <depend>ignition-plugin1</depend>
+  <depend>ignition-plugin</depend>
   <depend>ignition-gazebo6</depend>
   <depend>ignition-common4</depend>
   <depend>hippo_gz_msgs</depend>
