@@ -1,7 +1,7 @@
 #include "range_sensor_bridge.hpp"
 
-namespace hippo_common {
-namespace range_sensor {
+namespace hippo_gz_plugins {
+namespace range_sensor_bridge {
 RangeSensor::RangeSensor(rclcpp::NodeOptions const &_options)
     : Node("range_sensor", _options) {
   //      DeclareParams();
@@ -30,8 +30,8 @@ void RangeSensor::OnRanges(
   }
   ranges_pub_->publish(ros_msg);
 }
-}  // namespace range_sensor
-}  // namespace fav
+}  // namespace range_sensor_bridge
+}  // namespace hippo_gz_plugins
 
 #include <rclcpp_components/register_node_macro.hpp>
-RCLCPP_COMPONENTS_REGISTER_NODE(fav::range_sensor::RangeSensor)
+RCLCPP_COMPONENTS_REGISTER_NODE(hippo_gz_plugins::range_sensor_bridge::RangeSensor)

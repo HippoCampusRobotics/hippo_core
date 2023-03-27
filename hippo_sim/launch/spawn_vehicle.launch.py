@@ -44,7 +44,7 @@ def generate_launch_description():
                                     '--remove_on_exit',
                                     'true',
                                     '--x',
-                                    '1.0',
+                                    '1.3',
                                     '--y',
                                     '1.0',
                                     '--z',

@@ -7,8 +7,8 @@
 #include <rclcpp/node_interfaces/node_topics.hpp>
 #include <rclcpp/rclcpp.hpp>
 
-namespace hippo_common {
-namespace range_sensor {
+namespace hippo_gz_plugins {
+namespace range_sensor_bridge {
 class RangeSensor : public rclcpp::Node {
  public:
   explicit RangeSensor(rclcpp::NodeOptions const &_options);
@@ -21,7 +21,6 @@ class RangeSensor : public rclcpp::Node {
   rclcpp::node_interfaces::NodeTopics *node_topics;
   std::shared_ptr<ignition::transport::Node> gz_node_ =
       std::make_shared<ignition::transport::Node>();
-
 };
-}  // namespace range_sensor
-}  // namespace fav
+}  // namespace range_sensor_bridge
+}  // namespace hippo_gz_plugins

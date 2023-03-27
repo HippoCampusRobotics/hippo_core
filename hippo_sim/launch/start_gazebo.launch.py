@@ -18,7 +18,7 @@ def generate_launch_description():
     pool_params = {'pool_description': pool_description}
 
     gazebo = launch.actions.ExecuteProcess(
-        cmd=['ign', 'gazebo', '-v 1', str(world)], output='screen')
+        cmd=['ign', 'gazebo', '-v 3', str(world)], output='screen')
 
     return launch.LaunchDescription([
         gazebo,

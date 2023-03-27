@@ -13,8 +13,12 @@ endif()
 set(CXX_FLAGS -Wall -Wextra -Wpedantic -Wshadow -std=c++17 -O2)
 add_compile_options(${CXX_FLAGS})
 
+
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp_components)
 find_package(hippo_gz_msgs REQUIRED)
+find_package(hippo_msgs REQUIRED)
+find_package(hippo_common REQUIRED)
 
 find_package(ignition-plugin1 REQUIRED COMPONENTS register)
 set(GZ_PLUGIN_VER ${ignition-plugin1_VERSION_MAJOR})
@@ -27,6 +31,9 @@ set(GZ_COMMON_VER ${ignition-common4_VERSION_MAJOR})
 
 find_package(sdformat12 REQUIRED)
 set(GZ_SDF_VER ${sdformat12_VERSION_MAJOR})
+
+find_package(ignition-transport11 REQUIRED)
+set(GZ_TRANSPORT_VER ${ignition-transport11_VERSION_MAJOR})
 
 # find_package(ignition-msgs8 REQUIRED)
 # set(GZ_MSGS_VER ${ignition-msgs8_VERSION_MAJOR})
@@ -58,6 +65,35 @@ function(add_plugin plugin_name)
   RUNTIME DESTINATION bin
   )
 endfunction()
+
+################################################################################
+## range_sensor_bridge composable node
+################################################################################
+set(component_name range_sensor_bridge)
+add_library(${component_name}
+  SHARED
+  src/range_sensor_bridge/range_sensor_bridge.cpp
+)
+target_include_directories(${component_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${component_name}
+  rclcpp
+  rclcpp_components
+  hippo_common
+  hippo_msgs
+  hippo_gz_msgs
+  ignition-transport${GZ_TRANSPORT_VER}
+)
+rclcpp_components_register_node(${component_name} PLUGIN "hippo_gz_plugins::range_sensor_bridge::RangeSensor" EXECUTABLE ${component_name}_node)
+install(TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 add_plugin(barometer)
 add_plugin(buoyancy)
