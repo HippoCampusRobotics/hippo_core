@@ -25,8 +25,11 @@
   <depend>rclcpp</depend>
   <depend>rclpy</depend>
   <depend>python3-smbus2-pip</depend>
+  <depend>rclcpp_components</depend>
+  <depend>hippo_common</depend>
   <depend>hippo_msgs</depend>
   <depend>std_srvs</depend>
+  <depend>eigen</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
