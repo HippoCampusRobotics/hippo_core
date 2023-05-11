@@ -34,7 +34,6 @@ def generate_launch_description():
         package='apriltag_ros',
         name='apriltag_node',
         executable='apriltag_ros_continuous_detector_node',
-        name='apriltag_node',
         remappings=[
             ('~/image_rect', 'image_rect_offboard'),
             ('~/camera_info', 'cropped/camera_info'),
