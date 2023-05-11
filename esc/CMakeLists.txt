@@ -29,10 +29,36 @@ find_package(Eigen3 REQUIRED)
 #   dynamic_reconfigure
 # )
 
-include_directories(
-  include
+add_library(esc_serial
+  STATIC
+  src/esc_serial/src/cobs.cpp
+  src/esc_serial/src/crc.cpp
+  src/esc_serial/src/esc_serial.cpp
 )
 
+ament_export_targets(esc_serialTarget HAS_LIBRARY_TARGET)
+target_include_directories(esc_serial
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+install(TARGETS esc_serial
+  EXPORT esc_serialTarget
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib
+)
+
+install(
+  DIRECTORY src/esc_serial/include/
+  DESTINATION include/esc_serial
+)
+
+include_directories(
+  include
+  src/esc_serial/include
+)
 
 # Install Python modules
 ament_python_install_package(${PROJECT_NAME})
