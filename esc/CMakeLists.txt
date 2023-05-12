@@ -18,6 +18,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(hippo_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -29,22 +30,27 @@ find_package(Eigen3 REQUIRED)
 #   dynamic_reconfigure
 # )
 
-add_library(esc_serial
+################################################################################
+# esc_serial library
+################################################################################
+set(lib_name esc_serial)
+add_library(${lib_name}
   STATIC
   src/esc_serial/src/cobs.cpp
   src/esc_serial/src/crc.cpp
   src/esc_serial/src/esc_serial.cpp
 )
 
-ament_export_targets(esc_serialTarget HAS_LIBRARY_TARGET)
-target_include_directories(esc_serial
+target_include_directories(${lib_name}
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/esc_serial/include>
     $<INSTALL_INTERFACE:include>
 )
 
-install(TARGETS esc_serial
-  EXPORT esc_serialTarget
+ament_export_libraries(${lib_name}_export HAS_LIBRARY_TARGET)
+
+install(TARGETS ${lib_name}
+  EXPORT ${lib_name}_export
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib
@@ -52,12 +58,43 @@ install(TARGETS esc_serial
 
 install(
   DIRECTORY src/esc_serial/include/
-  DESTINATION include/esc_serial
+  DESTINATION include
 )
 
 include_directories(
   include
   src/esc_serial/include
+)
+
+################################################################################
+# teensy_commander component
+################################################################################
+set(component_name teensy_commander)
+add_library(${component_name}
+  SHARED
+  src/teensy/teensy_commander.cpp
+  src/teensy/teensy_commander_params.cpp
+)
+target_link_libraries(${component_name} esc_serial)
+target_include_directories(${component_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${component_name}
+  rclcpp
+  rclcpp_components
+  hippo_common
+  hippo_msgs
+  std_msgs
+  std_srvs
+)
+rclcpp_components_register_node(${component_name} PLUGIN "esc::teensy::TeensyCommander" EXECUTABLE ${component_name}_node)
+install(TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
 # Install Python modules
