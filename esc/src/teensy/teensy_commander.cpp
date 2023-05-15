@@ -11,6 +11,7 @@ TeensyCommander::TeensyCommander(rclcpp::NodeOptions const &_options)
     : Node("teensy_commander", _options) {
   DeclareParams();
   initialized_ = InitSerial(params_.serial_port);
+  InitSubscribers();
 }
 
 void TeensyCommander::InitSubscribers() {
@@ -35,20 +36,21 @@ void TeensyCommander::OnActuatorControls(
     SetThrottle(0.0);
     return;
   }
-  for (size_t i = 0; i < _msg->control.size(); ++i) {
-  }
+  SetThrottle(_msg->control);
 }
 
-void TeensyCommander::SetThrottle(std::array<double, 8> _values) {
+void TeensyCommander::SetThrottle(const std::array<double, 8> &_values) {
   ActuatorControlsMessage msg;
   Packet packet;
   for (size_t i = 0; i < _values.size(); ++i) {
     uint16_t pwm =
-        (uint16_t)1500 + (uint16_t)(std::clamp(_values[i], -1.0, 1.0) * 500);
+        (uint16_t)1500 + (std::clamp(_values[i], -1.0, 1.0) * 500);
     msg.payload_.pwm[i] = pwm;
   }
-  msg.SerializePayload(packet.MutablePayloadStart(), msg.MSG_SIZE);
-  packet.SetPayloadSize(msg.MSG_SIZE);
+  msg.Header().Serialize(packet.MutablePayloadStart());
+  msg.SerializePayload(packet.MutablePayloadStart() + msg.Header().HEADER_SIZE,
+                       msg.MSG_SIZE);
+  packet.SetPayloadSize(msg.MSG_SIZE + msg.Header().HEADER_SIZE);
   packet.Packetize();
   int bytes_written = write(serial_port_, packet.Data(), packet.Size());
   if (bytes_written != packet.Size()) {
@@ -59,26 +61,20 @@ void TeensyCommander::SetThrottle(std::array<double, 8> _values) {
 }
 
 void TeensyCommander::SetThrottle(double _value) {
-  ActuatorControlsMessage msg;
-  Packet packet;
-  uint16_t pwm =
-      (uint16_t)1500 + (uint16_t)(std::clamp(_value, -1.0, 1.0) * 500);
-  for (size_t i = 0; i < ARRAY_LENGTH(msg.payload_.pwm); ++i) {
-    msg.payload_.pwm[i] = pwm;
+  std::array<double, 8> values;
+  for (size_t i = 0; i<values.size(); ++i) {
+    values[i] = _value;
   }
-  msg.SerializePayload(packet.MutablePayloadStart(), msg.MSG_SIZE);
-  packet.SetPayloadSize(msg.MSG_SIZE);
-  packet.Packetize();
-  int bytes_written = write(serial_port_, packet.Data(), packet.Size());
-  if (bytes_written != packet.Size()) {
-    RCLCPP_ERROR(get_logger(),
-                 "Failed to write data to serial port. Written %d of %d bytes.",
-                 bytes_written, packet.Size());
-  }
+  SetThrottle(values);
 }
 
 bool TeensyCommander::InitSerial(std::string _port_name) {
   serial_port_ = open(_port_name.c_str(), O_RDWR);
+  if (serial_port_ < 0) {
+    RCLCPP_ERROR(get_logger(), "Failed to open serial port '%s'. Exit code: %d",
+                 _port_name.c_str(), serial_port_);
+    return false;
+  }
   tty_.c_cflag &= ~CRTSCTS;  // disable hardware flow control
   tty_.c_cflag |= CREAD | CLOCAL;
   tty_.c_iflag &= ~(IXON | IXOFF | IXANY);  // Turn off s/w flow ctrl
@@ -99,6 +95,42 @@ bool TeensyCommander::InitSerial(std::string _port_name) {
     return false;
   }
   return true;
+}
+
+void TeensyCommander::ReadSerial() {
+  int available_bytes = 0;
+  if (ioctl(serial_port_, FIONREAD, &available_bytes) < 0) {
+    return;
+  }
+  for (int i = 0; i < available_bytes; ++i) {
+    uint8_t byte;
+    int length = read(serial_port_, &byte, 1);
+    if (length) {
+      if (!packet_.AddByte(byte)) {
+        packet_.Reset();
+        RCLCPP_WARN(get_logger(),
+                    "Packet buffer full before packet was complete.");
+        return;
+      }
+
+      if (packet_.CompletelyReceived()) {
+        msg_id_t msg_id = packet_.ParseMessage();
+        RCLCPP_INFO(get_logger(), "Received packet with id: %u", msg_id);
+        if (msg_id == ActuatorControlsMessage::MSG_ID) {
+          ActuatorControlsMessage msg;
+          msg.Header().Deserialize(packet_.PayloadStart());
+          msg.DeserializePayload(
+              packet_.PayloadStart() + msg.Header().HEADER_SIZE,
+              msg.Header().MsgSize());
+          for (int i = 0; i < 8; ++i) {
+            printf("%u\n", msg.payload_.pwm[i]);
+          }
+        }
+        // TODO handle packet.
+        packet_.Reset();
+      }
+    }
+  }
 }
 }  // namespace teensy
 }  // namespace esc

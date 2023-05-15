@@ -6,8 +6,8 @@
 #include <hippo_msgs/msg/actuator_controls.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <std_srvs/srv/set_bool.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <std_srvs/srv/set_bool.hpp>
 
 namespace esc {
 namespace teensy {
@@ -23,9 +23,10 @@ class TeensyCommander : public rclcpp::Node {
   bool InitSerial(std::string _port_name);
   void InitPublishers();
   void InitSubscribers();
-  void SetThrottle(std::array<double, 8> _values);
+  void SetThrottle(const std::array<double, 8> &_values);
   void SetThrottle(double _value);
 
+  void ReadSerial();
 
   //////////////////////////////////////////////////////////////////////////////
   // Publishers
@@ -42,7 +43,6 @@ class TeensyCommander : public rclcpp::Node {
   // Services
   //////////////////////////////////////////////////////////////////////////////
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr arming_serivce_;
-  
 
   Params params_;
   int serial_port_;
@@ -51,6 +51,8 @@ class TeensyCommander : public rclcpp::Node {
   bool timed_out_{true};
   bool armed_{false};
   double battery_voltage_{0.0};
+
+  Packet packet_;
 };
 }  // namespace teensy
 }  // namespace esc
