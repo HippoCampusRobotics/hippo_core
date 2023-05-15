@@ -25,6 +25,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ActuatorSetpoint.msg"
   "msg/AngularVelocity.msg"
   "msg/AttitudeTarget.msg"
+  "msg/ControlTarget.msg"
   "msg/EscRpms.msg"
   "msg/EscVoltages.msg"
   "msg/EstimatorInnovation.msg"
