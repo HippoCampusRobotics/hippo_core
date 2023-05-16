@@ -43,14 +43,19 @@ void TeensyCommander::SetThrottle(const std::array<double, 8> &_values) {
   ActuatorControlsMessage msg;
   Packet packet;
   for (size_t i = 0; i < _values.size(); ++i) {
-    uint16_t pwm =
-        (uint16_t)1500 + (std::clamp(_values[i], -1.0, 1.0) * 500);
+    uint16_t pwm = (uint16_t)1500 + (std::clamp(_values[i], -1.0, 1.0) * 500);
     msg.payload_.pwm[i] = pwm;
   }
-  msg.Header().Serialize(packet.MutablePayloadStart());
-  msg.SerializePayload(packet.MutablePayloadStart() + msg.Header().HEADER_SIZE,
-                       msg.MSG_SIZE);
-  packet.SetPayloadSize(msg.MSG_SIZE + msg.Header().HEADER_SIZE);
+  size_t size =
+      msg.Serialize(packet.MutablePayloadStart(), packet.PayloadCapacity());
+  RCLCPP_WARN_STREAM(get_logger(), "Size:" << std::to_string(size));
+  if (!size) {
+    RCLCPP_ERROR(get_logger(),
+                 "Could not serialize message. Serialized %lu of %lu bytes.",
+                 size, (size_t)msg.MSG_SIZE + msg.Header().HEADER_SIZE);
+    return;
+  }
+  packet.SetPayloadSize(size);
   packet.Packetize();
   int bytes_written = write(serial_port_, packet.Data(), packet.Size());
   if (bytes_written != packet.Size()) {
@@ -62,7 +67,7 @@ void TeensyCommander::SetThrottle(const std::array<double, 8> &_values) {
 
 void TeensyCommander::SetThrottle(double _value) {
   std::array<double, 8> values;
-  for (size_t i = 0; i<values.size(); ++i) {
+  for (size_t i = 0; i < values.size(); ++i) {
     values[i] = _value;
   }
   SetThrottle(values);
@@ -118,10 +123,7 @@ void TeensyCommander::ReadSerial() {
         RCLCPP_INFO(get_logger(), "Received packet with id: %u", msg_id);
         if (msg_id == ActuatorControlsMessage::MSG_ID) {
           ActuatorControlsMessage msg;
-          msg.Header().Deserialize(packet_.PayloadStart());
-          msg.DeserializePayload(
-              packet_.PayloadStart() + msg.Header().HEADER_SIZE,
-              msg.Header().MsgSize());
+          msg.Deserialize(packet_.PayloadStart(), packet_.PayloadSize());
           for (int i = 0; i < 8; ++i) {
             printf("%u\n", msg.payload_.pwm[i]);
           }
