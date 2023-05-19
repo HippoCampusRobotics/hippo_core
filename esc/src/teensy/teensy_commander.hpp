@@ -7,12 +7,17 @@
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/float64.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 
 namespace esc {
 namespace teensy {
 class TeensyCommander : public rclcpp::Node {
  public:
+  static constexpr int kThrottleInputTimeoutMs = 500;
+  static constexpr int kReadSerialIntervalMs = 100;
+  static constexpr int kPublishArmingStateIntervalMs = 500;
+  static constexpr int kPublishBatteryVoltageIntervalMs = 500;
   explicit TeensyCommander(rclcpp::NodeOptions const &_options);
 
  private:
@@ -22,9 +27,12 @@ class TeensyCommander : public rclcpp::Node {
   void DeclareParams();
   bool InitSerial(std::string _port_name);
   void InitPublishers();
+  void InitTimers();
   void InitSubscribers();
   void SetThrottle(const std::array<double, 8> &_values);
   void SetThrottle(double _value);
+  void PublishArmingState();
+  void PublishBatteryVoltage();
 
   void ReadSerial();
 
@@ -32,6 +40,7 @@ class TeensyCommander : public rclcpp::Node {
   // Publishers
   //////////////////////////////////////////////////////////////////////////////
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr arming_state_pub_;
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr battery_voltage_pub_;
   //////////////////////////////////////////////////////////////////////////////
   // Subscribers
   //////////////////////////////////////////////////////////////////////////////
@@ -44,10 +53,30 @@ class TeensyCommander : public rclcpp::Node {
   //////////////////////////////////////////////////////////////////////////////
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr arming_serivce_;
 
+  //////////////////////////////////////////////////////////////////////////////
+  // Callbacks
+  //////////////////////////////////////////////////////////////////////////////
+  void OnThrottleInputTimeout();
+  void OnReadSerialTimer();
+  void OnPublishArmingStateTimer();
+  void OnPublishBatteryVoltageTimer();
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Timers
+  //////////////////////////////////////////////////////////////////////////////
+  struct Timers {
+    rclcpp::TimerBase::SharedPtr control_timeout;
+    rclcpp::TimerBase::SharedPtr publish_arming_state;
+    rclcpp::TimerBase::SharedPtr publish_battery_voltage;
+    rclcpp::TimerBase::SharedPtr read_serial;
+  };
+
+  Timers timers_;
+
   Params params_;
   int serial_port_;
   struct termios tty_;
-  bool initialized_{false};
+  bool serial_initialized_{false};
   bool timed_out_{true};
   bool armed_{false};
   double battery_voltage_{0.0};

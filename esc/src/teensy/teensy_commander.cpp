@@ -4,14 +4,49 @@
 #include <sys/ioctl.h>
 
 #include <algorithm>
+#include <thread>
 
 namespace esc {
 namespace teensy {
 TeensyCommander::TeensyCommander(rclcpp::NodeOptions const &_options)
     : Node("teensy_commander", _options) {
   DeclareParams();
-  initialized_ = InitSerial(params_.serial_port);
+  serial_initialized_ = InitSerial(params_.serial_port);
+  InitPublishers();
+  InitTimers();
   InitSubscribers();
+}
+
+void TeensyCommander::InitTimers() {
+  timers_.control_timeout = rclcpp::create_timer(
+      this, get_clock(), std::chrono::milliseconds(kThrottleInputTimeoutMs),
+      [this]() { OnThrottleInputTimeout(); });
+
+  timers_.read_serial = rclcpp::create_timer(
+      this, get_clock(), std::chrono::milliseconds(kReadSerialIntervalMs),
+      [this]() { OnReadSerialTimer(); });
+
+  timers_.publish_arming_state = rclcpp::create_timer(
+      this, get_clock(),
+      std ::chrono::milliseconds(kPublishArmingStateIntervalMs),
+      [this]() { OnPublishArmingStateTimer(); });
+
+  timers_.publish_battery_voltage = rclcpp::create_timer(
+      this, get_clock(),
+      std::chrono::milliseconds(kPublishBatteryVoltageIntervalMs),
+      [this]() { OnPublishBatteryVoltageTimer(); });
+}
+
+void TeensyCommander::InitPublishers() {
+  std::string topic;
+
+  topic = "arming_state";
+  arming_state_pub_ =
+      create_publisher<std_msgs::msg::Bool>(topic, rclcpp::SystemDefaultsQoS());
+
+  topic = "battery_voltage";
+  battery_voltage_pub_ = create_publisher<std_msgs::msg::Float64>(
+      topic, rclcpp::SystemDefaultsQoS());
 }
 
 void TeensyCommander::InitSubscribers() {
@@ -25,8 +60,28 @@ void TeensyCommander::InitSubscribers() {
                     std::placeholders::_1));
 }
 
+/**
+ * @brief Stops the thrusters, sets the timeout state and cancels the timer.
+ *
+ */
+void TeensyCommander::OnThrottleInputTimeout() {
+  RCLCPP_WARN(get_logger(), "'%s' controls timed out.",
+              actuator_controls_sub_->get_topic_name());
+  SetThrottle(0.0);
+  timed_out_ = true;
+  timers_.control_timeout->cancel();
+}
+
+void TeensyCommander::OnReadSerialTimer() { ReadSerial(); }
+void TeensyCommander::OnPublishArmingStateTimer() { PublishArmingState(); }
+void TeensyCommander::OnPublishBatteryVoltageTimer() {
+  PublishBatteryVoltage();
+}
+
 void TeensyCommander::OnActuatorControls(
     hippo_msgs::msg::ActuatorControls::ConstSharedPtr _msg) {
+  // reset/restart the timeout timmer since we got a message obviously.
+  timers_.control_timeout->reset();
   if (timed_out_) {
     timed_out_ = false;
     RCLCPP_INFO(get_logger(), "Topic '%s' received. Not timed out anymore.",
@@ -37,9 +92,18 @@ void TeensyCommander::OnActuatorControls(
     return;
   }
   SetThrottle(_msg->control);
+  // always read serial port input after sending something
+  ReadSerial();
 }
 
 void TeensyCommander::SetThrottle(const std::array<double, 8> &_values) {
+  if (!serial_initialized_) {
+    serial_initialized_ = InitSerial(params_.serial_port);
+    RCLCPP_ERROR_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "Trying to set throttle but serial port not initialized.");
+    return;
+  }
   ActuatorControlsMessage msg;
   Packet packet;
   for (size_t i = 0; i < _values.size(); ++i) {
@@ -71,6 +135,28 @@ void TeensyCommander::SetThrottle(double _value) {
     values[i] = _value;
   }
   SetThrottle(values);
+}
+
+void TeensyCommander::PublishArmingState() {
+  if (!arming_state_pub_) {
+    RCLCPP_WARN(get_logger(), "Arming State Publisher not available.");
+    return;
+  }
+
+  std_msgs::msg::Bool msg;
+  msg.data = armed_;
+  arming_state_pub_->publish(msg);
+}
+
+void TeensyCommander::PublishBatteryVoltage() {
+  if (!battery_voltage_pub_) {
+    RCLCPP_WARN(get_logger(), "Battery Voltage Publisher not available.");
+    return;
+  }
+
+  std_msgs::msg::Float64 msg;
+  msg.data = battery_voltage_;
+  battery_voltage_pub_->publish(msg);
 }
 
 bool TeensyCommander::InitSerial(std::string _port_name) {
