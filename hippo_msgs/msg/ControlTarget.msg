@@ -1,3 +1,5 @@
+# Prescribed trajectory in world-COS to be tracked
+
 std_msgs/Header header
 
 uint32 mask
