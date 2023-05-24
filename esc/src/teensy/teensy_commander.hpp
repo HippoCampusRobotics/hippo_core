@@ -22,17 +22,21 @@ class TeensyCommander : public rclcpp::Node {
 
  private:
   struct Params {
-    std::string serial_port{""};
+    std::string serial_port{"/dev/fcu_data"};
   };
   void DeclareParams();
   bool InitSerial(std::string _port_name);
   void InitPublishers();
   void InitTimers();
   void InitSubscribers();
+  void InitServices();
   void SetThrottle(const std::array<double, 8> &_values);
   void SetThrottle(double _value);
   void PublishArmingState();
   void PublishBatteryVoltage();
+
+  void HandleActuatorControlsMessage(ActuatorControlsMessage &_msg);
+  void HandleBatteryVoltageMessage(BatteryVoltageMessage &_msg);
 
   void ReadSerial();
 
@@ -51,7 +55,7 @@ class TeensyCommander : public rclcpp::Node {
   //////////////////////////////////////////////////////////////////////////////
   // Services
   //////////////////////////////////////////////////////////////////////////////
-  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr arming_serivce_;
+  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr arming_service_;
 
   //////////////////////////////////////////////////////////////////////////////
   // Callbacks
@@ -60,6 +64,9 @@ class TeensyCommander : public rclcpp::Node {
   void OnReadSerialTimer();
   void OnPublishArmingStateTimer();
   void OnPublishBatteryVoltageTimer();
+
+  void ServeArming(const std_srvs::srv::SetBool_Request::SharedPtr _request,
+                   std_srvs::srv::SetBool_Response::SharedPtr _response);
 
   //////////////////////////////////////////////////////////////////////////////
   // Timers

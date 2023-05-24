@@ -14,6 +14,7 @@ TeensyCommander::TeensyCommander(rclcpp::NodeOptions const &_options)
   serial_initialized_ = InitSerial(params_.serial_port);
   InitPublishers();
   InitTimers();
+  InitServices();
   InitSubscribers();
 }
 
@@ -35,6 +36,44 @@ void TeensyCommander::InitTimers() {
       this, get_clock(),
       std::chrono::milliseconds(kPublishBatteryVoltageIntervalMs),
       [this]() { OnPublishBatteryVoltageTimer(); });
+}
+
+void TeensyCommander::InitServices() {
+  std::string name;
+
+  name = "arm";
+  arming_service_ = create_service<std_srvs::srv::SetBool>(
+      name, std::bind(&TeensyCommander::ServeArming, this,
+                      std::placeholders::_1, std::placeholders::_2));
+}
+
+void TeensyCommander::ServeArming(
+    const std_srvs::srv::SetBool_Request::SharedPtr _request,
+    std_srvs::srv::SetBool_Response::SharedPtr _response) {
+  if (_request->data) {
+    if (armed_) {
+      _response->message = "Already armed.";
+      _response->success = false;
+      return;
+    } else {
+      armed_ = _request->data;
+      RCLCPP_INFO(get_logger(), "Arming the thrusters.");
+      _response->message = "Armed";
+      _response->success = false;
+      SetThrottle(0.0);
+    }
+  } else {
+    if (armed_) {
+      RCLCPP_INFO(get_logger(), "Disarming the thrusters.");
+      armed_ = false;
+      SetThrottle(0.0);
+      _response->message = "Disarmed.";
+      _response->success = true;
+    } else {
+      _response->message = "Already disarmed.";
+      _response->success = false;
+    }
+  }
 }
 
 void TeensyCommander::InitPublishers() {
@@ -188,6 +227,15 @@ bool TeensyCommander::InitSerial(std::string _port_name) {
   return true;
 }
 
+void TeensyCommander::HandleActuatorControlsMessage(
+    ActuatorControlsMessage &_msg) {
+  // TODO
+}
+
+void TeensyCommander::HandleBatteryVoltageMessage(BatteryVoltageMessage &_msg) {
+  battery_voltage_ = _msg.payload_.voltage_mv * 1000.0;
+}
+
 void TeensyCommander::ReadSerial() {
   int available_bytes = 0;
   if (ioctl(serial_port_, FIONREAD, &available_bytes) < 0) {
@@ -207,12 +255,21 @@ void TeensyCommander::ReadSerial() {
       if (packet_.CompletelyReceived()) {
         msg_id_t msg_id = packet_.ParseMessage();
         RCLCPP_INFO(get_logger(), "Received packet with id: %u", msg_id);
-        if (msg_id == ActuatorControlsMessage::MSG_ID) {
-          ActuatorControlsMessage msg;
-          msg.Deserialize(packet_.PayloadStart(), packet_.PayloadSize());
-          for (int i = 0; i < 8; ++i) {
-            printf("%u\n", msg.payload_.pwm[i]);
-          }
+        switch (msg_id) {
+          case ActuatorControlsMessage::MSG_ID: {
+            ActuatorControlsMessage msg;
+            msg.Deserialize(packet_.PayloadStart(), packet_.PayloadSize());
+            HandleActuatorControlsMessage(msg);
+          } break;
+          case BatteryVoltageMessage::MSG_ID: {
+            BatteryVoltageMessage msg;
+            msg.Deserialize(packet_.PayloadStart(), packet_.PayloadSize());
+            HandleBatteryVoltageMessage(msg);
+          } break;
+          default:
+            RCLCPP_WARN(get_logger(),
+                        "Receiving unhandled message with id: %hu", msg_id);
+            break;
         }
         // TODO handle packet.
         packet_.Reset();
