@@ -34,6 +34,7 @@ class TeensyCommander : public rclcpp::Node {
   void SetThrottle(double _value);
   void PublishArmingState();
   void PublishBatteryVoltage();
+  void PublishThrusterValues(std::array<double, 8> &_values);
 
   void HandleActuatorControlsMessage(ActuatorControlsMessage &_msg);
   void HandleBatteryVoltageMessage(BatteryVoltageMessage &_msg);
@@ -45,6 +46,8 @@ class TeensyCommander : public rclcpp::Node {
   //////////////////////////////////////////////////////////////////////////////
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr arming_state_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr battery_voltage_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::ActuatorControls>::SharedPtr
+      actuator_controls_pub_;
   //////////////////////////////////////////////////////////////////////////////
   // Subscribers
   //////////////////////////////////////////////////////////////////////////////

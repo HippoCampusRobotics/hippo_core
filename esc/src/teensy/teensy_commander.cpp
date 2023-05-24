@@ -86,6 +86,10 @@ void TeensyCommander::InitPublishers() {
   topic = "battery_voltage";
   battery_voltage_pub_ = create_publisher<std_msgs::msg::Float64>(
       topic, rclcpp::SystemDefaultsQoS());
+
+  topic = "thruster_values";
+  actuator_controls_pub_ = create_publisher<hippo_msgs::msg::ActuatorControls>(
+      topic, rclcpp::SystemDefaultsQoS());
 }
 
 void TeensyCommander::InitSubscribers() {
@@ -151,7 +155,6 @@ void TeensyCommander::SetThrottle(const std::array<double, 8> &_values) {
   }
   size_t size =
       msg.Serialize(packet.MutablePayloadStart(), packet.PayloadCapacity());
-  RCLCPP_WARN_STREAM(get_logger(), "Size:" << std::to_string(size));
   if (!size) {
     RCLCPP_ERROR(get_logger(),
                  "Could not serialize message. Serialized %lu of %lu bytes.",
@@ -198,6 +201,17 @@ void TeensyCommander::PublishBatteryVoltage() {
   battery_voltage_pub_->publish(msg);
 }
 
+void TeensyCommander::PublishThrusterValues(std::array<double, 8> &_values) {
+  if (!actuator_controls_pub_) {
+    RCLCPP_WARN(get_logger(), "Thruster Values Publisher not available.");
+    return;
+  }
+  hippo_msgs::msg::ActuatorControls msg;
+  msg.control = _values;
+  msg.header.stamp = now();
+  actuator_controls_pub_->publish(msg);
+}
+
 bool TeensyCommander::InitSerial(std::string _port_name) {
   serial_port_ = open(_port_name.c_str(), O_RDWR);
   if (serial_port_ < 0) {
@@ -229,7 +243,11 @@ bool TeensyCommander::InitSerial(std::string _port_name) {
 
 void TeensyCommander::HandleActuatorControlsMessage(
     ActuatorControlsMessage &_msg) {
-  // TODO
+  std::array<double, 8> values;
+  for (int i = 0; i < 8; ++i) {
+    values[i] = (_msg.payload_.pwm[i] - 1500) / 500.0;
+  }
+  PublishThrusterValues(values);
 }
 
 void TeensyCommander::HandleBatteryVoltageMessage(BatteryVoltageMessage &_msg) {
