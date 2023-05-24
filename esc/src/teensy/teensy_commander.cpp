@@ -251,7 +251,7 @@ void TeensyCommander::HandleActuatorControlsMessage(
 }
 
 void TeensyCommander::HandleBatteryVoltageMessage(BatteryVoltageMessage &_msg) {
-  battery_voltage_ = _msg.payload_.voltage_mv * 1000.0;
+  battery_voltage_ = _msg.payload_.voltage_mv / 1000.0;
 }
 
 void TeensyCommander::ReadSerial() {
