@@ -270,7 +270,7 @@ void TeensyCommander::ReadSerial() {
         packet_.Reset();
         RCLCPP_WARN(get_logger(),
                     "Packet buffer full before packet was complete.");
-        return;
+        continue;
       }
 
       if (packet_.CompletelyReceived()) {
