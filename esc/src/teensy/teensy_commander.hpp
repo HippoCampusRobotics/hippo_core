@@ -22,7 +22,7 @@ class TeensyCommander : public rclcpp::Node {
 
  private:
   struct Params {
-    std::string serial_port{"/dev/fcu_data"};
+    std::string serial_port{"/dev/teensy_data"};
   };
   void DeclareParams();
   bool InitSerial(std::string _port_name);
