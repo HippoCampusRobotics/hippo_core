@@ -12,6 +12,7 @@ TeensyCommander::TeensyCommander(rclcpp::NodeOptions const &_options)
     : Node("teensy_commander", _options) {
   DeclareParams();
   serial_initialized_ = InitSerial(params_.serial_port);
+  packet_.Reset();
   InitPublishers();
   InitTimers();
   InitServices();
@@ -147,8 +148,8 @@ void TeensyCommander::SetThrottle(const std::array<double, 8> &_values) {
         "Trying to set throttle but serial port not initialized.");
     return;
   }
-  ActuatorControlsMessage msg;
-  Packet packet;
+  esc_serial::ActuatorControlsMessage msg;
+  esc_serial::Packet packet;
   for (size_t i = 0; i < _values.size(); ++i) {
     uint16_t pwm = (uint16_t)1500 + (std::clamp(_values[i], -1.0, 1.0) * 500);
     msg.payload_.pwm[i] = pwm;
@@ -164,10 +165,11 @@ void TeensyCommander::SetThrottle(const std::array<double, 8> &_values) {
   packet.SetPayloadSize(size);
   packet.Packetize();
   int bytes_written = write(serial_port_, packet.Data(), packet.Size());
-  if (bytes_written != packet.Size()) {
-    RCLCPP_ERROR(get_logger(),
-                 "Failed to write data to serial port. Written %d of %d bytes.",
-                 bytes_written, packet.Size());
+  if ((size_t)bytes_written != packet.Size()) {
+    RCLCPP_ERROR(
+        get_logger(),
+        "Failed to write data to serial port. Written %d of %lu bytes.",
+        bytes_written, packet.Size());
   }
 }
 
@@ -213,14 +215,14 @@ void TeensyCommander::PublishThrusterValues(std::array<double, 8> &_values) {
 }
 
 bool TeensyCommander::InitSerial(std::string _port_name) {
-  serial_port_ = open(_port_name.c_str(), O_RDWR);
+  serial_port_ = open(_port_name.c_str(), O_RDWR, O_NOCTTY);
   if (serial_port_ < 0) {
     RCLCPP_ERROR(get_logger(), "Failed to open serial port '%s'. Exit code: %d",
                  _port_name.c_str(), serial_port_);
     return false;
   }
   tty_.c_cflag &= ~CRTSCTS;  // disable hardware flow control
-  tty_.c_cflag |= CREAD | CLOCAL;
+  tty_.c_cflag |= CREAD | CLOCAL | CS8;
   tty_.c_iflag &= ~(IXON | IXOFF | IXANY);  // Turn off s/w flow ctrl
   // Prevent conversion of newline to carriage return/line feed
   tty_.c_oflag &= ~ONLCR;
@@ -228,7 +230,7 @@ bool TeensyCommander::InitSerial(std::string _port_name) {
   // this combination of TIME and MIN makes a read call blocking until the
   // lesser of MIN and the requested bytes are availabe.
   tty_.c_cc[VTIME] = 0;
-  tty_.c_cc[VMIN] = 1;
+  tty_.c_cc[VMIN] = 0;
   cfmakeraw(&tty_);
   // baud rate
   cfsetispeed(&tty_, B115200);
@@ -242,7 +244,7 @@ bool TeensyCommander::InitSerial(std::string _port_name) {
 }
 
 void TeensyCommander::HandleActuatorControlsMessage(
-    ActuatorControlsMessage &_msg) {
+    esc_serial::ActuatorControlsMessage &_msg) {
   std::array<double, 8> values;
   for (int i = 0; i < 8; ++i) {
     values[i] = (_msg.payload_.pwm[i] - 1500) / 500.0;
@@ -250,7 +252,8 @@ void TeensyCommander::HandleActuatorControlsMessage(
   PublishThrusterValues(values);
 }
 
-void TeensyCommander::HandleBatteryVoltageMessage(BatteryVoltageMessage &_msg) {
+void TeensyCommander::HandleBatteryVoltageMessage(
+    esc_serial::BatteryVoltageMessage &_msg) {
   battery_voltage_ = _msg.payload_.voltage_mv / 1000.0;
 }
 
@@ -262,7 +265,7 @@ void TeensyCommander::ReadSerial() {
   for (int i = 0; i < available_bytes; ++i) {
     uint8_t byte;
     int length = read(serial_port_, &byte, 1);
-    if (length) {
+    if (length > 0) {
       if (!packet_.AddByte(byte)) {
         packet_.Reset();
         RCLCPP_WARN(get_logger(),
@@ -271,16 +274,18 @@ void TeensyCommander::ReadSerial() {
       }
 
       if (packet_.CompletelyReceived()) {
-        msg_id_t msg_id = packet_.ParseMessage();
+        esc_serial::msg_id_t msg_id = packet_.ParseMessage();
         RCLCPP_INFO(get_logger(), "Received packet with id: %u", msg_id);
         switch (msg_id) {
-          case ActuatorControlsMessage::MSG_ID: {
-            ActuatorControlsMessage msg;
+          case esc_serial::ActuatorControlsMessage::MSG_ID: {
+            RCLCPP_DEBUG(get_logger(), "Received ActuatControlsMessage.");
+            esc_serial::ActuatorControlsMessage msg;
             msg.Deserialize(packet_.PayloadStart(), packet_.PayloadSize());
             HandleActuatorControlsMessage(msg);
           } break;
-          case BatteryVoltageMessage::MSG_ID: {
-            BatteryVoltageMessage msg;
+          case esc_serial::BatteryVoltageMessage::MSG_ID: {
+            RCLCPP_DEBUG(get_logger(), "Received BatteryVoltageMessage.");
+            esc_serial::BatteryVoltageMessage msg;
             msg.Deserialize(packet_.PayloadStart(), packet_.PayloadSize());
             HandleBatteryVoltageMessage(msg);
           } break;

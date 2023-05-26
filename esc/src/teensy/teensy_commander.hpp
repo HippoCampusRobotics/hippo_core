@@ -36,8 +36,8 @@ class TeensyCommander : public rclcpp::Node {
   void PublishBatteryVoltage();
   void PublishThrusterValues(std::array<double, 8> &_values);
 
-  void HandleActuatorControlsMessage(ActuatorControlsMessage &_msg);
-  void HandleBatteryVoltageMessage(BatteryVoltageMessage &_msg);
+  void HandleActuatorControlsMessage(esc_serial::ActuatorControlsMessage &_msg);
+  void HandleBatteryVoltageMessage(esc_serial::BatteryVoltageMessage &_msg);
 
   void ReadSerial();
 
@@ -91,7 +91,7 @@ class TeensyCommander : public rclcpp::Node {
   bool armed_{false};
   double battery_voltage_{0.0};
 
-  Packet packet_;
+  esc_serial::Packet packet_;
 };
 }  // namespace teensy
 }  // namespace esc
