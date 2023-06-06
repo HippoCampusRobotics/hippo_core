@@ -6,7 +6,7 @@ project(esc)
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
-set(CXX_FLAGS -Wall -Wextra -Wpedantic -Wshadow -std=c++17 -O2)
+set(CXX_FLAGS -Wall -Wextra -Wpedantic -Wshadow -std=c++17 -O2 -fPIC)
 add_compile_options(${CXX_FLAGS})
 
 ## Find catkin macros and libraries
@@ -15,9 +15,13 @@ add_compile_options(${CXX_FLAGS})
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(hippo_msgs REQUIRED)
+find_package(hippo_common REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 # find_package(catkin REQUIRED COMPONENTS
 #   hippocampus_common
@@ -26,10 +30,72 @@ find_package(hippo_msgs REQUIRED)
 #   dynamic_reconfigure
 # )
 
-include_directories(
-  include
+################################################################################
+# esc_serial library
+################################################################################
+set(lib_name esc_serial)
+add_library(${lib_name}
+  STATIC
+  src/esc_serial/src/cobs.cpp
+  src/esc_serial/src/crc.cpp
+  src/esc_serial/src/esc_serial.cpp
 )
 
+target_include_directories(${lib_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/esc_serial/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+ament_export_libraries(${lib_name}_export HAS_LIBRARY_TARGET)
+
+install(TARGETS ${lib_name}
+  EXPORT ${lib_name}_export
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib
+)
+
+install(
+  DIRECTORY src/esc_serial/include/
+  DESTINATION include
+)
+
+include_directories(
+  include
+  src/esc_serial/include
+)
+
+################################################################################
+# teensy_commander component
+################################################################################
+set(component_name teensy_commander)
+add_library(${component_name}
+  SHARED
+  src/teensy/teensy_commander.cpp
+  src/teensy/teensy_commander_params.cpp
+)
+target_link_libraries(${component_name} esc_serial)
+target_include_directories(${component_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${component_name}
+  rclcpp
+  rclcpp_components
+  hippo_common
+  hippo_msgs
+  std_msgs
+  std_srvs
+)
+rclcpp_components_register_node(${component_name} PLUGIN "esc::teensy::TeensyCommander" EXECUTABLE ${component_name}_node)
+install(TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 # Install Python modules
 ament_python_install_package(${PROJECT_NAME})

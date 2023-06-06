@@ -1,0 +1,3 @@
+[submodule "esc/src/esc_serial"]
+	path = esc/src/esc_serial
+	url = ../esc_serial.git
