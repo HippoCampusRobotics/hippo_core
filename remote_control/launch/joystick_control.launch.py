@@ -25,10 +25,7 @@ def generate_launch_description():
                 'autorepeat_rate': 20.0,
                 'sticky_buttons': False,
                 'coalesce_interval_ms': 1,
-            }],
-            parameters=[{
                 'use_sim_time': use_sim_time,
-                'vehicle_name': vehicle_name,
             }],
             extra_arguments=[
                 {
