@@ -33,6 +33,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/EstimatorState.msg"
   "msg/Float64Stamped.msg"
   "msg/Int64Stamped.msg"
+  "msg/NewtonGripperCommand.msg"
   "msg/RangeMeasurement.msg"
   "msg/RangeMeasurementArray.msg"
   "msg/RatesDebug.msg"
