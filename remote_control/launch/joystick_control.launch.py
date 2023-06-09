@@ -3,8 +3,15 @@ import launch_ros
 
 
 def generate_launch_description():
-    launch_args = [launch.actions.DeclareLaunchArgument(name='vehicle_name')]
+    use_sim_time = launch.substitutions.LaunchConfiguration('use_sim_time')
     vehicle_name = launch.substitutions.LaunchConfiguration('vehicle_name')
+
+    vehicle_name_arg = launch.actions.DeclareLaunchArgument(
+        name='vehicle_name', description='Vehicle name used as namespace.')
+    use_sim_time_arg = launch.actions.DeclareLaunchArgument(
+        name='use_sim_time', description='decide if simulation time is used.')
+
+    launch_args = [vehicle_name_arg, use_sim_time_arg]
 
     composable_nodes = [
         launch_ros.descriptions.ComposableNode(
@@ -19,6 +26,10 @@ def generate_launch_description():
                 'sticky_buttons': False,
                 'coalesce_interval_ms': 1,
             }],
+            parameters=[{
+                'use_sim_time': use_sim_time,
+                'vehicle_name': vehicle_name,
+            }],
             extra_arguments=[
                 {
                     'use_intra_process_comms': True
@@ -28,6 +39,10 @@ def generate_launch_description():
             package='remote_control',
             plugin='remote_control::joystick::JoyStick',
             name='joystick_mapper',
+            parameters=[{
+                'use_sim_time': use_sim_time,
+                'vehicle_name': vehicle_name,
+            }],
             extra_arguments=[
                 {
                     'use_intra_process_comms': True
