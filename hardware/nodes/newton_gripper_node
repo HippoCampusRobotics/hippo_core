@@ -29,6 +29,15 @@ class NewtonGripper(Node):
             self.timed_out = False
             self.get_logger().info('"%s" not timed out anymore',
                                    self.command_sub.topic_name)
+        if msg.action == NewtonGripperCommand.ACTION_CLOSE:
+            self.close_gripper()
+        elif msg.action == NewtonGripperCommand.ACTION_OPEN:
+            self.open_gripper()
+        elif msg.action == NewtonGripperCommand.ACTION_NONE:
+            self.stop_gripper()
+        else:
+            self.get_logger().warning('Received unhandled action: %d',
+                                      msg.action)
 
     def open_gripper(self):
         self.pi.set_servo_pulsewidth(self.gripper_pin, 1800)
