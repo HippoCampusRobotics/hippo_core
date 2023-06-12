@@ -32,7 +32,7 @@ class CameraServo(Node):
         return SetParametersResult(successful=True)
 
     def set_servo(self, value: float):
-        val = 1500 + value * 400.0
+        val = 1100 + value * 800.0
         val = min(1900, max(1100, val))
         self.pi.set_servo_pulsewidth(self.camer_servo_pin, val)
 
@@ -45,8 +45,8 @@ def main():
     node = CameraServo('camera_servo')
     try:
         rclpy.spin(node)
-    except:
-        pass
+    except Exception as e:
+        print(f'{e}')
     finally:
         node.on_shutdown()
 
