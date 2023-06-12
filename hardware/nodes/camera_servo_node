@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.node import Node
 import pigpio
-from rcl_interfaces.msg import SetParametersResult, ParameterDescriptor, ParameterType
+from rcl_interfaces.msg import SetParametersResult, ParameterDescriptor, ParameterType, IntegerRange
 
 
 class CameraServo(Node):
@@ -16,7 +16,11 @@ class CameraServo(Node):
         self.camer_servo_pin = 20
 
         descr = ParameterDescriptor()
-        descr.integer_range = [0, 100, 1]
+        range = IntegerRange()
+        range.from_value = 0
+        range.to_value = 100
+        range.step = 1
+        descr.integer_range = [range]
         descr.type = ParameterType.PARAMETER_INTEGER
         self.declare_parameter('tilt', 50, descr)
         self.add_on_set_parameters_callback(self.on_parameters)
