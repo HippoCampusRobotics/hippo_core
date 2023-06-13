@@ -7,6 +7,7 @@ namespace remote_control {
 namespace joystick {
 JoyStick::JoyStick(const rclcpp::NodeOptions &_options)
     : Node("joystick", _options) {
+  DeclareParams();
   InitPublishers();
   InitSubscribers();
 }
@@ -21,7 +22,8 @@ void JoyStick::InitPublishers() {
   torque_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(topic, 10);
 
   topic = "gripper_command";
-  gripper_pub_ = create_publisher<hippo_msgs::msg::NewtonGripperCommand>(topic, 10);
+  gripper_pub_ =
+      create_publisher<hippo_msgs::msg::NewtonGripperCommand>(topic, 10);
 }
 
 void JoyStick::OnJoy(const sensor_msgs::msg::Joy::SharedPtr _msg) {
@@ -50,9 +52,11 @@ std::array<double, 3> JoyStick::ComputeThrust(
   if (axes::kNumAxes > _axes.size()) {
     throw std::out_of_range("Axis index out of range.");
   }
-  thrust[0] = (double)_axes.at(axes::kLeftStickUpDown);
-  thrust[1] = (double)_axes.at(axes::kLeftStickLeftRight);
-  thrust[2] = (double)_axes.at(axes::kRightStickUpDown);
+  thrust[0] = (double)_axes.at(axes::kLeftStickUpDown) * params_.gains.thrust.x;
+  thrust[1] =
+      (double)_axes.at(axes::kLeftStickLeftRight) * params_.gains.thrust.y;
+  thrust[2] =
+      (double)_axes.at(axes::kRightStickUpDown) * params_.gains.thrust.z;
   return thrust;
 }
 
@@ -63,10 +67,11 @@ std::array<double, 3> JoyStick::ComputeTorque(
   if (axes::kNumAxes > _axes.size()) {
     throw std::out_of_range("Axis index out of range.");
   }
-  torque[0] = 0.0;
-  torque[1] = 0.0;
+  torque[0] = 0.0 * params_.gains.torque.x;
+  torque[1] = 0.0 * params_.gains.torque.y;
   // RT buttons are normally 1.0 and are -1.0 if pressed.
-  torque[2] = 0.5 * (_axes.at(axes::kLT) - _axes.at(axes::kRT));
+  torque[2] =
+      (double)_axes.at(axes::kRightStickLeftRight) * params_.gains.torque.z;
   return torque;
 }
 

@@ -1,0 +1,11 @@
+/**: # wildcard for the node name
+  ros__parameters:
+    gains:
+      torque:
+        x: 4.0
+        y: 4.0
+        z: 4.0
+      thrust:
+        x: 10.0
+        y: 10.0
+        z: 10.0
