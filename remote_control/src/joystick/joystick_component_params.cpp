@@ -11,6 +11,7 @@ void JoyStick::DeclareParams() {
   std::string descr_text;
 
   name = "gains.torque.x";
+  RCLCPP_INFO(get_logger(), "Declaring '%s'.", name.c_str());
   descr_text = "Gain for joystick input";
   descr = hippo_common::param_utils::Description(descr_text);
   {
@@ -19,6 +20,7 @@ void JoyStick::DeclareParams() {
   }
 
   name = "gains.torque.y";
+  RCLCPP_INFO(get_logger(), "Declaring '%s'.", name.c_str());
   descr_text = "Gain for joystick input";
   descr = hippo_common::param_utils::Description(descr_text);
   {
@@ -27,6 +29,7 @@ void JoyStick::DeclareParams() {
   }
 
   name = "gains.torque.z";
+  RCLCPP_INFO(get_logger(), "Declaring '%s'.", name.c_str());
   descr_text = "Gain for joystick input";
   descr = hippo_common::param_utils::Description(descr_text);
   {
@@ -35,6 +38,7 @@ void JoyStick::DeclareParams() {
   }
 
   name = "gains.thrust.x";
+  RCLCPP_INFO(get_logger(), "Declaring '%s'.", name.c_str());
   descr_text = "Gain for joystick input";
   descr = hippo_common::param_utils::Description(descr_text);
   {
@@ -43,6 +47,7 @@ void JoyStick::DeclareParams() {
   }
 
   name = "gains.thrust.y";
+  RCLCPP_INFO(get_logger(), "Declaring '%s'.", name.c_str());
   descr_text = "Gain for joystick input";
   descr = hippo_common::param_utils::Description(descr_text);
   {
@@ -51,12 +56,16 @@ void JoyStick::DeclareParams() {
   }
 
   name = "gains.thrust.z";
+  RCLCPP_INFO(get_logger(), "Declaring '%s'.", name.c_str());
   descr_text = "Gain for joystick input";
   descr = hippo_common::param_utils::Description(descr_text);
   {
     auto &param = params_.gains.thrust.z;
     param = declare_parameter(name, param, descr);
   }
+
+  gain_params_cb_handle_ = add_on_set_parameters_callback(
+      std::bind(&JoyStick::OnGainParams, this, std::placeholders::_1));
 }
 
 rcl_interfaces::msg::SetParametersResult JoyStick::OnGainParams(
