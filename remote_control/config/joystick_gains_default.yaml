@@ -2,10 +2,10 @@
   ros__parameters:
     gains:
       torque:
-        x: 20.0
-        y: 20.0
-        z: 20.0
+        x: 1.0
+        y: 1.0
+        z: 1.0
       thrust:
-        x: 20.0
-        y: 20.0
-        z: 20.0
+        x: 1.0
+        y: 1.0
+        z: 1.0
