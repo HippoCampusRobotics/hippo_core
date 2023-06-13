@@ -27,8 +27,8 @@ class NewtonGripper(Node):
         self.timeout_timer.reset()
         if self.timed_out:
             self.timed_out = False
-            self.get_logger().info('"%s" not timed out anymore',
-                                   self.command_sub.topic_name)
+            self.get_logger().info(
+                f'"{self.command_sub.topic_name}" not timed out anymore')
         if msg.action == NewtonGripperCommand.ACTION_CLOSE:
             self.close_gripper()
         elif msg.action == NewtonGripperCommand.ACTION_OPEN:
@@ -36,8 +36,8 @@ class NewtonGripper(Node):
         elif msg.action == NewtonGripperCommand.ACTION_NONE:
             self.stop_gripper()
         else:
-            self.get_logger().warning('Received unhandled action: %d',
-                                      msg.action)
+            self.get_logger().warning(
+                f'Received unhandled action: {msg.action}')
 
     def open_gripper(self):
         self.pi.set_servo_pulsewidth(self.gripper_pin, 1800)
@@ -62,8 +62,8 @@ def main():
     node = NewtonGripper('gripper')
     try:
         rclpy.spin(node)
-    except:
-        pass
+    except Exception as e:
+        print(f'{e}')
     finally:
         node.on_shutdown()
 
