@@ -109,6 +109,14 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+################################################################################
+# install shared resources
+################################################################################
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
 install (
   TARGETS
   esc_commander_node

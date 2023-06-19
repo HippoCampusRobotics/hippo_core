@@ -7,6 +7,7 @@ namespace remote_control {
 namespace joystick {
 JoyStick::JoyStick(const rclcpp::NodeOptions &_options)
     : Node("joystick", _options) {
+  DeclareParams();
   InitPublishers();
   InitSubscribers();
 }
@@ -19,14 +20,21 @@ void JoyStick::InitPublishers() {
 
   topic = "torque_setpoint";
   torque_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(topic, 10);
+
+  topic = "gripper_command";
+  gripper_pub_ =
+      create_publisher<hippo_msgs::msg::NewtonGripperCommand>(topic, 10);
 }
 
 void JoyStick::OnJoy(const sensor_msgs::msg::Joy::SharedPtr _msg) {
   std::array<double, 3> thrust = ComputeThrust(_msg->axes, _msg->buttons);
   std::array<double, 3> torque = ComputeTorque(_msg->axes, _msg->buttons);
+  hippo_msgs::msg::NewtonGripperCommand gripper_command =
+      ComputeNewtonGripperCommand(_msg->axes, _msg->buttons);
 
   PublishThrust(thrust);
   PublishTorque(torque);
+  PublishNewtonGripperCommand(gripper_command);
 }
 
 void JoyStick::InitSubscribers() {
@@ -38,28 +46,50 @@ void JoyStick::InitSubscribers() {
 }
 
 std::array<double, 3> JoyStick::ComputeThrust(
-    const std::vector<float> &_axes, const std::vector<int32_t> &_buttons) {
+    [[maybe_unused]] const std::vector<float> &_axes,
+    [[maybe_unused]] const std::vector<int32_t> &_buttons) {
   std::array<double, 3> thrust;
   if (axes::kNumAxes > _axes.size()) {
     throw std::out_of_range("Axis index out of range.");
   }
-  thrust[0] = (double)_axes.at(axes::kLeftStickUpDown);
-  thrust[1] = (double)_axes.at(axes::kLefStickLeftRight);
-  thrust[2] = (double)_axes.at(axes::kRightStickUpDown);
+  thrust[0] = (double)_axes.at(axes::kLeftStickUpDown) * params_.gains.thrust.x;
+  thrust[1] =
+      (double)_axes.at(axes::kLeftStickLeftRight) * params_.gains.thrust.y;
+  thrust[2] =
+      (double)_axes.at(axes::kRightStickUpDown) * params_.gains.thrust.z;
   return thrust;
 }
 
 std::array<double, 3> JoyStick::ComputeTorque(
-    const std::vector<float> &_axes, const std::vector<int32_t> &_buttons) {
+    [[maybe_unused]] const std::vector<float> &_axes,
+    [[maybe_unused]] const std::vector<int32_t> &_buttons) {
   std::array<double, 3> torque;
   if (axes::kNumAxes > _axes.size()) {
     throw std::out_of_range("Axis index out of range.");
   }
-  torque[0] = 0.0;
-  torque[1] = 0.0;
+  torque[0] = 0.0 * params_.gains.torque.x;
+  torque[1] = 0.0 * params_.gains.torque.y;
   // RT buttons are normally 1.0 and are -1.0 if pressed.
-  torque[2] = 0.5 * (_axes.at(axes::kLT) - _axes.at(axes::kRT));
+  torque[2] =
+      (double)_axes.at(axes::kRightStickLeftRight) * params_.gains.torque.z;
   return torque;
+}
+
+hippo_msgs::msg::NewtonGripperCommand JoyStick::ComputeNewtonGripperCommand(
+    [[maybe_unused]] const std::vector<float> &_axes,
+    [[maybe_unused]] const std::vector<int32_t> &_buttons) {
+  hippo_msgs::msg::NewtonGripperCommand msg;
+  msg.header.stamp = now();
+
+  // choose the appropriate action based on the buttons pressed.
+  if (_buttons.at(buttons::kA)) {
+    msg.action = msg.ACTION_CLOSE;
+  } else if (_buttons.at(buttons::kX)) {
+    msg.action = msg.ACTION_OPEN;
+  } else {
+    msg.action = msg.ACTION_NONE;
+  }
+  return msg;
 }
 
 void JoyStick::PublishThrust(const std::array<double, 3> &_thrust) {
@@ -90,6 +120,16 @@ void JoyStick::PublishTorque(const std::array<double, 3> &_torque) {
     return;
   }
   torque_pub_->publish(msg);
+}
+
+void JoyStick::PublishNewtonGripperCommand(
+    const hippo_msgs::msg::NewtonGripperCommand &_command) {
+  if (!gripper_pub_) {
+    RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000,
+                          "Gripper publisher not initialized.");
+    return;
+  }
+  gripper_pub_->publish(_command);
 }
 
 }  // namespace joystick
