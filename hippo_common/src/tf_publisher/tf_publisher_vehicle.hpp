@@ -5,6 +5,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 
 namespace hippo_common {
 class TfPublisherVehicle : public rclcpp::Node {
@@ -32,7 +33,13 @@ class TfPublisherVehicle : public rclcpp::Node {
   void DeclareVerticalCameraParameters();
   void DeclareFrontCameraParameters();
   void BroadCastStatic();
+
+  void OnOdometry(const nav_msgs::msg::Odometry::SharedPtr _msg);
+
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_{nullptr};
+
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_broadcaster_;
+  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   Params params_;
 };
 }  // namespace hippo_common
