@@ -10,10 +10,39 @@ TfPublisherVehicle::TfPublisherVehicle(rclcpp::NodeOptions const &_options)
     : Node("tf_publisher", _options) {
   static_broadcaster_ =
       std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
   DeclareParameters();
   BroadCastStatic();
+
+  std::string topic;
+  topic = "odometry";
+  odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
+      topic, 10, [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
+        OnOdometry(msg);
+      });
 }
 
+void TfPublisherVehicle::OnOdometry(
+    const nav_msgs::msg::Odometry::SharedPtr _msg) {
+  // simply publish the base link TF based on the odometry msg
+  geometry_msgs::msg::TransformStamped tf;
+  tf.header.stamp = now();
+  tf.header.frame_id = _msg->header.frame_id;
+  tf.child_frame_id = hippo_common::tf2_utils::frame_id::BaseLink(this);
+  tf.transform.translation.x = _msg->pose.pose.position.x;
+  tf.transform.translation.y = _msg->pose.pose.position.y;
+  tf.transform.translation.z = _msg->pose.pose.position.z;
+  tf.transform.rotation = _msg->pose.pose.orientation;
+
+  if (tf_broadcaster_ == nullptr) {
+    RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "Broadcaster not available. Won't publish transformation %s -> %s",
+        tf.header.frame_id.c_str(), tf.child_frame_id.c_str());
+    return;
+  }
+  tf_broadcaster_->sendTransform(tf);
+}
 void TfPublisherVehicle::DeclareParameters() {
   DeclareVerticalCameraParameters();
   DeclareFrontCameraParameters();
@@ -95,17 +124,6 @@ void TfPublisherVehicle::DeclareFrontCameraParameters() {
 
 void TfPublisherVehicle::BroadCastStatic() {
   std::vector<geometry_msgs::msg::TransformStamped> transforms;
-  // inertial ENU to NED transformation
-  // {
-  //   geometry_msgs::msg::TransformStamped t;
-  //   t.transform = hippo_common::tf2_utils::ENUtoNED();
-  //   std::string child_frame =
-  //       hippo_common::tf2_utils::frame_id::InertialFramePX4();
-  //   t.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
-  //   t.child_frame_id = child_frame;
-  //   transforms.push_back(t);
-  // }
-
   {
     geometry_msgs::msg::TransformStamped t;
     t.transform = hippo_common::tf2_utils::FLUtoFRD();
