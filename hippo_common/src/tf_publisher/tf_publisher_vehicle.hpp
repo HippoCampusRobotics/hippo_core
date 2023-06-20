@@ -4,8 +4,8 @@
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 namespace hippo_common {
 class TfPublisherVehicle : public rclcpp::Node {
@@ -35,8 +35,12 @@ class TfPublisherVehicle : public rclcpp::Node {
   void BroadCastStatic();
 
   void OnOdometry(const nav_msgs::msg::Odometry::SharedPtr _msg);
+  void OnVisionPoseCovariance(
+      const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr _msg);
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_{nullptr};
+  rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
+      vision_pose_cov_sub_{nullptr};
 
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_broadcaster_;
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;

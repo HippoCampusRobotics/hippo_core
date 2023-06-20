@@ -20,6 +20,13 @@ TfPublisherVehicle::TfPublisherVehicle(rclcpp::NodeOptions const &_options)
       topic, 10, [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
         OnOdometry(msg);
       });
+
+  topic = "vision_pose_cov";
+  vision_pose_cov_sub_ =
+      create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+          topic, 10,
+          [this](const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
+                     msg) { OnVisionPoseCovariance(msg); });
 }
 
 void TfPublisherVehicle::OnOdometry(
@@ -43,6 +50,29 @@ void TfPublisherVehicle::OnOdometry(
   }
   tf_broadcaster_->sendTransform(tf);
 }
+
+void TfPublisherVehicle::OnVisionPoseCovariance(
+    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr _msg) {
+  // simply publish the base link TF based on the vision pose
+  geometry_msgs::msg::TransformStamped tf;
+  tf.header.stamp = now();
+  tf.header.frame_id = _msg->header.frame_id;
+  tf.child_frame_id = hippo_common::tf2_utils::frame_id::VisionBaseLink(this);
+  tf.transform.translation.x = _msg->pose.pose.position.x;
+  tf.transform.translation.y = _msg->pose.pose.position.y;
+  tf.transform.translation.z = _msg->pose.pose.position.z;
+  tf.transform.rotation = _msg->pose.pose.orientation;
+
+  if (tf_broadcaster_ == nullptr) {
+    RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "Broadcaster not available. Won't publish transformation %s -> %s",
+        tf.header.frame_id.c_str(), tf.child_frame_id.c_str());
+    return;
+  }
+  tf_broadcaster_->sendTransform(tf);
+}
+
 void TfPublisherVehicle::DeclareParameters() {
   DeclareVerticalCameraParameters();
   DeclareFrontCameraParameters();
