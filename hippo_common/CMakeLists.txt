@@ -20,6 +20,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(nav_msgs REQUIRED)
 
 add_library(hippo_common
   SHARED
@@ -65,6 +66,7 @@ ament_target_dependencies(${component_name}
   rclcpp
   rclcpp_components
   geometry_msgs
+  nav_msgs
   tf2_ros
 )
 rclcpp_components_register_node(${component_name}
