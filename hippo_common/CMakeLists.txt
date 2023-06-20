@@ -48,31 +48,32 @@ install(TARGETS hippo_common
 ################################################################################
 ## tf_publisher composable node
 ################################################################################
-add_library(tf_publisher_vehicle
+set(component_name tf_publisher_vehicle)
+add_library(${component_name}
   SHARED
   src/tf_publisher/tf_publisher_vehicle.cpp
 )
-target_include_directories(tf_publisher_vehicle
+target_include_directories(${component_name}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(tf_publisher_vehicle
+target_link_libraries(${component_name}
   hippo_common
 )
-ament_target_dependencies(tf_publisher_vehicle
+ament_target_dependencies(${component_name}
   rclcpp
   rclcpp_components
   geometry_msgs
   tf2_ros
 )
-rclcpp_components_register_node(tf_publisher_vehicle
+rclcpp_components_register_node(${component_name}
   PLUGIN "hippo_common::TfPublisherVehicle"
   EXECUTABLE tf_publisher_vehicle_node
 )
 
 install(
-  TARGETS tf_publisher_vehicle
+  TARGETS ${component_name}
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
