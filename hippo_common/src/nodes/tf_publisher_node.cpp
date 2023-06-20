@@ -3,7 +3,7 @@
 
 int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
-  auto n = std::make_shared<hippo_common::TfPublisher>(rclcpp::NodeOptions{});
+  auto n = std::make_shared<hippo_common::TfPublisherVehicle>(rclcpp::NodeOptions{});
   rclcpp::spin(n);
   rclcpp::shutdown();
   n = nullptr;
