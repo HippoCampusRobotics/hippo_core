@@ -31,6 +31,7 @@ def generate_launch_description():
         launch_ros.actions.PushRosNamespace(vehicle_name),
         launch_ros.actions.Node(package=package_name,
                                 executable='tf_publisher_vehicle_node',
+                                output='screen',
                                 parameters=[
                                     {
                                         'vehicle_name': vehicle_name,

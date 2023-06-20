@@ -73,7 +73,7 @@ void TfPublisherVehicle::DeclareVerticalCameraParameters() {
   name = "has_vertical_camera";
   descr_text = "If vehicle has vertical camera";
   descr = param_utils::Description(descr_text, true);
-  params_.has_vertical_camera = declare_parameter(name, false, descr, true);
+  params_.has_vertical_camera = declare_parameter(name, false, descr);
   if (params_.has_vertical_camera) {
     DeclareCameraParameters("vertical_camera", params_.vertical_camera);
   }
@@ -87,7 +87,7 @@ void TfPublisherVehicle::DeclareFrontCameraParameters() {
   name = "has_front_camera";
   descr_text = "If vehicle has front camera";
   descr = param_utils::Description(descr_text, true);
-  params_.has_front_camera = declare_parameter(name, false, descr, true);
+  params_.has_front_camera = declare_parameter(name, false, descr);
   if (params_.has_front_camera) {
     DeclareCameraParameters("front_camera", params_.front_camera);
   }
