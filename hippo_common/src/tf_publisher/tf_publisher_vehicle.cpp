@@ -185,9 +185,12 @@ void TfPublisherVehicle::BroadCastStatic() {
     t.transform.rotation.x = params_.vertical_camera.qx;
     t.transform.rotation.y = params_.vertical_camera.qy;
     t.transform.rotation.z = params_.vertical_camera.qz;
-    t.header.frame_id = hippo_common::tf2_utils::frame_id::BaseLink(this);
-    t.child_frame_id =
-        hippo_common::tf2_utils::frame_id::VerticalCameraLink(this);
+    t.header.frame_id = tf2_utils::frame_id::BaseLink(this);
+    t.child_frame_id = tf2_utils::frame_id::VerticalCameraLink(this);
+    transforms.push_back(t);
+    // same transformation for the vision subtree
+    t.header.frame_id = tf2_utils::frame_id::VisionBaseLink(this);
+    t.child_frame_id = tf2_utils::frame_id::VerticalCameraName(this);
     transforms.push_back(t);
 
     geometry_msgs::msg::TransformStamped t2;
@@ -211,6 +214,10 @@ void TfPublisherVehicle::BroadCastStatic() {
     t.transform.rotation.z = params_.front_camera.qz;
     t.header.frame_id = hippo_common::tf2_utils::frame_id::BaseLink(this);
     t.child_frame_id = hippo_common::tf2_utils::frame_id::FrontCameraLink(this);
+    transforms.push_back(t);
+    // same transformation for the vision subtree
+    t.header.frame_id = tf2_utils::frame_id::VisionBaseLink(this);
+    t.child_frame_id = tf2_utils::frame_id::FrontCameraName(this);
     transforms.push_back(t);
 
     geometry_msgs::msg::TransformStamped t2;
