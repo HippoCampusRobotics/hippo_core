@@ -49,8 +49,10 @@ namespace frame_id {
 static constexpr char kBarometerName[] = "barometer";
 static constexpr char kBaseLinkName[] = "base_link";
 static constexpr char kInertialName[] = "map";
+static constexpr char kVerticalCameraName[] = "vertical_camera";
 static constexpr char kVerticalCameraLinkName[] = "vertical_camera_link";
 static constexpr char kVerticalCameraFrameName[] = "vertical_camera_frame";
+static constexpr char kFrontCameraName[] = "front_camera";
 static constexpr char kFrontCameraLinkName[] = "front_camera_link";
 static constexpr char kFrontCameraFrameName[] = "front_camera_frame";
 
@@ -63,23 +65,42 @@ inline std::string Prefix(rclcpp::Node *_node) {
 inline std::string Barometer(rclcpp::Node *_node) {
   return Prefix(_node) + "/" + kBarometerName;
 }
+/// @brief Pose of the base link is defined by the vehicle's odometry, i.e. the
+/// state estimation
+/// @param _node Reference to the node living in the vehicle's namespace.
+/// Usually provided by passing `this`.
+/// @return
 inline std::string BaseLink(rclcpp::Node *_node) {
   return Prefix(_node) + "/" + kBaseLinkName;
 }
 inline std::string BaseLinkFrd(rclcpp::Node *_node) {
   return BaseLink(_node) + "_frd";
 }
+/**
+ * @brief Similar to BaseLink(rclcpp::Node *_node), but directly based in the
+ * pose estimation of the vision system
+ *
+ * @param _node Reference to the node living in the vehicle's namespace. Usually
+ * provided by passing `this`.
+ * @return std::string
+ */
 inline std::string VisionBaseLink(rclcpp::Node *_node) {
   return Prefix(_node) + "/vision_" + kBaseLinkName;
 }
 inline std::string VisionBaseLinkFrd(rclcpp::Node *_node) {
   return VisionBaseLink(_node) + "_frd";
 }
+inline std::string VerticalCameraName(rclcpp::Node *_node) {
+  return Prefix(_node) + "/" + kVerticalCameraName;
+}
 inline std::string VerticalCameraLink(rclcpp::Node *_node) {
   return Prefix(_node) + "/" + kVerticalCameraLinkName;
 }
 inline std::string VerticalCameraFrame(rclcpp::Node *_node) {
   return Prefix(_node) + "/" + kVerticalCameraFrameName;
+}
+inline std::string FrontCameraName(rclcpp::Node *_node) {
+  return Prefix(_node) + "/" + kFrontCameraName;
 }
 inline std::string FrontCameraLink(rclcpp::Node *_node) {
   return Prefix(_node) + "/" + kFrontCameraLinkName;
