@@ -48,6 +48,39 @@ install(TARGETS ${lib_name}
 )
 
 ################################################################################
+# tracking_controller component
+################################################################################
+set(component_name tracking_controller)
+add_library(${component_name}
+  SHARED
+  src/trajectory_tracking/tracking_controller.cpp
+  src/trajectory_tracking/tracking_controller_params.cpp
+)
+target_link_libraries(${component_name} tracking_control)
+target_include_directories(${component_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${component_name}
+  rclcpp
+  rclcpp_components
+  hippo_common
+  hippo_msgs
+  geometry_msgs
+)
+rclcpp_components_register_node(${component_name}
+  PLUGIN "hippo_control::trajectory_tracking::TrackingControllerNode"
+  EXECUTABLE ${component_name}_node
+)
+install(TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+################################################################################
 # attitude_control library
 ################################################################################
 set(lib_name attitude_control)
