@@ -4,15 +4,12 @@ namespace trajectory_tracking {
 class TrackingController {
  public:
   TrackingController();
-  void SetDesiredVelocity(const Eigen::Vector3d &_v) { velocity_desired_ = _v; }
-  void SetDesiredPosition(const Eigen::Vector3d &_v) { position_desired_ = _v; }
   void SetDesiredState(const Eigen::Vector3d &_position,
-                       const Eigen::Vector3d &_velocity) {
+                       const Eigen::Vector3d &_velocity, double _roll) {
     position_desired_ = _position;
     velocity_desired_ = _velocity;
+    roll_desired_ = _roll;
   };
-  void SetCurrentVelocity(const Eigen::Vector3d &_v) { velocity_ = _v; }
-  void SetCurrentPosition(const Eigen::Vector3d &_v) { position_ = _v; }
   void SetCurrentState(const Eigen::Vector3d &_position,
                        const Eigen::Vector3d &_velocity) {
     position_ = _position;
@@ -20,6 +17,19 @@ class TrackingController {
   }
   void SetPositionGain(double _gain) { position_gain_ = _gain; }
   void SetVelocityGain(double _gain) { velocity_gain_ = _gain; }
+
+  Eigen::Quaterniond Update(const Eigen::Vector3d &_position,
+                            const Eigen::Vector3d &_velocity,
+                            const Eigen::Vector3d &_feed_forward_thrust);
+
+  /**
+   * @brief Getter for the most recent thrust computed by ::Update()
+   * 
+   * @return Eigen::Vector3d 
+   */
+  Eigen::Vector3d Thrust() const { return thrust_; }
+
+ private:
   /**
    * @brief Applies a feedback control law based on:
    * Mellinger, Daniel and Vijay R. Kumar. “Minimum snap trajectory generation
@@ -28,13 +38,9 @@ class TrackingController {
    *
    * @param _feed_forward A feedforward term (based on the vehicle dynamics for
    * example) can be added.
-   * @return Eigen::Vector3d
+   * @return Eigen::Vector3d The thrust vector is not tied to a physical unit.
    */
-  Eigen::Vector3d RequiredThrust(const Eigen::Vector3d &_feed_forward) const {
-    return Eigen::Vector3d{(position_desired_ - position_) * position_gain_ +
-                           (velocity_desired_ - velocity_) * velocity_gain_ +
-                           _feed_forward};
-  }
+  Eigen::Vector3d RequiredThrust(const Eigen::Vector3d &_feed_forward);
   /**
    * @brief Computes the attitude from a thrust vector and the roll angle. In
    * case the thrust vector is close to the zero vector, the attitude based on
@@ -48,12 +54,12 @@ class TrackingController {
    */
   Eigen::Quaterniond AttitudeFromThrust(const Eigen::Vector3d &_thrust,
                                         double _roll);
-
- private:
   Eigen::Vector3d velocity_{0.0, 0.0, 0.0};
   Eigen::Vector3d position_{0.0, 0.0, 0.0};
   Eigen::Vector3d velocity_desired_{0.0, 0.0, 0.0};
   Eigen::Vector3d position_desired_{0.0, 0.0, 0.0};
+  double roll_desired_{0.0};
+  Eigen::Vector3d thrust_{0.0, 0.0, 0.0};
 
   Eigen::Quaterniond last_valid_attitude_{0.0, 0.0, 0.0, 1.0};
 

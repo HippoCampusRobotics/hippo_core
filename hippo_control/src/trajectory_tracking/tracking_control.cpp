@@ -29,5 +29,22 @@ Eigen::Quaterniond TrackingController::AttitudeFromThrust(
   last_valid_attitude_ = valid_attitude ? attitude : last_valid_attitude_;
   return attitude;
 }
+
+Eigen::Quaterniond TrackingController::Update(
+    const Eigen::Vector3d &_position, const Eigen::Vector3d &_velocity,
+    const Eigen::Vector3d &_feed_forward_thrust) {
+  position_ = _position;
+  velocity_ = _velocity;
+  Eigen::Vector3d thrust = RequiredThrust(_feed_forward_thrust);
+  return AttitudeFromThrust(thrust, roll_desired_);
+}
+
+Eigen::Vector3d TrackingController::RequiredThrust(
+    const Eigen::Vector3d &_feed_forward) {
+  thrust_ = Eigen::Vector3d{(position_desired_ - position_) * position_gain_ +
+                            (velocity_desired_ - velocity_) * velocity_gain_ +
+                            _feed_forward};
+  return thrust_;
+}
 }  // namespace trajectory_tracking
 }  // namespace hippo_control
