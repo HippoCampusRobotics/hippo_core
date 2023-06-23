@@ -26,6 +26,28 @@ include_directories(
   include
 )
 ################################################################################
+# tracking_control library
+################################################################################
+set(lib_name tracking_control)
+add_library(${lib_name} src/trajectory_tracking/tracking_control.cpp)
+target_include_directories(${lib_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${lib_name} rclcpp Eigen3)
+ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
+ament_export_dependencies(rclcpp Eigen3)
+
+install(TARGETS ${lib_name}
+  EXPORT ${lib_name}Target
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
+
+################################################################################
 # attitude_control library
 ################################################################################
 set(lib_name attitude_control)
