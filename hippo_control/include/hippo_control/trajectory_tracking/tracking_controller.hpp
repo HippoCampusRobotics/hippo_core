@@ -1,4 +1,7 @@
+#pragma once
+
 #include <rclcpp/rclcpp.hpp>
+
 namespace hippo_control {
 namespace trajectory_tracking {
 class TrackingControllerNode : public rclcpp::Node {
@@ -8,5 +11,3 @@ class TrackingControllerNode : public rclcpp::Node {
 }  // namespace trajectory_tracking
 }  // namespace hippo_control
 
-#include <rclcpp_components/register_node_macro.hpp>
-RCLCPP_COMPONENTS_REGISTER_NODE(hippo_control::trajectory_tracking::TrackingControllerNode)

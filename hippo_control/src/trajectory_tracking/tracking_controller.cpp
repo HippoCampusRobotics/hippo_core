@@ -7,3 +7,7 @@ TrackingControllerNode::TrackingControllerNode(
     : Node("tracking_controller", _options) {}
 }  // namespace trajectory_tracking
 }  // namespace hippo_control
+
+#include <rclcpp_components/register_node_macro.hpp>
+RCLCPP_COMPONENTS_REGISTER_NODE(
+    hippo_control::trajectory_tracking::TrackingControllerNode)

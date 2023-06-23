@@ -1,6 +1,10 @@
+#pragma once
+
 #include <eigen3/Eigen/Dense>
+
 namespace hippo_control {
 namespace trajectory_tracking {
+
 class TrackingController {
  public:
   TrackingController();
@@ -24,8 +28,8 @@ class TrackingController {
 
   /**
    * @brief Getter for the most recent thrust computed by ::Update()
-   * 
-   * @return Eigen::Vector3d 
+   *
+   * @return Eigen::Vector3d
    */
   Eigen::Vector3d Thrust() const { return thrust_; }
 
@@ -66,5 +70,6 @@ class TrackingController {
   double position_gain_{1.0};
   double velocity_gain_{1.0};
 };
+
 }  // namespace trajectory_tracking
 }  // namespace hippo_control
