@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+
+import rclpy
+from rclpy.node import Node
+from hippo_msgs.msg import NewtonGripperCommand
+import pigpio
+
+
+class NewtonGripper(Node):
+
+    def __init__(self, node_name):
+        super().__init__(node_name=node_name)
+        self.timed_out = False
+
+        self.pi = pigpio.pi()
+        self.gripper_pin = 18
+        self.command_timeout = 0.5
+
+        self.timeout_timer = self.create_timer(self.command_timeout,
+                                               self.on_timeout)
+
+        self.command_sub = self.create_subscription(NewtonGripperCommand,
+                                                    'gripper_command',
+                                                    self.on_gripper_command, 10)
+
+    def on_gripper_command(self, msg: NewtonGripperCommand):
+        self.timeout_timer.reset()
+        if self.timed_out:
+            self.timed_out = False
+            self.get_logger().info(
+                f'"{self.command_sub.topic_name}" not timed out anymore')
+        if msg.action == NewtonGripperCommand.ACTION_CLOSE:
+            self.close_gripper()
+        elif msg.action == NewtonGripperCommand.ACTION_OPEN:
+            self.open_gripper()
+        elif msg.action == NewtonGripperCommand.ACTION_NONE:
+            self.stop_gripper()
+        else:
+            self.get_logger().warning(
+                f'Received unhandled action: {msg.action}')
+
+    def open_gripper(self):
+        self.pi.set_servo_pulsewidth(self.gripper_pin, 1800)
+
+    def close_gripper(self):
+        self.pi.set_servo_pulsewidth(self.gripper_pin, 1200)
+
+    def stop_gripper(self):
+        self.pi.set_servo_pulsewidth(self.gripper_pin, 1500)
+
+    def on_timeout(self):
+        self.timed_out = True
+        self.stop_gripper()
+        self.timeout_timer.cancel()
+
+    def on_shutdown(self):
+        self.pi.set_servo_pulsewidth(self.gripper_pin, 0)
+
+
+def main():
+    rclpy.init()
+    node = NewtonGripper('gripper')
+    try:
+        rclpy.spin(node)
+    except Exception as e:
+        print(f'{e}')
+    finally:
+        node.on_shutdown()
+
+
+if __name__ == '__main__':
+    main()

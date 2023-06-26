@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>hippo_common</name>
+  <name>hardware</name>
   <version>0.0.0</version>
-  <description>The control package</description>
+  <description>The hardware package</description>
 
   <maintainer email="thies.lennart.alff@tuhh.de">Thies Lennart Alff</maintainer>
 
@@ -16,18 +16,18 @@
 
   <url type="website">hippocampusrobotics.github.io/docs</url>
 
+
   <author email="thies.lennart.alff@tuhh.de">Thies Lennart Alff</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <depend>rclpy</depend>
+  <depend>hippo_common</depend>
   <depend>hippo_msgs</depend>
-  <depend>eigen</depend>
-  <depend>geometry_msgs</depend>
-  <depend>nav_msgs</depend>
-  <depend>visualization_msgs</depend>
-  <depend>tf2</depend>
-  <depend>tf2_ros</depend>
+  <depend>std_srvs</depend>
+  <depend>std_msgs</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

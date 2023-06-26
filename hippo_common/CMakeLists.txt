@@ -20,6 +20,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(nav_msgs REQUIRED)
 
 add_library(hippo_common
   SHARED
@@ -48,28 +49,33 @@ install(TARGETS hippo_common
 ################################################################################
 ## tf_publisher composable node
 ################################################################################
-add_library(tf_publisher
+set(component_name tf_publisher_vehicle)
+add_library(${component_name}
   SHARED
-  src/tf_publisher.cpp
+  src/tf_publisher/tf_publisher_vehicle.cpp
 )
-target_include_directories(tf_publisher
+target_include_directories(${component_name}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(tf_publisher 
+target_link_libraries(${component_name}
   hippo_common
 )
-ament_target_dependencies(tf_publisher
+ament_target_dependencies(${component_name}
   rclcpp
   rclcpp_components
   geometry_msgs
+  nav_msgs
   tf2_ros
 )
-rclcpp_components_register_node(tf_publisher PLUGIN "hippo_common::TfPublisher" EXECUTABLE tf_publisher_node)
+rclcpp_components_register_node(${component_name}
+  PLUGIN "hippo_common::TfPublisherVehicle"
+  EXECUTABLE tf_publisher_vehicle_node
+)
 
 install(
-  TARGETS tf_publisher
+  TARGETS ${component_name}
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -102,8 +108,11 @@ install(
 )
 
 install(
-  DIRECTORY launch
+  DIRECTORY launch config
   DESTINATION share/${PROJECT_NAME}
 )
+
+# Install Python modules
+ament_python_install_package(${PROJECT_NAME})
 
 ament_package()
