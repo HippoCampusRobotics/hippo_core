@@ -68,6 +68,7 @@ ament_target_dependencies(${component_name}
   hippo_common
   hippo_msgs
   geometry_msgs
+  nav_msgs
 )
 rclcpp_components_register_node(${component_name}
   PLUGIN "hippo_control::trajectory_tracking::TrackingControllerNode"

@@ -31,7 +31,13 @@ class TrackingController {
    *
    * @return Eigen::Vector3d
    */
-  Eigen::Vector3d Thrust() const { return thrust_; }
+  Eigen::Vector3d ThrustDesired() const { return thrust_; }
+
+  double Thrust(const Eigen::Quaterniond &_attitude) {
+    Eigen::Vector3d forward_axis{_attitude * Eigen::Vector3d::UnitX()};
+    double thrust = forward_axis.dot(ThrustDesired());
+    return thrust > 0.0 ? thrust : 0.0;
+  }
 
  private:
   /**
@@ -65,7 +71,7 @@ class TrackingController {
   double roll_desired_{0.0};
   Eigen::Vector3d thrust_{0.0, 0.0, 0.0};
 
-  Eigen::Quaterniond last_valid_attitude_{0.0, 0.0, 0.0, 1.0};
+  Eigen::Quaterniond last_valid_attitude_{1.0, 0.0, 0.0, 0.0};
 
   double position_gain_{1.0};
   double velocity_gain_{1.0};
