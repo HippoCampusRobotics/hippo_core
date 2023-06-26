@@ -34,6 +34,7 @@ def generate_launch_description():
         launch_ros.actions.Node(
             package=package_name,
             executable='actuator_mixer_node',
+            namespace=vehicle_name,
             parameters=[{'use_sim_time': use_sim_time}, launch.substitutions.LaunchConfiguration('mixer_path')],
             output='screen'),
     ])
