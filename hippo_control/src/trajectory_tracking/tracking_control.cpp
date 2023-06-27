@@ -35,8 +35,8 @@ Eigen::Quaterniond TrackingController::Update(
     const Eigen::Vector3d &_feed_forward_thrust) {
   position_ = _position;
   velocity_ = _velocity;
-  Eigen::Vector3d thrust = RequiredThrust(_feed_forward_thrust);
-  return AttitudeFromThrust(thrust, roll_desired_);
+  thrust_ = RequiredThrust(_feed_forward_thrust);
+  return AttitudeFromThrust(thrust_, roll_desired_);
 }
 
 Eigen::Vector3d TrackingController::RequiredThrust(
