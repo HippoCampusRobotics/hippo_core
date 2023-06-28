@@ -62,6 +62,10 @@ inline std::string Prefix(rclcpp::Node *_node) {
   name.erase(0, name.find_first_not_of('/'));
   return name;
 }
+
+inline std::string VisionPrefix(rclcpp::Node *_node) {
+  return Prefix(_node) + "/vision";
+}
 inline std::string Barometer(rclcpp::Node *_node) {
   return Prefix(_node) + "/" + kBarometerName;
 }
@@ -85,13 +89,13 @@ inline std::string BaseLinkFrd(rclcpp::Node *_node) {
  * @return std::string
  */
 inline std::string VisionBaseLink(rclcpp::Node *_node) {
-  return Prefix(_node) + "/vision/" + kBaseLinkName;
+  return VisionPrefix(_node) + "/" + kBaseLinkName;
 }
 inline std::string VisionBaseLinkFrd(rclcpp::Node *_node) {
   return VisionBaseLink(_node) + "_frd";
 }
 inline std::string VisionVerticalCameraLink(rclcpp::Node *_node) {
-  return Prefix(_node) + "/vision/" + kVerticalCameraLinkName;
+  return VisionPrefix(_node) + "/" + kVerticalCameraLinkName;
 }
 inline std::string VisionVerticalCameraFrame(rclcpp::Node *_node) {
   return Prefix(_node) + "/" + kVerticalCameraName;
