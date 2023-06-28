@@ -36,7 +36,7 @@ class TrackingController {
   double Thrust(const Eigen::Quaterniond &_attitude) {
     Eigen::Vector3d forward_axis{_attitude * Eigen::Vector3d::UnitX()};
     double thrust = forward_axis.dot(ThrustDesired());
-    return thrust > 0.0 ? thrust : 0.0;
+    return thrust;
   }
 
  private:
@@ -50,7 +50,7 @@ class TrackingController {
    * example) can be added.
    * @return Eigen::Vector3d The thrust vector is not tied to a physical unit.
    */
-  Eigen::Vector3d RequiredThrust(const Eigen::Vector3d &_feed_forward);
+  Eigen::Vector3d ComputeThrust(const Eigen::Vector3d &_feed_forward);
   /**
    * @brief Computes the attitude from a thrust vector and the roll angle. In
    * case the thrust vector is close to the zero vector, the attitude based on
