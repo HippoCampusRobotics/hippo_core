@@ -190,7 +190,7 @@ void TfPublisherVehicle::BroadCastStatic() {
     transforms.push_back(t);
     // same transformation for the vision subtree
     t.header.frame_id = tf2_utils::frame_id::VisionBaseLink(this);
-    t.child_frame_id = tf2_utils::frame_id::VerticalCameraName(this);
+    t.child_frame_id = tf2_utils::frame_id::VisionVerticalCameraLink(this);
     transforms.push_back(t);
 
     geometry_msgs::msg::TransformStamped t2;
@@ -199,6 +199,10 @@ void TfPublisherVehicle::BroadCastStatic() {
         hippo_common::tf2_utils::frame_id::VerticalCameraLink(this);
     t2.child_frame_id =
         hippo_common::tf2_utils::frame_id::VerticalCameraFrame(this);
+    transforms.push_back(t2);
+    // same transformation for the vision subtree
+    t2.header.frame_id = tf2_utils::frame_id::VisionVerticalCameraLink(this);
+    t2.child_frame_id = tf2_utils::frame_id::VisionVerticalCameraFrame(this);
     transforms.push_back(t2);
   }
 
