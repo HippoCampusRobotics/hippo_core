@@ -85,12 +85,15 @@ inline std::string BaseLinkFrd(rclcpp::Node *_node) {
  * @return std::string
  */
 inline std::string VisionBaseLink(rclcpp::Node *_node) {
-  return Prefix(_node) + "/vision_" + kBaseLinkName;
+  return Prefix(_node) + "/vision/" + kBaseLinkName;
 }
 inline std::string VisionBaseLinkFrd(rclcpp::Node *_node) {
   return VisionBaseLink(_node) + "_frd";
 }
-inline std::string VerticalCameraName(rclcpp::Node *_node) {
+inline std::string VisionVerticalCameraLink(rclcpp::Node *_node) {
+  return Prefix(_node) + "/vision/" + kVerticalCameraLinkName;
+}
+inline std::string VisionVerticalCameraFrame(rclcpp::Node *_node) {
   return Prefix(_node) + "/" + kVerticalCameraName;
 }
 inline std::string VerticalCameraLink(rclcpp::Node *_node) {
