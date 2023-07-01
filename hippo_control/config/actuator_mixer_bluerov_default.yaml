@@ -49,8 +49,8 @@
 
     # Thrust is assumed to be a quadratic function of revs per second.
     # assuming linear relation between revs/s and throttle signal
-    quadratic_coefficient: 9.141e-3
-    linear_coefficient: -2.228e-1
+    quadratic_coefficient: 0.015547
+    linear_coefficient: -0.04243
     constant_coefficient: 0.0
     # thrust [N] below which a zero output is generated
     zero_throttle_threshold: 0.000001
