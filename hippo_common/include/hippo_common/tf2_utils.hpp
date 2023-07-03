@@ -18,6 +18,9 @@ inline Eigen::Vector3d QuaternionToEuler(const Eigen::Quaterniond &_q) {
   return _q.toRotationMatrix().eulerAngles(0, 1, 2);
 }
 
+Eigen::Quaterniond QuaternionFromHeading(const Eigen::Vector3d &_heading,
+                                         double _roll);
+
 /// @brief Make sure both vectors have unit length. Returns a quaternion
 /// describing the rotation between both vectors so _v2 = q.rotate(_v1)
 /// @param _v1

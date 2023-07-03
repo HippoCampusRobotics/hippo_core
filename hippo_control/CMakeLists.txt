@@ -9,14 +9,16 @@ if(CMAKE_EXPORT_COMPILE_COMMANDS)
     set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
 endif()
 
-set(CXX_FLAGS -Wall -Wextra -Wpedantic -Wshadow -std=c++17 -O2)
+set(CXX_FLAGS -Wall -Wextra -Wpedantic -Wshadow -std=c++17 -O2 -fPIC)
 add_compile_options(${CXX_FLAGS})
 
 find_package(ament_cmake REQUIRED)
+find_package(yaml-cpp REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(hippo_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
+find_package(path_planning REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -25,6 +27,43 @@ find_package(px4_msgs REQUIRED)
 include_directories(
   include
 )
+
+################################################################################
+# carrot_control component
+################################################################################
+set(component_name carrot_control)
+add_library(${component_name}
+  SHARED
+  src/carrot_control/carrot_controller.cpp
+  src/carrot_control/carrot_controller_params.cpp
+)
+target_include_directories(${component_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(${component_name} yaml-cpp)
+ament_target_dependencies(${component_name}
+  rclcpp
+  rclcpp_components
+  hippo_common
+  hippo_msgs
+  path_planning
+  geometry_msgs
+  nav_msgs
+  yaml-cpp
+)
+rclcpp_components_register_node(${component_name}
+  PLUGIN "hippo_control::carrot_control::CarrotController"
+  EXECUTABLE ${component_name}_node
+)
+install(TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
 ################################################################################
 # tracking_control library
 ################################################################################

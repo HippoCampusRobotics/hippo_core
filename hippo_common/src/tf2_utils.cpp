@@ -15,6 +15,31 @@ Eigen::Quaterniond EulerToQuaternion(double _roll, double _pitch, double _yaw) {
   return q;
 }
 
+Eigen::Quaterniond QuaternionFromHeading(const Eigen::Vector3d &_heading,
+                                         double _roll) {
+  Eigen::Vector3d x_axis_desired{_heading};
+  if (_heading.squaredNorm() < __FLT_EPSILON__) {
+    // TODO: decide if we should handle this smarter, i.e. use some reasonable
+    // default or something similiar.
+    return Eigen::Quaterniond{1.0, 0.0, 0.0, 0.0};
+  }
+  x_axis_desired.normalize();
+
+  const Eigen::Vector3d z_axis_intermediate{0.0, -sin(_roll), cos(_roll)};
+  const Eigen::Vector3d y_axis_desired =
+      z_axis_intermediate.cross(x_axis_desired).normalized();
+  const Eigen::Vector3d z_axis_desired = x_axis_desired.cross(y_axis_desired);
+
+  Eigen::Matrix3d R;
+  for (int i = 0; i < 3; ++i) {
+    R(i, 0) = x_axis_desired(i);
+    R(i, 1) = y_axis_desired(i);
+    R(i, 2) = z_axis_desired(i);
+  }
+  Eigen::Quaterniond attitude{R};
+  return attitude;
+}
+
 Eigen::Quaterniond RotationBetweenNormalizedVectors(
     const Eigen::Vector3d &_v1, const Eigen::Vector3d &_v2) {
   // https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another

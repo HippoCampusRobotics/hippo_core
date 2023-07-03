@@ -35,11 +35,13 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Float64Stamped.msg"
   "msg/Int64Stamped.msg"
   "msg/NewtonGripperCommand.msg"
+  "msg/Path.msg"
   "msg/RangeMeasurement.msg"
   "msg/RangeMeasurementArray.msg"
   "msg/RatesDebug.msg"
   "msg/RatesTarget.msg"
   "msg/ThrusterForces.msg"
+  "srv/SetPath.srv"
   DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
 )
 
