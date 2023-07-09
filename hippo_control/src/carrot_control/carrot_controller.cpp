@@ -2,39 +2,69 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <ament_index_cpp/get_package_prefix.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <hippo_common/convert.hpp>
 #include <hippo_common/tf2_utils.hpp>
 #include <hippo_common/yaml.hpp>
+#include <rcl_interfaces/msg/parameter_descriptor.hpp>
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
 
 namespace hippo_control {
 namespace carrot_control {
 
 CarrotController::CarrotController(rclcpp::NodeOptions const &_options)
     : Node("carrot_controller", _options) {
-  // DeclareParams();
-  YAML::Node default_waypoints = YAML::LoadFile(
-      "/home/ros-user/uuv/ros2/src/hippo_simulation/hippo_sim/config/"
-      "tag_poses.yaml");
-  auto waypoints =
-      default_waypoints["tag_poses"].as<hippo_common::yaml::TagPoses>();
-  for (const auto &waypoint : waypoints) {
-    std::cout << "TAG_ID: " << std::to_string(waypoint.id) << "\n"
-              << waypoint.position << "\n";
-  }
-  // for (const auto &tag_pose_node : default_waypoints["tag_poses"]) {
-  //   TagPose tag_pose = tag_pose_node.as<TagPose>();
-  //   std::cout << "TAG_ID: " << std::to_string(tag_pose.id) << "\n";
-  //   std::cout << "size: " << std::to_string(tag_pose.size) << "\n";
-  //   std::cout << "pos: " << std::to_string(tag_pose.x) << ", "
-  //             << std::to_string(tag_pose.y) << ",  "
-  //             << std::to_string(tag_pose.z) << "\n";
-  // }
+  DeclareParams();
+  LoadDefaultWaypoints();
   set_path_service_ = create_service<hippo_msgs::srv::SetPath>(
       "~/set_path", std::bind(&CarrotController::OnSetPath, this,
                               std::placeholders::_1, std::placeholders::_2));
   InitPublishers();
   InitSubscriptions();
   RCLCPP_INFO(get_logger(), "Initialization done.");
+}
+
+std::string CarrotController::GetWaypointsFilePath() {
+  if (!params_.path_file.empty()) {
+    return params_.path_file;
+  }
+
+  const std::string pkg{"path_planning"};
+  std::string file_path;
+  try {
+    file_path = ament_index_cpp::get_package_share_directory(pkg);
+  } catch (const ament_index_cpp::PackageNotFoundError &) {
+    RCLCPP_ERROR(
+        get_logger(),
+        "Failed to load default waypoints because [%s] could not be found.",
+        pkg.c_str());
+    return "";
+  }
+  file_path += "/config/bernoulli_default.yaml";
+  return file_path;
+}
+
+void CarrotController::LoadDefaultWaypoints() {
+  path_ = std::make_shared<path_planning::Path>();
+  std::string file_path = GetWaypointsFilePath();
+  try {
+    path_->LoadFromYAML(file_path);
+  } catch (const YAML::ParserException &) {
+    RCLCPP_ERROR(get_logger(), "Failed to parse default waypoints at [%s]",
+                 file_path.c_str());
+    path_ = nullptr;
+    return;
+  } catch (const YAML::BadFile &) {
+    RCLCPP_ERROR(get_logger(),
+                 "Failed to load default waypoints at [%s]: bad file.",
+                 file_path.c_str());
+    path_ = nullptr;
+    return;
+  }
+  RCLCPP_INFO(get_logger(), "Loaded default waypoints at [%s]",
+              file_path.c_str());
+  path_->SetLookAhead(params_.look_ahead_distance);
 }
 
 void CarrotController::InitPublishers() {
@@ -85,6 +115,10 @@ void CarrotController::OnOdometry(
                                 "No path has been set.");
     return;
   }
+  if (params_.updated) {
+    params_.updated = false;
+    path_->SetLookAhead(params_.look_ahead_distance);
+  }
   bool success = path_->Update(position_);
   if (!success) {
     RCLCPP_ERROR_STREAM(get_logger(), "Could not find target waypoint.");
@@ -92,6 +126,7 @@ void CarrotController::OnOdometry(
   }
   target_position_ = path_->TargetPoint();
   Eigen::Vector3d heading{target_position_ - position_};
+  heading.z() *= params_.depth_gain;
   target_attitude_ =
       hippo_common::tf2_utils::QuaternionFromHeading(heading, 0.0);
   PublishAttitudeTarget(_msg->header.stamp, target_attitude_, thrust_);

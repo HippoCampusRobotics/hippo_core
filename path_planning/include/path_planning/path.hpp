@@ -23,6 +23,7 @@ namespace path_planning {
 
 class Path {
  public:
+  Path() {}
   explicit Path(const std::vector<Eigen::Vector3d> &waypoints,
                 bool loop = true);
 
@@ -34,12 +35,17 @@ class Path {
   void Rotate(const Eigen::Quaterniond &_rotation);
   void SwapXY();
   bool WriteToYAML(const std::string &_path);
+  void LoadFromYAML(const std::string &_path);
+  YAML::Node ToYAML();
+  void AddToYAML(YAML::Node &_node);
+  inline bool &ignore_z() { return ignore_z_; }
 
  private:
   Eigen::Vector3d target_point_{0.0, 0.0, 0.0};
   std::vector<Eigen::Vector3d> waypoints_;
   std::size_t target_index_{0};
   double look_ahead_distance_;
+  bool ignore_z_{false};
   bool loop_;
 };
 }  // namespace path_planning

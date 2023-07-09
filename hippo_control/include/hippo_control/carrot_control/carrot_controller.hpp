@@ -14,8 +14,16 @@ class CarrotController : public rclcpp::Node {
 
  private:
   struct Params {
+    bool updated{false};
     double look_ahead_distance{0.3};
+    double depth_gain;
+    std::string path_file{""};
   };
+  void LoadDefaultWaypoints();
+  std::string GetWaypointsFilePath();
+  void DeclareParams();
+  rcl_interfaces::msg::SetParametersResult OnParams(
+      const std::vector<rclcpp::Parameter> &params);
   void InitPublishers();
   void InitSubscriptions();
   void PublishAttitudeTarget(const rclcpp::Time &_now,
@@ -31,6 +39,8 @@ class CarrotController : public rclcpp::Node {
       nullptr};
   rclcpp::Service<hippo_msgs::srv::SetPath>::SharedPtr set_path_service_{
       nullptr};
+
+  OnSetParametersCallbackHandle::SharedPtr params_cb_handle_{nullptr};
   Params params_;
 
   Eigen::Quaterniond attitude_{1.0, 0.0, 0.0, 0.0};
