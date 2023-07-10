@@ -16,6 +16,13 @@ void EigenToRos(const In &, Out &) {
 };
 
 template <>
+void EigenToRos(const Eigen::Ref<const Eigen::Vector3d> &_eigen, geometry_msgs::msg::Point &_ros);
+
+template <>
+void EigenToRos(const Eigen::Ref<const Eigen::Vector3d> &_eigen,
+                geometry_msgs::msg::Vector3 &_ros);
+
+template <>
 void EigenToRos(const Eigen::Vector3d &_eigen, geometry_msgs::msg::Point &_ros);
 
 template <>
@@ -37,6 +44,18 @@ void RosToEigen(const geometry_msgs::msg::Point &_ros, Eigen::Vector3d &_eigen);
 template <>
 void RosToEigen(const geometry_msgs::msg::Vector3 &_ros,
                 Eigen::Vector3d &_eigen);
+
+template <typename In, typename Out>
+void RosToEigenRef(const In &, Out) {
+    static_assert(always_false<In>, "This conversion is not implemented");
+};
+
+template <>
+void RosToEigenRef(const geometry_msgs::msg::Point &_ros, Eigen::Ref<Eigen::Vector3d> _eigen);
+
+template <>
+void RosToEigenRef(const geometry_msgs::msg::Vector3 &_ros,
+                Eigen::Ref<Eigen::Vector3d> _eigen);
 
 template <>
 void RosToEigen(const geometry_msgs::msg::Quaternion &_ros,
