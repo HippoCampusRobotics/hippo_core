@@ -1,7 +1,6 @@
-    #include "hippo_control/mixer/simple_mixer.hpp"
+#include "hippo_control/mixer/simple_mixer.hpp"
 
 #include <math.h>
-#include <iostream>
 
 namespace hippo_control {
 namespace mixer {
