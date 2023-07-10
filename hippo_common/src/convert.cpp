@@ -4,22 +4,6 @@ namespace hippo_common {
 namespace convert {
 
 template <>
-void EigenToRos(const Eigen::Ref<const Eigen::Vector3d> &_eigen,
-                geometry_msgs::msg::Point &_ros) {
-  _ros.x = _eigen.x();
-  _ros.y = _eigen.y();
-  _ros.z = _eigen.z();
-}
-
-template <>
-void EigenToRos(const Eigen::Ref<const Eigen::Vector3d> &_eigen,
-                geometry_msgs::msg::Vector3 &_ros) {
-  _ros.x = _eigen.x();
-  _ros.y = _eigen.y();
-  _ros.z = _eigen.z();
-}
-
-template <>
 void EigenToRos(const Eigen::Vector3d &_eigen,
                 geometry_msgs::msg::Point &_ros) {
   _ros.x = _eigen.x();
@@ -55,22 +39,6 @@ void RosToEigen(const geometry_msgs::msg::Point &_ros,
 template <>
 void RosToEigen(const geometry_msgs::msg::Vector3 &_ros,
                 Eigen::Vector3d &_eigen) {
-  _eigen.x() = _ros.x;
-  _eigen.y() = _ros.y;
-  _eigen.z() = _ros.z;
-}
-
-template <>
-void RosToEigenRef(const geometry_msgs::msg::Point &_ros,
-                Eigen::Ref<Eigen::Vector3d> _eigen) {
-  _eigen.x() = _ros.x;
-  _eigen.y() = _ros.y;
-  _eigen.z() = _ros.z;
-}
-
-template <>
-void RosToEigenRef(const geometry_msgs::msg::Vector3 &_ros,
-                Eigen::Ref<Eigen::Vector3d> _eigen) {
   _eigen.x() = _ros.x;
   _eigen.y() = _ros.y;
   _eigen.z() = _ros.z;
