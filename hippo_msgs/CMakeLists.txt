@@ -26,6 +26,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/AngularVelocity.msg"
   "msg/AttitudeTarget.msg"
   "msg/ControlTarget.msg"
+  "msg/DepthStamped.msg"
   "msg/EscRpms.msg"
   "msg/EscVoltages.msg"
   "msg/EstimatorInnovation.msg"
