@@ -21,12 +21,16 @@ find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 add_library(hippo_common
   SHARED
   src/convert.cpp
   src/param_utils.cpp
   src/tf2_utils.cpp
+)
+target_link_libraries(hippo_common
+  yaml-cpp
 )
 ament_target_dependencies(hippo_common
   Eigen3
@@ -46,6 +50,7 @@ install(TARGETS hippo_common
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib
 )
+ament_export_dependencies(Eigen3 geometry_msgs rclcpp yaml-cpp)
 ################################################################################
 ## tf_publisher composable node
 ################################################################################
