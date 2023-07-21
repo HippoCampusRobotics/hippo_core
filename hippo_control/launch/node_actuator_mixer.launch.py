@@ -7,7 +7,7 @@ def generate_launch_description():
     package_name = 'hippo_control'
     package_path = get_package_share_path(package_name)
     default_mixer_path = package_path / (
-        'config/actuator_mixer_hippocampus_default.yaml')
+        'config/actuator_mixer/hippocampus_default.yaml')
 
     use_sim_time = launch.substitutions.LaunchConfiguration('use_sim_time')
     vehicle_name = launch.substitutions.LaunchConfiguration('vehicle_name')
