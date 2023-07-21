@@ -1,6 +1,6 @@
 #include <hippo_common/param_utils.hpp>
 
-#include "hippo_control/carrot_control/carrot_controller.hpp"
+#include "carrot_controller.hpp"
 
 // assumes parameters are stored in this.params_ and names are identical.
 #define DECLARE_PARAM_DESCR(x)                        \

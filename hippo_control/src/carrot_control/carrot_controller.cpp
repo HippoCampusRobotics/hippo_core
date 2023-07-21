@@ -1,4 +1,4 @@
-#include "hippo_control/carrot_control/carrot_controller.hpp"
+#include "carrot_controller.hpp"
 
 #include <yaml-cpp/yaml.h>
 
@@ -15,6 +15,8 @@ namespace carrot_control {
 
 CarrotController::CarrotController(rclcpp::NodeOptions const &_options)
     : Node("carrot_controller", _options) {
+  rclcpp::Node::SharedPtr rviz_node = create_sub_node("visualization");
+  path_visualizer_ = std::make_shared<path_planning::RvizHelper>(rviz_node);
   DeclareParams();
   LoadDefaultWaypoints();
   set_path_service_ = create_service<hippo_msgs::srv::SetPath>(
@@ -82,6 +84,12 @@ void CarrotController::InitSubscriptions() {
       topic, 10, [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
         OnOdometry(msg);
       });
+
+  topic = "thrust";
+  thrust_sub_ = create_subscription<hippo_msgs::msg::Float64Stamped>(
+      topic, 10, [this](const hippo_msgs::msg::Float64Stamped::SharedPtr msg) {
+        OnThrust(msg);
+      });
 }
 
 void CarrotController::OnSetPath(
@@ -130,6 +138,15 @@ void CarrotController::OnOdometry(
   target_attitude_ =
       hippo_common::tf2_utils::QuaternionFromHeading(heading, 0.0);
   PublishAttitudeTarget(_msg->header.stamp, target_attitude_, thrust_);
+
+  if (path_visualizer_ != nullptr) {
+    path_visualizer_->PublishPath(path_);
+  }
+}
+
+void CarrotController::OnThrust(
+    const hippo_msgs::msg::Float64Stamped::SharedPtr _msg) {
+  thrust_ = _msg->data;
 }
 
 void CarrotController::PublishAttitudeTarget(

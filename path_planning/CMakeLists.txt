@@ -17,6 +17,8 @@ find_package(ament_cmake_python REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(hippo_common REQUIRED)
 find_package(gflags REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 install(
   DIRECTORY include/
@@ -28,11 +30,15 @@ add_library(${lib_name}
   SHARED
   src/path.cpp
   src/static_generation.cpp
+  src/rviz_helper.cpp
 )
 ament_target_dependencies(${lib_name}
   Eigen3
   hippo_common
+  rclcpp
+  visualization_msgs
 )
+ament_export_dependencies(Eigen3 hippo_common rclcpp visualization_msgs)
 target_link_libraries(${lib_name}
   gflags
 )

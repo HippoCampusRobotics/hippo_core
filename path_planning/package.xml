@@ -29,6 +29,7 @@
   <depend>hippo_msgs</depend>
   <depend>eigen</depend>
   <depend>libgflags-dev</depend>
+  <depend>visualization_msgs</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
