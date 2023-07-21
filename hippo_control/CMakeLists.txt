@@ -187,7 +187,10 @@ ament_target_dependencies(${component_name}
   hippo_msgs
   geometry_msgs
 )
-rclcpp_components_register_node(${component_name} PLUGIN "hippo_control::rate_control::RateController" EXECUTABLE ${component_name}_node)
+rclcpp_components_register_node(${component_name}
+  PLUGIN "hippo_control::rate_control::RateController"
+  EXECUTABLE ${component_name}_node
+)
 install(TARGETS ${component_name}
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
@@ -222,7 +225,9 @@ install(TARGETS ${lib_name}
 ################################################################################
 set(exec_name attitude_control_node)
 add_executable(${exec_name} src/nodes/attitude_control_node.cpp)
-ament_target_dependencies(${exec_name} rclcpp hippo_msgs hippo_common nav_msgs Eigen3)
+ament_target_dependencies(${exec_name}
+  rclcpp hippo_msgs hippo_common nav_msgs Eigen3
+)
 target_link_libraries(${exec_name} attitude_control)
 install(TARGETS ${exec_name}
   DESTINATION lib/${PROJECT_NAME}
@@ -236,7 +241,9 @@ add_executable(${exec_name}
   src/mixer/actuator_mixer_node.cpp
   src/mixer/actuator_mixer_node_params.cpp
 )
-ament_target_dependencies(${exec_name} rclcpp hippo_msgs hippo_common hippo_msgs)
+ament_target_dependencies(${exec_name}
+  rclcpp hippo_msgs hippo_common hippo_msgs
+)
 target_link_libraries(${exec_name} mixer)
 install (TARGETS ${exec_name}
   DESTINATION lib/${PROJECT_NAME}

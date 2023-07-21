@@ -1,7 +1,48 @@
 from launch.substitution import Substitution
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
-from launch.actions import GroupAction
+from launch.actions import GroupAction, DeclareLaunchArgument, OpaqueFunction
 from launch_ros.actions import Node, PushRosNamespace
+from launch import LaunchDescription
+from typing import Iterable
+
+
+class PassLaunchArguments(dict):
+
+    def add(self, name: str | Iterable[str]):
+        if isinstance(name, str):
+            super().__setitem__(name, LaunchConfiguration(name))
+        else:
+            for n in name:
+                super().__setitem__(n, LaunchConfiguration(n))
+
+    def add_sim_time(self):
+        super().__setitem__('use_sim_time', LaunchConfiguration('use_sim_time'))
+
+    def add_vehicle_name(self):
+        super().__setitem__('vehicle_name', LaunchConfiguration('vehicle_name'))
+
+    def add_vehicle_name_and_sim_time(self):
+        self.add_sim_time()
+        self.add_vehicle_name()
+
+
+def declare_vehicle_name_and_sim_time(launch_description: LaunchDescription):
+    declare_vehicle_name(launch_description=launch_description)
+    declare_use_sim_time(launch_description=launch_description)
+
+
+def declare_vehicle_name(launch_description: LaunchDescription):
+    action = DeclareLaunchArgument(
+        'vehicle_name', description='Vehicle name used as namespace.')
+    launch_description.add_action(action)
+
+
+def declare_use_sim_time(launch_description: LaunchDescription):
+    action = DeclareLaunchArgument(
+        'use_sim_time',
+        description=('Decides wether to use the wall time or the clock topic '
+                     'as time reference. Set to TRUE for simulation.'))
+    launch_description.add_action(action)
 
 
 def create_camera_bridge(

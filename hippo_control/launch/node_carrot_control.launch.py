@@ -2,13 +2,11 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
+from hippo_common.launch_helper import declare_vehicle_name_and_sim_time
 
 
 def declare_launch_args(launch_description: LaunchDescription):
-    action = DeclareLaunchArgument('vehicle_name')
-    launch_description.add_action(action)
-    action = DeclareLaunchArgument('use_sim_time')
-    launch_description.add_action(action)
+    declare_vehicle_name_and_sim_time(launch_description=launch_description)
     action = DeclareLaunchArgument(
         'carrot_control_config',
         description='Path to the carrot control YAML file')
