@@ -1,35 +1,38 @@
 from ament_index_python.packages import get_package_share_path
-import launch
-import launch_ros
+from launch import LaunchDescription
+from launch.substitutions import LaunchConfiguration
+from launch.actions import DeclareLaunchArgument
+from launch_ros.actions import Node
+from hippo_common.launch_helper import declare_use_sim_time
+
+
+def declare_launch_args(launch_description: LaunchDescription):
+    declare_use_sim_time(launch_description=launch_description)
+
+    default_path = get_package_share_path(
+        'hippo_control') / 'config/actuator_mixer/hippocampus_default.yaml'
+    action = DeclareLaunchArgument(
+        name='mixer_path',
+        default_value=str(default_path),
+        description='Path to mixer configuration .yaml file.')
+    launch_description.add_action(action)
+
+
+def add_node(launch_description: LaunchDescription):
+    action = Node(package='hippo_control',
+                  executable='actuator_mixer_node',
+                  parameters=[
+                      {
+                          'use_sim_time': LaunchConfiguration('use_sim_time')
+                      },
+                      LaunchConfiguration('mixer_path'),
+                  ],
+                  output='screen')
+    launch_description.add_action(action)
 
 
 def generate_launch_description():
-    package_name = 'hippo_control'
-    package_path = get_package_share_path(package_name)
-    default_mixer_path = package_path / (
-        'config/actuator_mixer/hippocampus_default.yaml')
-
-    use_sim_time = launch.substitutions.LaunchConfiguration('use_sim_time')
-    vehicle_name = launch.substitutions.LaunchConfiguration('vehicle_name')
-
-    mixer_launch_arg = launch.actions.DeclareLaunchArgument(
-        name='mixer_path',
-        default_value=str(default_mixer_path),
-        description='Path to the mixer configuration .yaml file.')
-    use_sim_time_launch_arg = launch.actions.DeclareLaunchArgument(
-        name='use_sim_time', description='decide if simulation time is used')
-    vehicle_name_launch_arg = launch.actions.DeclareLaunchArgument(
-        name='vehicle_name', description='used for node namespace')
-    return launch.LaunchDescription([
-        use_sim_time_launch_arg,
-        vehicle_name_launch_arg,
-        mixer_launch_arg,
-        launch_ros.actions.Node(
-            package=package_name,
-            executable='actuator_mixer_node',
-            parameters=[{
-                'use_sim_time': use_sim_time
-            },
-                        launch.substitutions.LaunchConfiguration('mixer_path')],
-            output='screen'),
-    ])
+    launch_description = LaunchDescription()
+    declare_launch_args(launch_description=launch_description)
+    add_node(launch_description=launch_description)
+    return launch_description
