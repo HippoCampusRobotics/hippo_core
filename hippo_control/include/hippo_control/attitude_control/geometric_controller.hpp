@@ -3,7 +3,7 @@
 #include <vector>
 namespace hippo_control {
 namespace attitude_control {
-class GeometricAttitudeControl {
+class GeometricController {
  public:
   /**
    * @brief Computes the controller output.

@@ -124,13 +124,16 @@ install(TARGETS ${component_name}
 # attitude_control library
 ################################################################################
 set(lib_name attitude_control)
-add_library(${lib_name} src/geometric_attitude_control.cpp)
+add_library(${lib_name}
+  src/attitude_control/geometric_controller.cpp
+  src/attitude_control/quaternion_controller.cpp
+)
 target_include_directories(${lib_name}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(${lib_name} rclcpp Eigen3)
+ament_target_dependencies(${lib_name} rclcpp Eigen3 hippo_common)
 ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
 ament_export_dependencies(rclcpp Eigen3)
 
