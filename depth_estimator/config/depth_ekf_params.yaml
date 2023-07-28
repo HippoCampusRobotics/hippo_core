@@ -1,0 +1,20 @@
+/**: # wildcard for the node name
+  ros__parameters:
+    ekf_params:
+      initial_state:
+        z: 0.0
+        dz: 0.0
+
+      initial_state_covariance:
+        # standard deviations 
+        z: 0.1
+        dz: 0.1
+
+      process_noise:
+        # standard deviations
+        z: 0.001
+        dz: 0.01
+
+      measurement_noise:
+        # standard deviations
+        pressure: 100.0
