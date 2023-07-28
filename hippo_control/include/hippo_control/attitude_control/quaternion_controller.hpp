@@ -22,6 +22,9 @@ class QuaternionController {
     return 2.0 * gain_ * sgn(q_cmd.w()) * q_cmd.vec();
   }
 
+  inline double &gain() { return gain_; }
+  inline double &roll_weight() { return roll_weight_; }
+
  private:
   Eigen::Quaterniond ReducedQuaternionCommand(
       const Eigen::Vector3d &desired_heading);
