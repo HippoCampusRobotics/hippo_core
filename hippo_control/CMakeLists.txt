@@ -224,16 +224,32 @@ install(TARGETS ${lib_name}
 )
 
 ################################################################################
-# attitude_control_node
+# geometric_attitude_control component
 ################################################################################
-set(exec_name attitude_control_node)
-add_executable(${exec_name} src/nodes/attitude_control_node.cpp)
-ament_target_dependencies(${exec_name}
-  rclcpp hippo_msgs hippo_common nav_msgs Eigen3
+set(component_name geometric_attitude_control)
+add_library(${component_name}
+  SHARED
+  src/attitude_control/geometric_control_node/geometric_control_node.cpp
+  src/attitude_control/geometric_control_node/geometric_control_node_params.cpp
 )
-target_link_libraries(${exec_name} attitude_control)
-install(TARGETS ${exec_name}
-  DESTINATION lib/${PROJECT_NAME}
+target_link_libraries(${component_name} attitude_control)
+target_include_directories(${component_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${component_name}
+  rclcpp rclcpp_components hippo_msgs hippo_common nav_msgs Eigen3
+)
+rclcpp_components_register_node(${component_name}
+  PLUGIN "hippo_control::attitude_control::GeometricControlNode"
+  EXECUTABLE ${component_name}_node
+)
+install(TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
 ################################################################################

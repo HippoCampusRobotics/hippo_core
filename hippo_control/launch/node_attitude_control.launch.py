@@ -22,7 +22,7 @@ def declare_launch_args(launch_description: LaunchDescription):
 
 def add_node(launch_description: LaunchDescription):
     action = Node(package='hippo_control',
-                  executable='attitude_control_node',
+                  executable='geometric_attitude_control_node',
                   parameters=[
                       {
                           'feedthrough':
