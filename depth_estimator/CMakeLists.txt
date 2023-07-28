@@ -20,10 +20,6 @@ find_package(std_srvs REQUIRED)
 find_package(hippo_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
-include_directories(
-  include
-)
-
 
 # Install Python modules
 # ament_python_install_package(${PROJECT_NAME})
