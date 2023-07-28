@@ -1,3 +1,3 @@
 std_msgs/Header header
-float32 dist
+float64 distance
 int8 id
