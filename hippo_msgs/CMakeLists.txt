@@ -34,6 +34,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/EstimatorState.msg"
   "msg/Float64Stamped.msg"
   "msg/Int64Stamped.msg"
+  "msg/ModemOut.msg"
   "msg/NewtonGripperCommand.msg"
   "msg/Path.msg"
   "msg/RangeMeasurement.msg"
