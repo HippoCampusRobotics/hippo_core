@@ -13,14 +13,6 @@ int sgn(T value) {
 
 class QuaternionController {
  public:
-  Eigen::Quaterniond ReducedQuaternionCommand(
-      const Eigen::Vector3d &desired_heading);
-  inline Eigen::Quaterniond FullQuaternionCommand(
-      const Eigen::Vector3d &_heading, double _roll) {
-    return hippo_common::tf2_utils::QuaternionFromHeading(_heading, _roll);
-  }
-  Eigen::Quaterniond MixedQuaternionCommand(const Eigen::Vector3d &_heading,
-                                            double _roll);
   inline Eigen::Vector3d Update(const Eigen::Vector3d &desired_heading,
                                 double desired_roll,
                                 const Eigen::Quaterniond &orientation) {
@@ -31,6 +23,14 @@ class QuaternionController {
   }
 
  private:
+  Eigen::Quaterniond ReducedQuaternionCommand(
+      const Eigen::Vector3d &desired_heading);
+  inline Eigen::Quaterniond FullQuaternionCommand(
+      const Eigen::Vector3d &_heading, double _roll) {
+    return hippo_common::tf2_utils::QuaternionFromHeading(_heading, _roll);
+  }
+  Eigen::Quaterniond MixedQuaternionCommand(const Eigen::Vector3d &_heading,
+                                            double _roll);
   inline Eigen::Vector3d CurrentForwardAxis() {
     return orientation_ * Eigen::Vector3d::UnitX();
   }
