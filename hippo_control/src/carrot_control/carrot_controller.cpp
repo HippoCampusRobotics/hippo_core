@@ -135,6 +135,7 @@ void CarrotController::OnOdometry(
   target_position_ = path_->TargetPoint();
   Eigen::Vector3d heading{target_position_ - position_};
   heading.z() *= params_.depth_gain;
+  heading.normalize();
   target_attitude_ =
       hippo_common::tf2_utils::QuaternionFromHeading(heading, 0.0);
   PublishAttitudeTarget(_msg->header.stamp, target_attitude_, thrust_);
