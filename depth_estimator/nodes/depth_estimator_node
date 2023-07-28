@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+from typing import Any
+import dataclasses
+from dataclasses import dataclass, astuple
+import rclpy
+from rcl_interfaces.msg import (ParameterDescriptor, ParameterType)
+from rclpy.node import Node
+from sensor_msgs.msg import FluidPressure
+from hippo_msgs.msg import DepthStamped
+
+import numpy as np
+
+
+@dataclass
+class InitialState:
+    z: float = 0.0
+    dz: float = 0.0
+
+
+@dataclass
+class InitialStateCovariance:
+    z: float = 0.0
+    dz: float = 0.0
+
+
+@dataclass
+class ProcessNoise:
+    z: float = 0.0
+    dz: float = 0.0
+
+
+@dataclass
+class MeasurementNoise:
+    pressure: float = 0.0
+
+
+@dataclass
+class EkfParams:
+    initial_state: InitialState = InitialState()
+    initial_state_covariance: InitialStateCovariance = InitialStateCovariance()
+    process_noise: ProcessNoise = ProcessNoise()
+    measurement_noise: MeasurementNoise = MeasurementNoise()
+
+
+class KalmanFilter(object):
+
+    def __init__(self, ekf_params: EkfParams, atmospheric_pressure=101300):
+        self.ekf_params = ekf_params
+
+        self.dim_state = 2
+        self.dim_meas = 1
+        self._x_est_0 = np.array(astuple(
+            self.ekf_params.initial_state)).reshape((-1, 1))
+        self._p0_mat = self.ekf_params.initial_state_covariance
+        self._p0_mat = np.array(
+            np.diag([
+                self.ekf_params.initial_state_covariance.z**2,
+                self.ekf_params.initial_state_covariance.dz**2
+            ]))
+
+        self._x_est = self._x_est_0
+        self._p_mat = self._p0_mat
+
+        self._v_mat = np.array((np.diag([
+            self.ekf_params.process_noise.z**2,
+            self.ekf_params.process_noise.dz**2
+        ])))
+        self._w_mat = np.array(
+            np.diag([self.ekf_params.measurement_noise.pressure**2]))
+        self._h_mat = np.array([-1.0e4, 0.0]).reshape((1, -1))
+        self._atmos_press = atmospheric_pressure
+
+    def h_fun(self, depth):
+        return -depth * 1.0e4 + self._atmos_press
+
+    def get_x_est(self):
+        return np.copy(self._x_est)
+
+    def get_x_est_0(self):
+        return np.copy(self._x_est_0)
+
+    def get_p_mat(self):
+        return np.copy(self._p_mat)
+
+    def get_p_mat_0(self):
+        return np.copy(self._p0_mat)
+
+    def reset(self, x_est_0=None, p0_mat=None):
+        if x_est_0:
+            self._x_est = x_est_0
+            self._x_est_0 = x_est_0
+        else:
+            self._x_est = self._x_est_0
+        if p0_mat:
+            self._p = p0_mat
+            self._p0 = p0_mat
+        else:
+            self._p = self._p0_mat
+
+    def predict(self, dt):
+        a_mat = np.array([[1, dt], [0, 1]])
+        self._x_est = np.matmul(a_mat, self._x_est)
+        self._p_mat = np.matmul(np.matmul(a_mat, self._p_mat),
+                                a_mat.transpose()) + self._v_mat
+
+    def update(self, z):
+        # estimated pressure measurement
+        z_est = self.h_fun(self._x_est[0, 0])
+        # innovation
+        y = np.asarray(z - z_est).reshape((-1, 1))
+
+        # compute K gain
+        tmp = np.matmul(np.matmul(self._h_mat, self._p_mat),
+                        self._h_mat.transpose()) + self._w_mat
+        k_mat = np.matmul(np.matmul(self._p_mat, self._h_mat.transpose()),
+                          np.linalg.inv(tmp))
+
+        # update state
+        self._x_est = self._x_est + np.matmul(k_mat, y)
+
+        # update covariance
+        p_tmp = np.eye(self.dim_state) - np.matmul(k_mat, self._h_mat)
+        self._p_mat = np.matmul(p_tmp, self._p_mat)
+
+
+class DepthEstimatorNode(Node):
+
+    def __init__(self, node_name):
+        super().__init__(node_name=node_name)
+
+        self.declare_parameter('atmospheric_pressure', 101300)
+        self.atmospheric_pressure = str(
+            self.get_parameter('atmospheric_pressure').value)
+        # self.get_logger().info(
+        #     f'Atmospheric pressure is set to: {self.atmospheric_pressure}')
+
+        self.ekf_params = self.init_ekf_params()
+        self.ekf = KalmanFilter(self.ekf_params)
+
+        self.t_last_prediction = self.get_clock().now()
+
+        self.depth_pub = self.create_publisher(DepthStamped,
+                                               'depth',
+                                               qos_profile=1)
+
+        self.pressure_sub = self.create_subscription(FluidPressure,
+                                                     'pressure',
+                                                     self.on_pressure,
+                                                     qos_profile=1)
+
+        self.predict_timer = self.create_timer(timer_period_sec=(1 / 30),
+                                               callback=self.predict)
+        self.send_depth_timer = self.create_timer(timer_period_sec=(1 / 30),
+                                                  callback=self.send_depth)
+
+    def init_ekf_params(self):
+
+        def recursion(data: Any, name: str):
+            if not dataclasses.is_dataclass(data):
+                descriptor = ParameterDescriptor()
+                if isinstance(data, int):
+                    descriptor.type = ParameterType.PARAMETER_INTEGER
+                elif isinstance(data, float):
+                    descriptor.type = ParameterType.PARAMETER_DOUBLE
+                elif isinstance(data, str):
+                    descriptor.type = ParameterType.PARAMETER_STRING
+                else:
+                    raise TypeError(f'Unsupported type "{type(data)}"')
+                self.declare_parameter(name, descriptor=descriptor)
+                return self.get_parameter(name).value
+            for field_name in data.__annotations__.keys():
+                setattr(
+                    data, field_name,
+                    recursion(getattr(data, f'{field_name}'),
+                              f'{name}.{field_name}'))
+            return data
+
+        ekf_params = recursion(EkfParams(), 'ekf_params')
+        return ekf_params
+
+    def on_pressure(self, msg: FluidPressure):
+        pressure = msg.fluid_pressure
+        self.ekf.update(pressure)
+
+    def predict(self):
+        now = self.get_clock().now()
+        dt = now - self.t_last_prediction
+        dt_seconds = dt.nanoseconds / 1e9
+        self.ekf.predict(dt_seconds)
+        self.t_last_prediction = now
+
+    def send_depth(self):
+        msg = DepthStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = 'map'
+        msg.depth = self.ekf.get_x_est()[0, 0]
+        msg.z_vel = self.ekf.get_x_est()[1, 0]
+        msg.depth_covariance = self.ekf.get_p_mat()[0, 0]
+        msg.vel_covariance = self.ekf.get_p_mat()[1, 1]
+        self.depth_pub.publish(msg)
+
+
+def main():
+    rclpy.init()
+    node = DepthEstimatorNode("depth_estimator_node")
+    rclpy.spin(node)
+
+
+if __name__ == "__main__":
+    main()
