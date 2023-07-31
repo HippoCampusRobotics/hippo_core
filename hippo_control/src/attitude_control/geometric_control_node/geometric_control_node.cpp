@@ -193,10 +193,9 @@ void GeometricControlNode::OnOdometry(
   hippo_common::convert::RosToEigen(_msg->pose.pose.orientation, orientation);
   Eigen::Vector3d body_rates;
   hippo_common::convert::RosToEigen(_msg->twist.twist.angular, body_rates);
-  auto torque = controller_.Update(orientation, body_rates);
-  torque_msg.x = torque.x();
-  torque_msg.y = torque.y();
-  torque_msg.z = torque.z();
+  Eigen::Vector3d torque = controller_.Update(orientation, body_rates);
+  using hippo_common::convert::EigenToRos;
+  EigenToRos(torque, torque_msg);
 
   thrust_pub_->publish(thrust_msg);
   torque_pub_->publish(torque_msg);
