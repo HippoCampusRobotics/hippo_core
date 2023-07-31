@@ -1,10 +1,10 @@
-#include "hippo_control/attitude_control/geometric_attitude_control.hpp"
+#include "hippo_control/attitude_control/geometric_controller.hpp"
 
 #include <cmath>
 
 namespace hippo_control {
 namespace attitude_control {
-Eigen::Vector3d GeometricAttitudeControl::Update(
+Eigen::Vector3d GeometricController::Update(
     const Eigen::Quaterniond &_orientation,
     const Eigen::Vector3d &_angular_velocity) {
   Eigen::Matrix3d R = _orientation.toRotationMatrix();
@@ -22,7 +22,7 @@ Eigen::Vector3d GeometricAttitudeControl::Update(
 
   return Eigen::Vector3d{torque};
 }
-void GeometricAttitudeControl::SetOrientationTarget(const double _roll,
+void GeometricController::SetOrientationTarget(const double _roll,
                                                     const double _pitch,
                                                     const double _yaw) {
   orientation_target_ = Eigen::AngleAxisd(_yaw, Eigen::Vector3d::UnitZ()) *

@@ -15,24 +15,24 @@ Eigen::Quaterniond EulerToQuaternion(double _roll, double _pitch, double _yaw) {
   return q;
 }
 
+/**
+ * @brief Calculates the orientation for a given desired heading and a roll
+ * angle.
+ *
+ * @param _heading Desired heading expressed as a unit vector.
+ * @param _roll Desired roll angle in [rad].
+ * @return Eigen::Quaterniond Orientation
+ */
 Eigen::Quaterniond QuaternionFromHeading(const Eigen::Vector3d &_heading,
                                          double _roll) {
-  Eigen::Vector3d x_axis_desired{_heading};
-  if (_heading.squaredNorm() < __FLT_EPSILON__) {
-    // TODO: decide if we should handle this smarter, i.e. use some reasonable
-    // default or something similiar.
-    return Eigen::Quaterniond{1.0, 0.0, 0.0, 0.0};
-  }
-  x_axis_desired.normalize();
-
   const Eigen::Vector3d z_axis_intermediate{0.0, -sin(_roll), cos(_roll)};
   const Eigen::Vector3d y_axis_desired =
-      z_axis_intermediate.cross(x_axis_desired).normalized();
-  const Eigen::Vector3d z_axis_desired = x_axis_desired.cross(y_axis_desired);
+      z_axis_intermediate.cross(_heading).normalized();
+  const Eigen::Vector3d z_axis_desired = _heading.cross(y_axis_desired);
 
   Eigen::Matrix3d R;
   for (int i = 0; i < 3; ++i) {
-    R(i, 0) = x_axis_desired(i);
+    R(i, 0) = _heading(i);
     R(i, 1) = y_axis_desired(i);
     R(i, 2) = z_axis_desired(i);
   }

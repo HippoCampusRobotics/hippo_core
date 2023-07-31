@@ -7,7 +7,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <hippo_common/convert.hpp>
 
-#include "hippo_control/attitude_control/geometric_attitude_control.hpp"
+#include "hippo_control/attitude_control/geometric_controller.hpp"
 
 using namespace hippo_control::attitude_control;
 using namespace hippo_common;
@@ -307,7 +307,7 @@ class AttitudeControlNode : public rclcpp::Node {
   double gain_yaw_p_;
   double gain_yaw_d_;
 
-  GeometricAttitudeControl controller_;
+  GeometricController controller_;
   AttitudeTarget attitude_target_;
   bool setpoint_timed_out_{false};
 

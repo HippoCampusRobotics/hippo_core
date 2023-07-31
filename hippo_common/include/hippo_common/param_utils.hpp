@@ -1,12 +1,48 @@
 #pragma once
 #include <rclcpp/rclcpp.hpp>
 
-// inspired by
-// https://github.com/christianrauch/apriltag_ros/blob/master/src/AprilTagNode.cpp
+// assumes parameters are stored in this.params_ and names are identical.
+#define HIPPO_COMMON_DECLARE_PARAM_DESCR(x, y) \
+  do {                                         \
+    auto &param = params_.x;                   \
+    param = declare_parameter(#x, param, y);   \
+  } while (false)
+
+#define HIPPO_COMMON_DECLARE_PARAM(x)     \
+  do {                                    \
+    auto &param = params_.x;              \
+    param = declare_parameter(#x, param); \
+  } while (false)
+
+// will throw an exception if no runtime override by the user is provided
+#define HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(x)            \
+  do {                                                      \
+    params_.x = declare_parameter<decltype(params_.x)>(#x); \
+  } while (false)
+
+#define HIPPO_COMMON_DECLARE_PARAM_READONLY(x)                      \
+  do {                                                              \
+    auto &param = params_.x;                                        \
+    rcl_interfaces::msg::ParameterDescriptor descriptor;            \
+    descriptor.read_only = true;                                    \
+    param = declare_parameter<decltype(params_.x)>(#x, descriptor); \
+  } while (false)
+
+// assumes rcl_interfaces::msg::PSetParametersResult result does exist.
+#define HIPPO_COMMON_ASSIGN_SIMPLE_LOG(name, updated, text)                    \
+  if (hippo_common::param_utils::AssignIfMatch(parameter, #name, params_.name, \
+                                               text)) {                        \
+    RCLCPP_INFO_STREAM(get_logger(), text);                                    \
+    result.reason = text;                                                      \
+    updated = true;                                                            \
+    continue;                                                                  \
+  }
 
 namespace hippo_common {
 namespace param_utils {
 
+// inspired by
+// https://github.com/christianrauch/apriltag_ros/blob/master/src/AprilTagNode.cpp
 template <typename T>
 void Assign(const rclcpp::Parameter &_param, T &_var) {
   _var = _param.get_value<T>();
