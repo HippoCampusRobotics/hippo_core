@@ -158,7 +158,7 @@ target_include_directories(${lib_name}
 )
 ament_target_dependencies(${lib_name} rclcpp Eigen3 px4_msgs)
 ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
-ament_export_dependencies(rclcpp Eigen3)
+ament_export_dependencies(rclcpp Eigen3 px4_msgs)
 
 install(TARGETS ${lib_name}
   EXPORT ${lib_name}Target
