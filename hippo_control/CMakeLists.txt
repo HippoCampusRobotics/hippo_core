@@ -253,6 +253,35 @@ install(TARGETS ${component_name}
 )
 
 ################################################################################
+# quaternion_attitude_control component
+################################################################################
+set(component_name quaternion_attitude_control)
+add_library(${component_name}
+  SHARED
+  src/attitude_control/quaternion_control_node/quaternion_control_node.cpp
+  src/attitude_control/quaternion_control_node/quaternion_control_node_params.cpp
+)
+target_link_libraries(${component_name} attitude_control)
+target_include_directories(${component_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${component_name}
+  rclcpp rclcpp_components hippo_msgs hippo_common nav_msgs Eigen3
+)
+rclcpp_components_register_node(${component_name}
+  PLUGIN "hippo_control::attitude_control::QuaternionControlNode"
+  EXECUTABLE ${component_name}_node
+)
+install(TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+################################################################################
 # actuator_mixer_node
 ################################################################################
 set(exec_name actuator_mixer_node)
