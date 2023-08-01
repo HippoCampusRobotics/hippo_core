@@ -282,19 +282,27 @@ install(TARGETS ${component_name}
 )
 
 ################################################################################
-# actuator_mixer_node
+# actuator_mixer component
 ################################################################################
-set(exec_name actuator_mixer_node)
-add_executable(${exec_name}
+set(component_name actuator_mixer)
+add_library(${component_name}
+  SHARED
   src/mixer/actuator_mixer_node.cpp
   src/mixer/actuator_mixer_node_params.cpp
 )
-ament_target_dependencies(${exec_name}
-  rclcpp hippo_msgs hippo_common hippo_msgs
+target_link_libraries(${component_name} mixer)
+ament_target_dependencies(${component_name}
+  rclcpp rclcpp_components hippo_msgs hippo_common
 )
-target_link_libraries(${exec_name} mixer)
-install (TARGETS ${exec_name}
-  DESTINATION lib/${PROJECT_NAME}
+rclcpp_components_register_node(${component_name}
+  PLUGIN "hippo_control::mixer::ActuatorMixerNode"
+  EXECUTABLE ${component_name}_node
+)
+install(TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
 

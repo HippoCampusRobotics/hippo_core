@@ -8,17 +8,18 @@ from hippo_common.launch_helper import PassLaunchArguments
 def declare_launch_args(launch_description: LaunchDescription):
     package_path = get_package_share_path('hippo_control')
 
-    default_path = (package_path /
-                    'config/attitude_control_hippocampus_default.yaml')
+    default_path = str(
+        package_path /
+        'config/attitude_control/geometric_hippocampus_default.yaml')
     action = DeclareLaunchArgument(name='attitude_control_config',
-                                   default_value=str(default_path))
+                                   default_value=default_path)
     launch_description.add_action(action)
 
-    default_path = (package_path /
-                    'config/actuator_mixer/hippocampus_default.yaml')
+    default_path = str(package_path /
+                       'config/actuator_mixer/hippocampus_default.yaml')
     action = DeclareLaunchArgument(
         name='mixer_path',
-        default_value=str(default_path),
+        default_value=default_path,
         description='Path to mixer configuration .yaml file.')
     launch_description.add_action(action)
 

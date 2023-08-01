@@ -15,8 +15,6 @@ void GeometricControlNode::DeclareParams() {
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(gain.yaw.d);
   SetControllerGains();
 
-  HIPPO_COMMON_DECLARE_PARAM_READONLY(feedthrough);
-
   gain_params_cb_handle_ = add_on_set_parameters_callback(std::bind(
       &GeometricControlNode::OnGainParameters, this, std::placeholders::_1));
 }
