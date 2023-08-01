@@ -1,7 +1,5 @@
 #include "path_follower_node.hpp"
-
 #include <yaml-cpp/yaml.h>
-
 #include <ament_index_cpp/get_package_prefix.hpp>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <hippo_common/convert.hpp>
