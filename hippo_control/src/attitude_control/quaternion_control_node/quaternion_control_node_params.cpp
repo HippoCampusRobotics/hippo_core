@@ -10,6 +10,8 @@ void QuaternionControlNode::DeclareParams() {
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(gain);
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(roll_weight);
 
+  SetControllerGains();
+
   params_cb_handle_ = add_on_set_parameters_callback(
       [this](const std::vector<rclcpp::Parameter> &params) {
         return OnParameters(params);
