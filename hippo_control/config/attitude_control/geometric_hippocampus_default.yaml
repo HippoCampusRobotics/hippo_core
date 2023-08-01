@@ -1,6 +1,5 @@
 /**: # wildcard for the node name
   ros__parameters:
-    feedthrough: false
     gain:
       roll:
         p: 5.0

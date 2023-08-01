@@ -6,7 +6,7 @@
 namespace path_planning {
 RvizHelper::RvizHelper(rclcpp::Node::SharedPtr _node) {
   node_ = _node;
-  if (!_node) {
+  if (_node == nullptr) {
     return;
   }
   using visualization_msgs::msg::MarkerArray;

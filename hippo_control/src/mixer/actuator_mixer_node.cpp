@@ -15,7 +15,8 @@ ActuatorMixerNode::ActuatorMixerNode(rclcpp::NodeOptions const &_options)
     : Node("actuator_command_mixer", _options) {
   RCLCPP_INFO(get_logger(), "Declaring Paramters");
   DeclareParams();
-  auto qos = rclcpp::SystemDefaultsQoS();
+  rclcpp::QoS qos = rclcpp::SensorDataQoS();
+  qos.keep_last(1);
   std::string name;
 
   t_last_thrust_setpoint_ = t_last_torque_setpoint_ = now();
@@ -25,13 +26,13 @@ ActuatorMixerNode::ActuatorMixerNode(rclcpp::NodeOptions const &_options)
 
   name = "thrust_setpoint";
   thrust_setpoint_sub_ = create_subscription<hippo_msgs::msg::ActuatorSetpoint>(
-      name, rclcpp::SensorDataQoS(),
+      name, qos,
       std::bind(&ActuatorMixerNode::OnThrustSetpoint, this,
                 std::placeholders::_1));
 
   name = "torque_setpoint";
   torque_setpoint_sub_ = create_subscription<hippo_msgs::msg::ActuatorSetpoint>(
-      name, rclcpp::SensorDataQoS(),
+      name, qos,
       std::bind(&ActuatorMixerNode::OnTorqueSetpoint, this,
                 std::placeholders::_1));
 
@@ -119,12 +120,5 @@ void ActuatorMixerNode::OnTorqueSetpoint(
 
 }  // namespace mixer
 }  // namespace hippo_control
-
-int main(int argc, char **argv) {
-  rclcpp::init(argc, argv);
-  auto node = std::make_shared<hippo_control::mixer::ActuatorMixerNode>(
-      rclcpp::NodeOptions());
-  rclcpp::spin(node);
-  rclcpp::shutdown();
-  return 0;
-}
+#include <rclcpp_components/register_node_macro.hpp>
+RCLCPP_COMPONENTS_REGISTER_NODE(hippo_control::mixer::ActuatorMixerNode)

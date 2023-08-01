@@ -21,39 +21,42 @@ void GeometricControlNode::InitTimers() {
 }
 
 void GeometricControlNode::InitPublishers() {
+  using geometry_msgs::msg::QuaternionStamped;
   using hippo_msgs::msg::ActuatorSetpoint;
-  using hippo_msgs::msg::AttitudeTarget;
 
   std::string topic;
   rclcpp::QoS qos = rclcpp::SensorDataQoS();
   qos.keep_last(1);
 
-  topic = "thrust_setpoint";
-  thrust_pub_ = create_publisher<ActuatorSetpoint>(topic, qos);
-
   topic = "torque_setpoint";
   torque_pub_ = create_publisher<ActuatorSetpoint>(topic, qos);
 
   topic = "~/current_setpoint";
-  current_setpoint_pub_ = create_publisher<AttitudeTarget>(topic, qos);
+  current_setpoint_pub_ = create_publisher<QuaternionStamped>(topic, qos);
 }
 
 void GeometricControlNode::InitSubscriptions() {
-  using hippo_msgs::msg::AttitudeTarget;
+  using geometry_msgs::msg::Vector3Stamped;
+  using hippo_msgs::msg::Float64Stamped;
   using nav_msgs::msg::Odometry;
 
   std::string topic;
   rclcpp::QoS qos = rclcpp::SensorDataQoS();
   qos.keep_last(1);
 
-  topic = "attitude_target";
-  attitude_target_sub_ = create_subscription<AttitudeTarget>(
+  topic = "heading_target";
+  heading_target_sub_ = create_subscription<Vector3Stamped>(
       topic, qos,
-      [this](const AttitudeTarget::SharedPtr msg) { OnAttitudeTarget(msg); });
+      [this](const Vector3Stamped::SharedPtr msg) { OnHeadingTarget(msg); });
 
   topic = "odometry";
   odometry_sub_ = create_subscription<Odometry>(
       topic, qos, [this](const Odometry::SharedPtr msg) { OnOdometry(msg); });
+
+  topic = "roll_target";
+  roll_target_sub_ = create_subscription<Float64Stamped>(
+      topic, qos,
+      [this](const Float64Stamped::SharedPtr msg) { OnRollTarget(msg); });
 }
 
 hippo_msgs::msg::ActuatorSetpoint GeometricControlNode::ZeroMsg(
@@ -68,35 +71,7 @@ hippo_msgs::msg::ActuatorSetpoint GeometricControlNode::ZeroMsg(
 
 void GeometricControlNode::PublishZeroActuatorSetpoints(
     const rclcpp::Time &_now) {
-  using hippo_msgs::msg::ActuatorSetpoint;
-  ActuatorSetpoint thrust_msg = ZeroMsg(_now);
-  ActuatorSetpoint torque_msg = ZeroMsg(_now);
-  thrust_pub_->publish(thrust_msg);
-  torque_pub_->publish(torque_msg);
-}
-
-void GeometricControlNode::PublishInFeedthroughMode() {
-  const rclcpp::Time t_now = now();
-  if (setpoint_timed_out_) {
-    PublishZeroActuatorSetpoints(t_now);
-    return;
-  }
-  using hippo_common::tf2_utils::frame_id::BaseLink;
-
-  hippo_msgs::msg::ActuatorSetpoint thrust_msg;
-  thrust_msg.header.stamp = t_now;
-  thrust_msg.header.frame_id = BaseLink(this);
-  thrust_msg.x = attitude_target_.thrust;
-
-  hippo_msgs::msg::ActuatorSetpoint torque_msg;
-  torque_msg.header.stamp = t_now;
-  torque_msg.header.frame_id = BaseLink(this);
-  torque_msg.x = attitude_target_.body_rate.x;
-  torque_msg.y = attitude_target_.body_rate.y;
-  torque_msg.z = attitude_target_.body_rate.z;
-
-  thrust_pub_->publish(thrust_msg);
-  torque_pub_->publish(torque_msg);
+  torque_pub_->publish(ZeroMsg(_now));
 }
 
 void GeometricControlNode::SetControllerGains() {
@@ -108,22 +83,28 @@ void GeometricControlNode::SetControllerGains() {
   controller_.SetDgains(d_gains);
 }
 
+void GeometricControlNode::PublishCurrentSetpoint(
+    const rclcpp::Time &_now, const Eigen::Quaterniond &_attitude) {
+  using hippo_common::convert::EigenToRos;
+  using hippo_common::tf2_utils::frame_id::InertialFrame;
+  geometry_msgs::msg::QuaternionStamped msg;
+  EigenToRos(_attitude, msg.quaternion);
+  msg.header.stamp = _now;
+  msg.header.frame_id = InertialFrame();
+  current_setpoint_pub_->publish(msg);
+}
+
 void GeometricControlNode::OnSetpointTimeout() {
   if (setpoint_timed_out_) {
     return;
   }
   RCLCPP_INFO(get_logger(), "Setpoint timed out. Sending zero commands.");
   setpoint_timed_out_ = true;
-  using hippo_msgs::msg::ActuatorSetpoint;
-  auto t_now = now();
-  ActuatorSetpoint thrust_msg = ZeroMsg(t_now);
-  ActuatorSetpoint torque_msg = ZeroMsg(t_now);
-  thrust_pub_->publish(thrust_msg);
-  torque_pub_->publish(torque_msg);
+  PublishZeroActuatorSetpoints(now());
 }
 
-void GeometricControlNode::OnAttitudeTarget(
-    const hippo_msgs::msg::AttitudeTarget::SharedPtr _msg) {
+void GeometricControlNode::OnHeadingTarget(
+    const geometry_msgs::msg::Vector3Stamped::SharedPtr _msg) {
   setpoint_timeout_timer_->reset();
   if (setpoint_timed_out_) {
     RCLCPP_INFO(get_logger(),
@@ -135,37 +116,19 @@ void GeometricControlNode::OnAttitudeTarget(
       hippo_common::tf2_utils::frame_id::InertialFrame()) {
     RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 1000,
-        "AttitudeTarget frame is [%s] but only [%s] is handled. Ignoring...",
+        "Heading target frame is [%s] but only [%s] is handled. Ignoring...",
         _msg->header.frame_id.c_str(),
         hippo_common::tf2_utils::frame_id::InertialFrame().c_str());
     return;
   }
-  if (!(_msg->mask & _msg->IGNORE_ATTITUDE)) {
-    attitude_target_.attitude = _msg->attitude;
-  }
-  if (!(_msg->mask & _msg->IGNORE_ROLL_RATE)) {
-    attitude_target_.body_rate.x = _msg->body_rate.x;
-  }
-  if (!(_msg->mask & _msg->IGNORE_PITCH_RATE)) {
-    attitude_target_.body_rate.y = _msg->body_rate.y;
-  }
-  if (!(_msg->mask & _msg->IGNORE_YAW_RATE)) {
-    attitude_target_.body_rate.z = _msg->body_rate.z;
-  }
-  controller_.SetAngularVelocityTarget(attitude_target_.body_rate.x,
-                                       attitude_target_.body_rate.y,
-                                       attitude_target_.body_rate.z);
-  if (!(_msg->mask & _msg->IGNORE_THRUST)) {
-    attitude_target_.thrust = _msg->thrust;
-  }
-  Eigen::Quaterniond attitude;
-  hippo_common::convert::RosToEigen(attitude_target_.attitude, attitude);
+  hippo_common::convert::RosToEigen(_msg->vector, heading_target_);
+  controller_.SetAngularVelocityTarget(0.0, 0.0, 0.0);
+  using hippo_common::tf2_utils::QuaternionFromHeading;
+  Eigen::Quaterniond attitude =
+      QuaternionFromHeading(heading_target_, roll_target_);
   controller_.SetOrientationTarget(attitude);
 
-  current_setpoint_pub_->publish(attitude_target_);
-  if (params_.feedthrough) {
-    PublishInFeedthroughMode();
-  }
+  PublishCurrentSetpoint(_msg->header.stamp, attitude);
 }
 
 void GeometricControlNode::OnOdometry(
@@ -174,17 +137,9 @@ void GeometricControlNode::OnOdometry(
     PublishZeroActuatorSetpoints(now());
     return;
   }
-  if (params_.feedthrough) {
-    return;
-  }
 
-  const rclcpp::Time t_now = now();
+  const rclcpp::Time t_now = _msg->header.stamp;
   using hippo_common::tf2_utils::frame_id::BaseLink;
-
-  hippo_msgs::msg::ActuatorSetpoint thrust_msg;
-  thrust_msg.header.stamp = t_now;
-  thrust_msg.header.frame_id = BaseLink(this);
-  thrust_msg.x = attitude_target_.thrust;
 
   hippo_msgs::msg::ActuatorSetpoint torque_msg;
   torque_msg.header.stamp = t_now;
@@ -196,8 +151,6 @@ void GeometricControlNode::OnOdometry(
   Eigen::Vector3d torque = controller_.Update(orientation, body_rates);
   using hippo_common::convert::EigenToRos;
   EigenToRos(torque, torque_msg);
-
-  thrust_pub_->publish(thrust_msg);
   torque_pub_->publish(torque_msg);
 }
 
