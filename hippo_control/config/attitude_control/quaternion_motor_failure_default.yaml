@@ -1,0 +1,4 @@
+/**: # wildcard for the node name
+  ros__parameters:
+    gain: -1.0
+    roll_weight: 0.0

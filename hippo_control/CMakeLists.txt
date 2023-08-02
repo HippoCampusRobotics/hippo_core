@@ -263,6 +263,57 @@ install(TARGETS ${component_name}
 )
 
 ################################################################################
+# motor_failure library
+################################################################################
+set(lib_name motor_failure)
+add_library(${lib_name} src/motor_failure/motor_failure.cpp)
+target_include_directories(${lib_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${lib_name} Eigen3)
+ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
+ament_export_dependencies(Eigen3)
+
+install(TARGETS ${lib_name}
+  EXPORT ${lib_name}Target
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
+
+################################################################################
+# motor_failure component
+################################################################################
+set(component_name motor_failure_control)
+add_library(${component_name}
+  SHARED
+  src/motor_failure/control_node/control_node.cpp
+  src/motor_failure/control_node/control_node_params.cpp
+)
+target_link_libraries(${component_name} motor_failure)
+target_include_directories(${component_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${component_name}
+  rclcpp rclcpp_components hippo_msgs hippo_common nav_msgs Eigen3
+)
+rclcpp_components_register_node(${component_name}
+  PLUGIN "hippo_control::motor_failure::ControlNode"
+  EXECUTABLE ${component_name}_node
+)
+install(TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+################################################################################
 # actuator_mixer component
 ################################################################################
 set(component_name actuator_mixer)
