@@ -46,42 +46,6 @@ include_directories(
 )
 
 ################################################################################
-# carrot_control component
-################################################################################
-set(component_name carrot_control)
-add_library(${component_name}
-  SHARED
-  src/carrot_control/carrot_controller.cpp
-  src/carrot_control/carrot_controller_params.cpp
-)
-target_include_directories(${component_name}
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(${component_name} yaml-cpp)
-ament_target_dependencies(${component_name}
-  rclcpp
-  rclcpp_components
-  hippo_common
-  hippo_msgs
-  path_planning
-  geometry_msgs
-  nav_msgs
-  yaml-cpp
-)
-rclcpp_components_register_node(${component_name}
-  PLUGIN "hippo_control::carrot_control::CarrotController"
-  EXECUTABLE ${component_name}_node
-)
-install(TARGETS ${component_name}
-  EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
-################################################################################
 # tracking_control library
 ################################################################################
 set(lib_name tracking_control)
