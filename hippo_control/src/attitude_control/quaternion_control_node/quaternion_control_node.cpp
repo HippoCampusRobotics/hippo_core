@@ -27,7 +27,7 @@ namespace attitude_control {
 QuaternionControlNode::QuaternionControlNode(
     rclcpp::NodeOptions const &_options)
     : Node("attitude_controller", _options) {
-  attitude_controller_.roll_weight() = 0.0;
+  DeclareParams();
   InitPublishers();
   InitSubscriptions();
 }
