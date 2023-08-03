@@ -1,12 +1,12 @@
 #pragma once
 
+#include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <hippo_control/rate_control/rate_controller.hpp>
 #include <hippo_msgs/msg/actuator_setpoint.hpp>
-#include <hippo_msgs/msg/angular_velocity.hpp>
-#include <hippo_msgs/msg/rates_target.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <px4_msgs/msg/vehicle_angular_velocity.hpp>
 #include <hippo_msgs/msg/rates_debug.hpp>
+#include <hippo_msgs/msg/rates_target.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 namespace hippo_control {
 namespace rate_control {
@@ -20,8 +20,12 @@ class RateControlNode : public rclcpp::Node {
   void DeclareIntegralLimitParams();
   void InitController();
   void UpdateAllControllerParams();
-  void OnAngularVelocity(px4_msgs::msg::VehicleAngularVelocity::ConstSharedPtr _msg);
-  void OnRatesSetpoint(hippo_msgs::msg::RatesTarget::ConstSharedPtr _msg);
+  void PublishTorqueOutput(const rclcpp::Time &now,
+                           const Eigen::Vector3d &torque);
+
+  void OnOdometry(const nav_msgs::msg::Odometry::SharedPtr);
+  void OnAngularVelocitySetpoint(
+      const geometry_msgs::msg::Vector3Stamped::SharedPtr);
   rcl_interfaces::msg::SetParametersResult OnGainParams(
       const std::vector<rclcpp::Parameter> &_parameters);
   rcl_interfaces::msg::SetParametersResult OnIntegralLimitParams(
@@ -53,10 +57,9 @@ class RateControlNode : public rclcpp::Node {
   rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr torque_pub_;
   rclcpp::Publisher<hippo_msgs::msg::RatesDebug>::SharedPtr rates_debug_pub_;
 
-  rclcpp::Subscription<px4_msgs::msg::VehicleAngularVelocity>::SharedPtr
-      angular_velocity_sub_;
-  rclcpp::Subscription<hippo_msgs::msg::RatesTarget>::SharedPtr
-      body_rates_setpoint_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr
+      angular_velocity_setpoint_sub_;
 
   Eigen::Vector3d body_rates_setpoint_{0.0, 0.0, 0.0};
   rclcpp::Time t_last_update_;

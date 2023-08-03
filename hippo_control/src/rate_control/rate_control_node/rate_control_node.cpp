@@ -1,6 +1,7 @@
+#include "rate_control_node.hpp"
+
 #include <hippo_common/convert.hpp>
 #include <hippo_common/param_utils.hpp>
-#include "rate_control_node.hpp"
 
 namespace hippo_control {
 namespace rate_control {
@@ -16,17 +17,22 @@ RateControlNode::RateControlNode(rclcpp::NodeOptions const &_options)
   rates_debug_pub_ = create_publisher<hippo_msgs::msg::RatesDebug>(
       "~/rates_debug", rclcpp::SensorDataQoS());
 
+  std::string topic;
   rclcpp::SensorDataQoS qos;
+  qos.keep_last(1);
 
-  angular_velocity_sub_ =
-      create_subscription<px4_msgs::msg::VehicleAngularVelocity>(
-          "fmu/out/vehicle_angular_velocity", qos,
-          std::bind(&RateControlNode::OnAngularVelocity, this,
-                    std::placeholders::_1));
+  topic = "odometry";
+  using nav_msgs::msg::Odometry;
+  odometry_sub_ = create_subscription<Odometry>(
+      topic, qos, [this](const Odometry::SharedPtr msg) { OnOdometry(msg); });
 
-  body_rates_setpoint_sub_ = create_subscription<hippo_msgs::msg::RatesTarget>(
+  topic = "angular_velocity_setpoint";
+  using geometry_msgs::msg::Vector3Stamped;
+  angular_velocity_setpoint_sub_ = create_subscription<Vector3Stamped>(
       "rates_setpoint", rclcpp::SystemDefaultsQoS(),
-      std::bind(&RateControlNode::OnRatesSetpoint, this, std::placeholders::_1));
+      [this](const Vector3Stamped::SharedPtr msg) {
+        OnAngularVelocitySetpoint(msg);
+      });
 }
 
 void RateControlNode::InitController() { UpdateAllControllerParams(); }
@@ -54,61 +60,50 @@ void RateControlNode::UpdateAllControllerParams() {
   controller_.SetZeroIntegralThreshold(params_.zero_integral_threshold);
 }
 
-void RateControlNode::OnAngularVelocity(
-    px4_msgs::msg::VehicleAngularVelocity::ConstSharedPtr _msg) {
+void RateControlNode::PublishTorqueOutput(const rclcpp::Time &_now,
+                                          const Eigen::Vector3d &_torque) {
+  hippo_msgs::msg::ActuatorSetpoint msg;
+  msg.header.stamp = _now;
+  hippo_common::convert::EigenToRos(_torque, msg);
+  torque_pub_->publish(msg);
+}
+
+void RateControlNode::OnOdometry(
+    const nav_msgs::msg::Odometry::SharedPtr _msg) {
   Eigen::Vector3d angular_velocity;
-  Eigen::Vector3d angular_acceleration;
+  hippo_common::convert::RosToEigen(_msg->twist.twist.angular,
+                                    angular_velocity);
+  // do not use angular acceleration for now by setting current and desired
+  // value to zero.
+  Eigen::Vector3d angular_acceleration{0.0, 0.0, 0.0};
 
-  for (int i = 0; i < 3; ++i) {
-    if (i < 1) {
-      angular_velocity(i) = _msg->xyz[i];
-      angular_acceleration(i) = _msg->xyz_derivative[i];
-    } else {
-      angular_velocity(i) = -1.0 * _msg->xyz[i];
-      angular_acceleration(i) = -1.0 * _msg->xyz_derivative[i];
-    }
-  }
-
-  auto t_now = now();
+  rclcpp::Time t_now = now();
   double dt = (t_now - t_last_update_).nanoseconds() * 1e-9;
   dt = std::clamp(dt, 1e-3, 0.02);
   t_last_update_ = t_now;
 
-  hippo_msgs::msg::ActuatorSetpoint msg;
-  msg.header.stamp = t_now;
-
   double dt_setpoint = (t_now - t_last_setpoint_).nanoseconds() * 1e-9;
   if (dt_setpoint > 0.3) {
     controller_.ResetIntegral();
-    msg.x = 0;
-    msg.y = 0;
-    msg.z = 0;
+    PublishTorqueOutput(_msg->header.stamp, Eigen::Vector3d::Zero());
   } else {
-    Eigen::Vector3d u_rpy = controller_.Update(
+    const Eigen::Vector3d u_rpy = controller_.Update(
         angular_velocity, body_rates_setpoint_, angular_acceleration, dt);
-
-    msg.x = u_rpy.x();
-    msg.y = u_rpy.y();
-    msg.z = u_rpy.z();
+    PublishTorqueOutput(_msg->header.stamp, u_rpy);
   }
-  torque_pub_->publish(msg);
+
   hippo_msgs::msg::RatesDebug debug_msg;
-  debug_msg.header.stamp = t_now;
+  debug_msg.header.stamp = _msg->header.stamp;
   hippo_common::convert::EigenToRos(body_rates_setpoint_,
                                     debug_msg.rates_desired);
   hippo_common::convert::EigenToRos(angular_velocity, debug_msg.rates);
   rates_debug_pub_->publish(debug_msg);
 }
 
-void RateControlNode::OnRatesSetpoint(
-    hippo_msgs::msg::RatesTarget::ConstSharedPtr _msg) {
+void RateControlNode::OnAngularVelocitySetpoint(
+    const geometry_msgs::msg::Vector3Stamped::SharedPtr _msg) {
   t_last_setpoint_ = now();
-  body_rates_setpoint_.x() = _msg->roll;
-  body_rates_setpoint_.y() = _msg->pitch;
-  body_rates_setpoint_.z() = _msg->yaw;
-  if (_msg->reset_integral) {
-    controller_.ResetIntegral();
-  }
+  hippo_common::convert::RosToEigen(_msg->vector, body_rates_setpoint_);
 }
 
 }  // namespace rate_control
