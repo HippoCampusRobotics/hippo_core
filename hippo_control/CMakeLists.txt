@@ -137,9 +137,9 @@ target_include_directories(${lib_name}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(${lib_name} rclcpp Eigen3 px4_msgs)
+ament_target_dependencies(${lib_name} Eigen3)
 ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
-ament_export_dependencies(rclcpp Eigen3 px4_msgs)
+ament_export_dependencies(Eigen3)
 
 install(TARGETS ${lib_name}
   EXPORT ${lib_name}Target
@@ -170,6 +170,7 @@ ament_target_dependencies(${component_name}
   hippo_common
   hippo_msgs
   geometry_msgs
+  nav_msgs
 )
 rclcpp_components_register_node(${component_name}
   PLUGIN "hippo_control::rate_control::RateControlNode"
