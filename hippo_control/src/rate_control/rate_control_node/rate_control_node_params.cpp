@@ -16,22 +16,22 @@
 // USA
 
 #include <hippo_common/param_utils.hpp>
-#include <hippo_control/rate_control/rate_controller.hpp>
+#include "rate_control_node.hpp"
 
 namespace hippo_control {
 namespace rate_control {
 
-void RateController::DeclareParams() {
+void RateControlNode::DeclareParams() {
   DeclareGainParams();
   DeclareIntegralLimitParams();
 
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(zero_integral_threshold);
 
   params_cb_handle_ = add_on_set_parameters_callback(
-      std::bind(&RateController::OnParams, this, std::placeholders::_1));
+      std::bind(&RateControlNode::OnParams, this, std::placeholders::_1));
 }
 
-void RateController::DeclareGainParams() {
+void RateControlNode::DeclareGainParams() {
   //////////////////////////////////////////////////////////////////////////////
   // roll gains
   //////////////////////////////////////////////////////////////////////////////
@@ -57,18 +57,18 @@ void RateController::DeclareGainParams() {
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(gains.yaw.feed_forward);
 
   gains_cb_handle_ = add_on_set_parameters_callback(
-      std::bind(&RateController::OnGainParams, this, std::placeholders::_1));
+      std::bind(&RateControlNode::OnGainParams, this, std::placeholders::_1));
 }
-void RateController::DeclareIntegralLimitParams() {
+void RateControlNode::DeclareIntegralLimitParams() {
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(integral_limits.roll);
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(integral_limits.pitch);
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(integral_limits.yaw);
 
   integral_limits_cb_handle_ = add_on_set_parameters_callback(std::bind(
-      &RateController::OnIntegralLimitParams, this, std::placeholders::_1));
+      &RateControlNode::OnIntegralLimitParams, this, std::placeholders::_1));
 }
 
-rcl_interfaces::msg::SetParametersResult RateController::OnGainParams(
+rcl_interfaces::msg::SetParametersResult RateControlNode::OnGainParams(
     const std::vector<rclcpp::Parameter> &_parameters) {
   rcl_interfaces::msg::SetParametersResult result;
   result.reason = "unhandled";
@@ -106,7 +106,7 @@ rcl_interfaces::msg::SetParametersResult RateController::OnGainParams(
   return result;
 }
 
-rcl_interfaces::msg::SetParametersResult RateController::OnIntegralLimitParams(
+rcl_interfaces::msg::SetParametersResult RateControlNode::OnIntegralLimitParams(
     const std::vector<rclcpp::Parameter> &_parameters) {
   rcl_interfaces::msg::SetParametersResult result;
   result.reason = "unhandled";
@@ -124,7 +124,7 @@ rcl_interfaces::msg::SetParametersResult RateController::OnIntegralLimitParams(
   return result;
 }
 
-rcl_interfaces::msg::SetParametersResult RateController::OnParams(
+rcl_interfaces::msg::SetParametersResult RateControlNode::OnParams(
     const std::vector<rclcpp::Parameter> &_parameters) {
   rcl_interfaces::msg::SetParametersResult result;
   result.reason = "unhandled";

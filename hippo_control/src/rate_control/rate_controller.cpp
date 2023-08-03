@@ -15,121 +15,35 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 // USA
 
-#include <hippo_common/convert.hpp>
-#include <hippo_common/param_utils.hpp>
 #include <hippo_control/rate_control/rate_controller.hpp>
 
 namespace hippo_control {
 namespace rate_control {
-RateController::RateController(rclcpp::NodeOptions const &_options)
-    : Node("rate_controller", _options) {
-  DeclareParams();
-  InitController();
-  t_last_update_ = t_last_setpoint_ = now();
 
-  torque_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(
-      "torque_setpoint", rclcpp::SensorDataQoS());
+Eigen::Vector3d RateController::Update(const Eigen::Vector3d &_rate,
+                                   const Eigen::Vector3d &_rate_setpoint,
+                                   const Eigen::Vector3d &_angular_acceleration,
+                                   const double _dt) {
+  Eigen::Vector3d rate_error = _rate_setpoint - _rate;
 
-  rates_debug_pub_ = create_publisher<hippo_msgs::msg::RatesDebug>(
-      "~/rates_debug", rclcpp::SensorDataQoS());
-
-  rclcpp::SensorDataQoS qos;
-
-  angular_velocity_sub_ =
-      create_subscription<px4_msgs::msg::VehicleAngularVelocity>(
-          "fmu/out/vehicle_angular_velocity", qos,
-          std::bind(&RateController::OnAngularVelocity, this,
-                    std::placeholders::_1));
-
-  body_rates_setpoint_sub_ = create_subscription<hippo_msgs::msg::RatesTarget>(
-      "rates_setpoint", rclcpp::SystemDefaultsQoS(),
-      std::bind(&RateController::OnRatesSetpoint, this, std::placeholders::_1));
+  Eigen::Vector3d u = p_gain_.cwiseProduct(rate_error) + integral_ -
+                      d_gain_.cwiseProduct(_angular_acceleration) +
+                      feed_forward_gain_.cwiseProduct(_rate_setpoint);
+  UpdateIntegral(rate_error, _dt);
+  return u;
 }
 
-void RateController::InitController() { UpdateAllControllerParams(); }
-
-void RateController::UpdateAllControllerParams() {
-  controller_.SetRollGainP(params_.gains.roll.p);
-  controller_.SetRollGainI(params_.gains.roll.i);
-  controller_.SetRollGainD(params_.gains.roll.d);
-  controller_.SetRollFeedForwardGain(params_.gains.roll.feed_forward);
-
-  controller_.SetPitchGainP(params_.gains.pitch.p);
-  controller_.SetPitchGainI(params_.gains.pitch.i);
-  controller_.SetPitchGainD(params_.gains.pitch.d);
-  controller_.SetPitchFeedForwardGain(params_.gains.pitch.feed_forward);
-
-  controller_.SetYawGainP(params_.gains.yaw.p);
-  controller_.SetYawGainI(params_.gains.yaw.i);
-  controller_.SetYawGainD(params_.gains.yaw.d);
-  controller_.SetYawFeedForwardGain(params_.gains.yaw.feed_forward);
-
-  controller_.SetRollIntegralLimit(params_.integral_limits.roll);
-  controller_.SetPitchIntegralLimit(params_.integral_limits.pitch);
-  controller_.SetYawIntegralLimit(params_.integral_limits.yaw);
-
-  controller_.SetZeroIntegralThreshold(params_.zero_integral_threshold);
-}
-
-void RateController::OnAngularVelocity(
-    px4_msgs::msg::VehicleAngularVelocity::ConstSharedPtr _msg) {
-  Eigen::Vector3d angular_velocity;
-  Eigen::Vector3d angular_acceleration;
-
+void RateController::UpdateIntegral(Eigen::Vector3d &_rate_error,
+                                const double _dt) {
   for (int i = 0; i < 3; ++i) {
-    if (i < 1) {
-      angular_velocity(i) = _msg->xyz[i];
-      angular_acceleration(i) = _msg->xyz_derivative[i];
-    } else {
-      angular_velocity(i) = -1.0 * _msg->xyz[i];
-      angular_acceleration(i) = -1.0 * _msg->xyz_derivative[i];
-    }
-  }
-
-  auto t_now = now();
-  double dt = (t_now - t_last_update_).nanoseconds() * 1e-9;
-  dt = std::clamp(dt, 1e-3, 0.02);
-  t_last_update_ = t_now;
-
-  hippo_msgs::msg::ActuatorSetpoint msg;
-  msg.header.stamp = t_now;
-
-  double dt_setpoint = (t_now - t_last_setpoint_).nanoseconds() * 1e-9;
-  if (dt_setpoint > 0.3) {
-    controller_.ResetIntegral();
-    msg.x = 0;
-    msg.y = 0;
-    msg.z = 0;
-  } else {
-    Eigen::Vector3d u_rpy = controller_.Update(
-        angular_velocity, body_rates_setpoint_, angular_acceleration, dt);
-
-    msg.x = u_rpy.x();
-    msg.y = u_rpy.y();
-    msg.z = u_rpy.z();
-  }
-  torque_pub_->publish(msg);
-  hippo_msgs::msg::RatesDebug debug_msg;
-  debug_msg.header.stamp = t_now;
-  hippo_common::convert::EigenToRos(body_rates_setpoint_,
-                                    debug_msg.rates_desired);
-  hippo_common::convert::EigenToRos(angular_velocity, debug_msg.rates);
-  rates_debug_pub_->publish(debug_msg);
-}
-
-void RateController::OnRatesSetpoint(
-    hippo_msgs::msg::RatesTarget::ConstSharedPtr _msg) {
-  t_last_setpoint_ = now();
-  body_rates_setpoint_.x() = _msg->roll;
-  body_rates_setpoint_.y() = _msg->pitch;
-  body_rates_setpoint_.z() = _msg->yaw;
-  if (_msg->reset_integral) {
-    controller_.ResetIntegral();
+    // smoothly decrease integral for large errors. inspired by:
+    // https://github.com/PX4/PX4-Autopilot/blob/a5e4295029162cbc66c3e61f7b11a9672a461bc4/src/lib/rate_control/rate_control.cpp#L93
+    double scaler = _rate_error(i) / zero_integral_threshold_;
+    scaler = std::max(1.0 - scaler * scaler, 0.0);
+    double integral = integral_(i) + scaler * i_gain_(i) * _rate_error(i) * _dt;
+    integral_(i) =
+        std::clamp(integral, -integral_limit_(i), integral_limit_(i));
   }
 }
-
 }  // namespace rate_control
 }  // namespace hippo_control
-
-#include <rclcpp_components/register_node_macro.hpp>
-RCLCPP_COMPONENTS_REGISTER_NODE(hippo_control::rate_control::RateController)

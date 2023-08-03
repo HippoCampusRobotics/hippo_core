@@ -1,73 +1,48 @@
 #pragma once
 
-#include <hippo_control/rate_control/rate_control.hpp>
-#include <hippo_msgs/msg/actuator_setpoint.hpp>
-#include <hippo_msgs/msg/angular_velocity.hpp>
-#include <hippo_msgs/msg/rates_debug.hpp>
-#include <hippo_msgs/msg/rates_target.hpp>
-#include <px4_msgs/msg/vehicle_angular_velocity.hpp>
-#include <rclcpp/rclcpp.hpp>
+#include <eigen3/Eigen/Dense>
 
 namespace hippo_control {
 namespace rate_control {
-class RateController : public rclcpp::Node {
+class RateController {
  public:
-  explicit RateController(rclcpp::NodeOptions const &_options);
+  void SetRollGainP(double _gain) { p_gain_.x() = _gain; }
+  void SetRollGainI(double _gain) { i_gain_.x() = _gain; }
+  void SetRollGainD(double _gain) { d_gain_.x() = _gain; }
+  void SetRollFeedForwardGain(double _gain) { feed_forward_gain_.x() = _gain; }
+  void SetRollIntegralLimit(double _limit) { integral_limit_.x() = _limit; }
+
+  void SetPitchGainP(double _gain) { p_gain_.y() = _gain; }
+  void SetPitchGainI(double _gain) { i_gain_.y() = _gain; }
+  void SetPitchGainD(double _gain) { d_gain_.y() = _gain; }
+  void SetPitchFeedForwardGain(double _gain) { feed_forward_gain_.y() = _gain; }
+  void SetPitchIntegralLimit(double _limit) { integral_limit_.y() = _limit; }
+
+  void SetYawGainP(double _gain) { p_gain_.z() = _gain; }
+  void SetYawGainI(double _gain) { i_gain_.z() = _gain; }
+  void SetYawGainD(double _gain) { d_gain_.z() = _gain; }
+  void SetYawFeedForwardGain(double _gain) { feed_forward_gain_.z() = _gain; }
+  void SetYawIntegralLimit(double _limit) { integral_limit_.z() = _limit; }
+
+  void SetZeroIntegralThreshold(double _v) { zero_integral_threshold_ = _v; }
+
+  void ResetIntegral() { integral_.setZero(); }
+
+  Eigen::Vector3d Update(const Eigen::Vector3d &_rate,
+                         const Eigen::Vector3d &_rate_setpoint,
+                         const Eigen::Vector3d &_angular_acceleration,
+                         const double _dt);
 
  private:
-  void DeclareParams();
-  void DeclareGainParams();
-  void DeclareIntegralLimitParams();
-  void InitController();
-  void UpdateAllControllerParams();
-  void OnAngularVelocity(
-      px4_msgs::msg::VehicleAngularVelocity::ConstSharedPtr _msg);
-  void OnRatesSetpoint(hippo_msgs::msg::RatesTarget::ConstSharedPtr _msg);
-  rcl_interfaces::msg::SetParametersResult OnGainParams(
-      const std::vector<rclcpp::Parameter> &_parameters);
-  rcl_interfaces::msg::SetParametersResult OnIntegralLimitParams(
-      const std::vector<rclcpp::Parameter> &_parameters);
-  rcl_interfaces::msg::SetParametersResult OnParams(
-      const std::vector<rclcpp::Parameter> &_parameters);
+  void UpdateIntegral(Eigen::Vector3d &_rate_error, const double _dt);
+  Eigen::Vector3d p_gain_;
+  Eigen::Vector3d i_gain_;
+  Eigen::Vector3d d_gain_;
+  Eigen::Vector3d integral_limit_;
+  Eigen::Vector3d feed_forward_gain_;
+  double zero_integral_threshold_;
 
-  struct PidGains {
-    double p{2.0};
-    double i{0.5};
-    double d{0.001};
-    double feed_forward{0.0};
-  };
-  struct Params {
-    struct Gains {
-      PidGains roll;
-      PidGains pitch;
-      PidGains yaw;
-    } gains;
-    struct IntegralLimits {
-      double roll{0.5};
-      double pitch{0.5};
-      double yaw{0.5};
-    } integral_limits;
-    double zero_integral_threshold{2.0};
-    bool updated{false};
-  } params_;
-
-  rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr torque_pub_;
-  rclcpp::Publisher<hippo_msgs::msg::RatesDebug>::SharedPtr rates_debug_pub_;
-
-  rclcpp::Subscription<px4_msgs::msg::VehicleAngularVelocity>::SharedPtr
-      angular_velocity_sub_;
-  rclcpp::Subscription<hippo_msgs::msg::RatesTarget>::SharedPtr
-      body_rates_setpoint_sub_;
-
-  Eigen::Vector3d body_rates_setpoint_{0.0, 0.0, 0.0};
-  rclcpp::Time t_last_update_;
-  rclcpp::Time t_last_setpoint_;
-
-  hippo_control::rate_control::Controller controller_;
-
-  OnSetParametersCallbackHandle::SharedPtr gains_cb_handle_;
-  OnSetParametersCallbackHandle::SharedPtr integral_limits_cb_handle_;
-  OnSetParametersCallbackHandle::SharedPtr params_cb_handle_;
+  Eigen::Vector3d integral_;
 };
 }  // namespace rate_control
 }  // namespace hippo_control

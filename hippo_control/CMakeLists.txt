@@ -128,10 +128,10 @@ install(TARGETS ${lib_name}
 
 
 ################################################################################
-# rate_control library
+# rate_controller library
 ################################################################################
-set(lib_name rate_control)
-add_library(${lib_name} src/rate_control/rate_control.cpp)
+set(lib_name rate_controller)
+add_library(${lib_name} src/rate_control/rate_controller.cpp)
 target_include_directories(${lib_name}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -152,13 +152,13 @@ install(TARGETS ${lib_name}
 ################################################################################
 # rate_control component
 ################################################################################
-set(component_name rate_controller)
+set(component_name rate_control)
 add_library(${component_name}
   SHARED
-  src/rate_control/rate_controller.cpp
-  src/rate_control/rate_controller_params.cpp
+  src/rate_control/rate_control_node/rate_control_node.cpp
+  src/rate_control/rate_control_node/rate_control_node_params.cpp
 )
-target_link_libraries(${component_name} rate_control)
+target_link_libraries(${component_name} rate_controller)
 target_include_directories(${component_name}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -172,7 +172,7 @@ ament_target_dependencies(${component_name}
   geometry_msgs
 )
 rclcpp_components_register_node(${component_name}
-  PLUGIN "hippo_control::rate_control::RateController"
+  PLUGIN "hippo_control::rate_control::RateControlNode"
   EXECUTABLE ${component_name}_node
 )
 install(TARGETS ${component_name}
