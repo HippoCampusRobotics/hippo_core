@@ -73,11 +73,6 @@ void RateController::UpdateAllControllerParams() {
 
 void RateController::OnAngularVelocity(
     px4_msgs::msg::VehicleAngularVelocity::ConstSharedPtr _msg) {
-  if (params_.updated) {
-    UpdateAllControllerParams();
-    params_.updated = false;
-  }
-
   Eigen::Vector3d angular_velocity;
   Eigen::Vector3d angular_acceleration;
 
