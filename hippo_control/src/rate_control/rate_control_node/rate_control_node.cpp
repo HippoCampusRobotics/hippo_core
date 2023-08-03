@@ -29,7 +29,7 @@ RateControlNode::RateControlNode(rclcpp::NodeOptions const &_options)
   topic = "angular_velocity_setpoint";
   using geometry_msgs::msg::Vector3Stamped;
   angular_velocity_setpoint_sub_ = create_subscription<Vector3Stamped>(
-      "rates_setpoint", rclcpp::SystemDefaultsQoS(),
+      topic, rclcpp::SystemDefaultsQoS(),
       [this](const Vector3Stamped::SharedPtr msg) {
         OnAngularVelocitySetpoint(msg);
       });
