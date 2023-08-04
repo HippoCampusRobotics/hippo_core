@@ -64,7 +64,7 @@ void ControlNode::OnOdometry(const nav_msgs::msg::Odometry::SharedPtr _msg) {
                         angular_velocity_setpoint_.z(), thrust_setpoint_.x());
   Eigen::Vector4d thrusts =
       controller_.Update(angular_velocity_.y(), angular_velocity_.z(),
-                         linear_velocity_.x(), orientation_);
+                         0.0, orientation_);
   for (int i = 0; i < 4; ++i) {
     thrusts(i) = thruster_model_.ThrustToEscCommand(thrusts(i));
     thrusts(i) = std::min(1.0, std::max(-1.0, thrusts(i)));
