@@ -20,17 +20,18 @@ static constexpr int kTopRightToBottomLeft = 1;
 
 class MotorFailure {
  public:
- static constexpr double kMotorOffset = 0.069;
-  Eigen::Vector4d Update(double pitch_rate, double yaw_rate,
-                         double surge_velocity,
-                         const Eigen::Quaterniond &_orientation);
+  static constexpr double kMotorOffset = 0.069;
+  Eigen::Vector<double, 4> Update(double pitch_rate, double yaw_rate,
+                                  double surge_velocity,
+                                  const Eigen::Quaterniond &_orientation);
   void SetTarget(double pitch_rate, double yaw_rate, double surge_velocity);
 
  private:
-  Eigen::Vector3d ComputeThrusts(double surge_velocity, double surge_accel,
-                                 double pitch_velocity, double pitch_accel,
-                                 double yaw_velocity, double yaw_accel);
-  Eigen::Vector4d AllocateThrust(const Eigen::Vector3d &_thrust);
+  Eigen::Vector<double, 6> ComputeThrusts(
+      double surge_velocity, double surge_accel, double pitch_velocity,
+      double pitch_accel, double yaw_velocity, double yaw_accel);
+  Eigen::Vector<double, 4> AllocateThrust(
+      const Eigen::Vector<double, 6> &_thrust);
   double pitch_rate_target_{0.0};
   double yaw_rate_target_{0.0};
   double surge_velocity_target_{0.0};
