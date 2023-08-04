@@ -3,22 +3,22 @@
     feedthrough: false
     gains:
       roll:
-        p: 5.0
-        i: 0.5
-        d: 0.001
+        p: 1.0
+        i: 0.0
+        d: 0.0
         feed_forward: 0.0
       pitch:
-        p: 5.0 
-        i: 0.5
-        d: 0.001
+        p: 1.0 
+        i: 0.0
+        d: 0.0
         feed_forward: 0.0
       yaw:
-        p: 5.0
-        i: 0.5
-        d: 0.001
+        p: 1.0
+        i: 0.0
+        d: 0.0
         feed_forward: 0.0
     integral_limits:
       roll: 0.5
       pitch: 0.5
       yaw: 0.5
-    zero_integral_treshold: 2.0
+    zero_integral_threshold: 2.0
