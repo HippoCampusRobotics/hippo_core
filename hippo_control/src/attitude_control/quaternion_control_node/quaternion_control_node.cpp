@@ -40,6 +40,10 @@ void QuaternionControlNode::InitPublishers() {
   topic = "angular_velocity_setpoint";
   angular_velocity_setpoint_pub_ =
       create_publisher<geometry_msgs::msg::Vector3Stamped>(topic, qos);
+
+  topic = "~/attitude_target_debug";
+  attitude_target_debug_pub_ =
+      create_publisher<geometry_msgs::msg::PoseStamped>(topic, qos);
 }
 
 void QuaternionControlNode::InitSubscriptions() {
@@ -73,6 +77,15 @@ void QuaternionControlNode::PublishAngularVelocitySetpoint(
   angular_velocity_setpoint_pub_->publish(msg);
 }
 
+void QuaternionControlNode::PublishAttitudeTargetDebug(
+    const rclcpp::Time &_now, const geometry_msgs::msg::Pose &_pose) {
+  geometry_msgs::msg::PoseStamped msg;
+  msg.header.stamp = _now;
+  msg.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
+  msg.pose = _pose;
+  attitude_target_debug_pub_->publish(msg);
+}
+
 // void QuaternionControlNode::OnHeadingTarget(
 //     const hippo_msgs::msg::HeadingTarget::SharedPtr _msg) {
 //   hippo_common::convert::RosToEigen(_msg->heading, target_heading_);
@@ -92,8 +105,15 @@ void QuaternionControlNode::OnOdometry(
   const Eigen::Vector3d desired_body_rates =
       attitude_controller_.Update(target_heading_, 0.0, orientation_);
 
-  const rclcpp::Time t_now = now();
+  const rclcpp::Time t_now = _msg->header.stamp;
   PublishAngularVelocitySetpoint(t_now, desired_body_rates);
+
+  Eigen::Quaterniond q = hippo_common::tf2_utils::QuaternionFromHeading(target_heading_, 0.0);
+  geometry_msgs::msg::Pose pose;
+  pose.position = _msg->pose.pose.position;
+  hippo_common::convert::EigenToRos(q, pose.orientation);
+  PublishAttitudeTargetDebug(t_now, pose);
+
 }
 }  // namespace attitude_control
 }  // namespace hippo_control
