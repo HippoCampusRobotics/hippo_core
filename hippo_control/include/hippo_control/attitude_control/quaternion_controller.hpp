@@ -13,14 +13,9 @@ int sgn(T value) {
 
 class QuaternionController {
  public:
-  inline Eigen::Vector3d Update(const Eigen::Vector3d &desired_heading,
-                                double desired_roll,
-                                const Eigen::Quaterniond &orientation) {
-    orientation_ = orientation;
-    auto q_cmd = MixedQuaternionCommand(desired_heading, desired_roll);
-
-    return 2.0 * gain_ * sgn(q_cmd.w()) * q_cmd.vec();
-  }
+  Eigen::Vector3d Update(const Eigen::Vector3d &desired_heading,
+                         double desired_roll,
+                         const Eigen::Quaterniond &orientation);
 
   inline double &gain() { return gain_; }
   inline double &roll_weight() { return roll_weight_; }
