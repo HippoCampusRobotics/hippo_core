@@ -45,7 +45,8 @@ Eigen::Quaterniond QuaternionFromHeading(const Eigen::Vector3d &_heading,
   const Eigen::Vector3d z_axis_intermediate{0.0, -sin(_roll), cos(_roll)};
   const Eigen::Vector3d y_axis_desired =
       z_axis_intermediate.cross(_heading).normalized();
-  const Eigen::Vector3d z_axis_desired = _heading.cross(y_axis_desired);
+  const Eigen::Vector3d z_axis_desired =
+      _heading.cross(y_axis_desired).normalized();
 
   Eigen::Matrix3d R;
   for (int i = 0; i < 3; ++i) {
