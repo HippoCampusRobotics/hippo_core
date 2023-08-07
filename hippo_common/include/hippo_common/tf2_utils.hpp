@@ -38,6 +38,10 @@ inline Eigen::Vector3d QuaternionToEuler(const Eigen::Quaterniond &_q) {
 Eigen::Quaterniond QuaternionFromHeading(const Eigen::Vector3d &_heading,
                                          double _roll);
 
+inline double AngleOfRotation(const Eigen::Quaterniond &q) {
+  return atan2(q.vec().norm(), q.w());
+}
+
 /// @brief Make sure both vectors have unit length. Returns a quaternion
 /// describing the rotation between both vectors so _v2 = q.rotate(_v1)
 /// @param _v1
