@@ -16,15 +16,17 @@ TfPublisherVehicle::TfPublisherVehicle(rclcpp::NodeOptions const &_options)
 
   std::string topic;
   topic = "odometry";
+  rclcpp::SensorDataQoS qos;
+  qos.keep_last(1);
   odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-      topic, 10, [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
+      topic, qos, [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
         OnOdometry(msg);
       });
 
   topic = "vision_pose_cov";
   vision_pose_cov_sub_ =
       create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
-          topic, 10,
+          topic, qos,
           [this](const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
                      msg) { OnVisionPoseCovariance(msg); });
 }
