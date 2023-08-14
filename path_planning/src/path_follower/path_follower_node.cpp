@@ -93,6 +93,10 @@ void PathFollowerNode::InitPublishers() {
   topic = "heading_target";
   heading_target_pub_ =
       create_publisher<geometry_msgs::msg::Vector3Stamped>(topic, qos);
+
+  topic = "~/distance_error";
+  distance_error_debug_pub_ =
+      create_publisher<hippo_msgs::msg::Float64Stamped>(topic, qos);
 }
 
 void PathFollowerNode::InitSubscriptions() {
@@ -103,6 +107,14 @@ void PathFollowerNode::InitSubscriptions() {
       topic, 10, [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
         OnOdometry(msg);
       });
+}
+
+void PathFollowerNode::PublishDistanceError(const rclcpp::Time &_now,
+                                            double _error) {
+  hippo_msgs::msg::Float64Stamped msg;
+  msg.header.stamp = _now;
+  msg.data = _error;
+  distance_error_debug_pub_->publish(msg);
 }
 
 void PathFollowerNode::OnSetPath(
@@ -136,17 +148,25 @@ void PathFollowerNode::OnOdometry(
                                 "No path has been set.");
     return;
   }
-  bool success = path_->Update(position_);
-  if (!success) {
-    RCLCPP_ERROR_STREAM(get_logger(), "Could not find target waypoint.");
-    return;
-  }
-  target_position_ = path_->TargetPoint();
-  Eigen::Vector3d heading{target_position_ - position_};
-  heading.z() *= params_.depth_gain;
+  // bool success = path_->Update(position_);
+  // if (!success) {
+  //   RCLCPP_ERROR_STREAM(get_logger(), "Could not find target waypoint.");
+  //   return;
+  // }
+  // target_position_ = path_->TargetPoint();
+  // Eigen::Vector3d heading{target_position_ - position_};
+  // heading.z() *= params_.depth_gain;
+  constexpr double desired_axis_x = 1.0;
+  constexpr double desired_axis_z = -0.5;
+  double x_pos = _msg->pose.pose.position.x;
+  double z_pos = _msg->pose.pose.position.z;
+  const double x_error = desired_axis_x - x_pos;
+  const double z_error = desired_axis_z - z_pos;
+  Eigen::Vector3d heading{x_error, params_.look_ahead_distance, z_error};
   heading.normalize();
   PublishHeadingTarget(_msg->header.stamp, heading);
-
+  PublishDistanceError(_msg->header.stamp,
+                       sqrt(x_error * x_error + z_error * z_error));
   if (path_visualizer_ != nullptr) {
     path_visualizer_->PublishPath(path_);
   }

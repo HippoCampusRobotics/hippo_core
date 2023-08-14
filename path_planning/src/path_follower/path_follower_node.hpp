@@ -19,6 +19,7 @@
 
 #include <eigen3/Eigen/Dense>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
+#include <hippo_msgs/msg/float64_stamped.hpp>
 #include <hippo_msgs/srv/set_path.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <path_planning/path.hpp>
@@ -45,6 +46,7 @@ class PathFollowerNode : public rclcpp::Node {
   void InitSubscriptions();
   void PublishHeadingTarget(const rclcpp::Time &now,
                             const Eigen::Vector3d &heading);
+  void PublishDistanceError(const rclcpp::Time &now, double error);
   void LoadDefaultWaypoints();
   std::string GetWaypointsFilePath();
 
@@ -64,6 +66,8 @@ class PathFollowerNode : public rclcpp::Node {
   //////////////////////////////////////////////////////////////////////////////
   rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
       heading_target_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::Float64Stamped>::SharedPtr
+      distance_error_debug_pub_;
 
   //////////////////////////////////////////////////////////////////////////////
   // Subscriptions
