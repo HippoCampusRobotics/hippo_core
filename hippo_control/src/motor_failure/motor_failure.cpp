@@ -12,10 +12,18 @@ Eigen::Vector<double, 4> MotorFailure::Update(
   double pitch_accel = pitch_p_gain_ * (pitch_rate_target_ - _pitch_rate);
   double yaw_accel = yaw_p_gain_ * (yaw_rate_target_ - _yaw_rate);
 
+  Eigen::Vector2d control_direction{pitch_accel, yaw_accel};
+  Eigen::Vector2d controllability_direction{1.0, -1.0};
+  double controllability = control_direction.dot(controllability_direction) / controllability_direction.squaredNorm();
+
+  double torque = controllability;
+
   Eigen::Vector<double, 6> thrusts =
-      ComputeThrusts(_surge_velocity, surge_accel, _pitch_rate, pitch_accel,
-                     _yaw_rate, yaw_accel);
-  return AllocateThrust(thrusts);
+      ComputeThrusts(_surge_velocity, surge_accel, _pitch_rate, torque,
+                     _yaw_rate, -torque);
+  thrusts(2) = -thrusts(1);
+  
+  return AllocateThrust1and3(thrusts);
 }
 
 void MotorFailure::SetTarget(double pitch_rate, double yaw_rate,
@@ -35,9 +43,25 @@ Eigen::Vector<double, 6> MotorFailure::ComputeThrusts(
   // yaw
   thrusts(2) = yaw_inertia_ * _yaw_accel + yaw_damping_linear_ * _yaw_velocity;
   // surge thrust
-  // thrusts(3) = mass_ * _surge_accel + surge_damping_linear_ * _surge_velocity;
+  // thrusts(3) = surge_inertia_ * _surge_accel + surge_damping_linear_ * _surge_velocity;
   thrusts(3) = _surge_accel;
   return thrusts;
+}
+
+Eigen::Vector<double, 4> MotorFailure::AllocateThrust1and3(const Eigen::Vector<double, 6> &_thrust) {
+  Eigen::Matrix<double, 6, 4> A;
+  A.row(0).setZero();
+  A.row(1) = Eigen::Vector<double, 4>{-kMotorOffset, kMotorOffset, kMotorOffset, -kMotorOffset};
+  A.row(2) = Eigen::Vector<double, 4>{kMotorOffset, kMotorOffset, -kMotorOffset, -kMotorOffset};
+  A.row(3) = Eigen::Vector<double, 4>{-1.0, 1.0, -1.0, 1.0};
+  A.row(4).setZero();
+  A.row(5).setZero();
+
+  A.col(1).setZero();
+  A.col(3).setZero();
+
+  Eigen::Vector<double, 4> result = A.colPivHouseholderQr().solve(_thrust);
+  return result;
 }
 
 Eigen::Vector<double, 4> MotorFailure::AllocateThrust(

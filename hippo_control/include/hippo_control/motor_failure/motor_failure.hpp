@@ -26,10 +26,28 @@ class MotorFailure {
                                   const Eigen::Quaterniond &_orientation);
   void SetTarget(double pitch_rate, double yaw_rate, double surge_velocity);
 
+  void SetPGains(double surge, double pitch, double yaw) {
+    surge_p_gain_ = surge;
+    pitch_p_gain_ = pitch;
+    yaw_p_gain_ = yaw;
+  }
+  void SetLinearDamping(double surge, double pitch, double yaw) {
+    surge_damping_linear_ = surge;
+    pitch_damping_linear_ = pitch;
+    yaw_damping_linear_ = yaw;
+  }
+  void SetInertia(double surge, double pitch, double yaw) {
+    surge_inertia_ = surge;
+    pitch_inertia_ = pitch;
+    yaw_inertia_ = yaw;
+  }
+
  private:
   Eigen::Vector<double, 6> ComputeThrusts(
       double surge_velocity, double surge_accel, double pitch_velocity,
       double pitch_accel, double yaw_velocity, double yaw_accel);
+  Eigen::Vector<double, 4> AllocateThrust1and3(
+      const Eigen::Vector<double, 6> &_thrust);
   Eigen::Vector<double, 4> AllocateThrust(
       const Eigen::Vector<double, 6> &_thrust);
   double pitch_rate_target_{0.0};
@@ -40,7 +58,7 @@ class MotorFailure {
   double pitch_p_gain_{2.0};
   double yaw_p_gain_{2.0};
 
-  double mass_{3.42};
+  double surge_inertia_{3.42};
   double surge_damping_linear_{5.39};
   double pitch_damping_linear_{0.007};
   double yaw_damping_linear_{0.007};

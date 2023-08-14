@@ -16,11 +16,20 @@ from hippo_common.launch_helper import PassLaunchArguments
 def declare_launch_args(launch_description: LaunchDescription):
     declare_vehicle_name_and_sim_time(launch_description=launch_description)
 
+    package_path = get_package_share_path('hippo_common')
+    path = str(package_path / 'config/transformations_hippo_default.yaml')
+    action = DeclareLaunchArgument('tf_config_vehicle_file', default_value=path)
+    launch_description.add_action(action)
+
     package_path = get_package_share_path('hippo_control')
     path = str(package_path /
                'config/attitude_control/quaternion_motor_failure_default.yaml')
     action = DeclareLaunchArgument('attitude_control_config',
                                    default_value=path)
+    launch_description.add_action(action)
+
+    path = str(package_path / 'config/motor_failure_default.yaml')
+    action = DeclareLaunchArgument('motor_failure_config', default_value=path)
     launch_description.add_action(action)
 
     package_path = get_package_share_path('path_planning')
@@ -42,6 +51,7 @@ def add_composable_nodes(launch_description: LaunchDescription):
         name='motor_failure_controller',
         parameters=[
             args,
+            LaunchConfiguration('motor_failure_config'),
         ],
         extra_arguments=extra_args,
     )
@@ -69,6 +79,18 @@ def add_composable_nodes(launch_description: LaunchDescription):
             LaunchConfiguration('path_follower_config'),
         ],
         extra_arguments=extra_args,
+    )
+    nodes.append(node)
+
+    node = ComposableNode(
+        package='hippo_common',
+        plugin='hippo_common::TfPublisherVehicle',
+        namespace=LaunchConfiguration('vehicle_name'),
+        name='tf_publisher_vehicle',
+        parameters=[
+            args,
+            LaunchConfiguration('tf_config_vehicle_file'),
+        ],
     )
     nodes.append(node)
 

@@ -1,0 +1,17 @@
+/**: # wildcard for the node name
+  ros__parameters:
+    model:
+      damping:
+        linear:
+          surge: 5.39
+          pitch: 0.007
+          yaw: 0.007
+      inertia:
+        surge: 3.42
+        pitch: 0.027
+        yaw: 0.027
+    gains:
+      p:
+        surge: 1.0
+        pitch: 7.0
+        yaw: 7.0
