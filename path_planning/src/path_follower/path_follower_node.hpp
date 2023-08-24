@@ -20,6 +20,7 @@
 #include <eigen3/Eigen/Dense>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <hippo_msgs/msg/float64_stamped.hpp>
+#include <hippo_msgs/msg/path_follower_debug.hpp>
 #include <hippo_msgs/srv/set_path.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <path_planning/path.hpp>
@@ -31,14 +32,33 @@ namespace path_planning {
 
 class PathFollowerNode : public rclcpp::Node {
  public:
+  enum class Mode {
+    kStaticAxis,
+    kPoseBasedAxis,
+    kStaticHeading,
+    kPoseBasedHeading,
+    kStaticPath,
+  };
   explicit PathFollowerNode(rclcpp::NodeOptions const &_options);
 
  private:
+  struct Vec3d {
+    double x;
+    double y;
+    double z;
+  };
+  struct Axis {
+    Vec3d position;
+    Vec3d heading;
+  };
   struct Params {
     bool updated{false};
     double depth_gain;
     double look_ahead_distance;
     bool ignore_z_distance;
+    int mode;
+    Axis static_axis;
+    Vec3d static_heading;
     std::string path_file;
   };
   void DeclareParams();
@@ -46,9 +66,21 @@ class PathFollowerNode : public rclcpp::Node {
   void InitSubscriptions();
   void PublishHeadingTarget(const rclcpp::Time &now,
                             const Eigen::Vector3d &heading);
-  void PublishDistanceError(const rclcpp::Time &now, double error);
+  void PublishDistanceError(const rclcpp::Time &now,
+                            const Eigen::Vector3d &error);
   void LoadDefaultWaypoints();
   std::string GetWaypointsFilePath();
+  /**
+   * Set desired axis based on statically set ros parameters
+   */
+  void SetDesiredStaticAxis();
+  void SetDesiredDynamicAxis(const Eigen::Vector3d &support_vector,
+                             const Eigen::Vector3d &direction);
+  /**
+   * Set desired heading based on statically set ros parameters
+   */
+  void SetStaticHeading();
+  Eigen::Vector3d ClosestPointToAxis();
 
   //////////////////////////////////////////////////////////////////////////////
   // Callbacks
@@ -66,8 +98,7 @@ class PathFollowerNode : public rclcpp::Node {
   //////////////////////////////////////////////////////////////////////////////
   rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
       heading_target_pub_;
-  rclcpp::Publisher<hippo_msgs::msg::Float64Stamped>::SharedPtr
-      distance_error_debug_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::PathFollowerDebug>::SharedPtr debug_pub_;
 
   //////////////////////////////////////////////////////////////////////////////
   // Subscriptions
@@ -84,6 +115,9 @@ class PathFollowerNode : public rclcpp::Node {
   Eigen::Vector3d target_heading_{1.0, 0.0, 0.0};
   std::shared_ptr<Path> path_{nullptr};
   std::shared_ptr<RvizHelper> path_visualizer_;
+
+  Eigen::Vector3d support_vector_{0.0, 0.0, 0.0};
+  Eigen::Vector3d direction_vector_{1.0, 0.0, 0.0};
 
   OnSetParametersCallbackHandle::SharedPtr params_cb_handle_;
 

@@ -24,7 +24,31 @@ void PathFollowerNode::DeclareParams() {
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(look_ahead_distance);
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(depth_gain);
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(ignore_z_distance);
+
   HIPPO_COMMON_DECLARE_PARAM_READONLY(path_file);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(mode);
+
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(static_axis.position.x);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(static_axis.position.y);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(static_axis.position.z);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(static_axis.heading.x);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(static_axis.heading.y);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(static_axis.heading.z);
+
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(static_heading.x);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(static_heading.y);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(static_heading.z);
+
+  switch (params_.mode) {
+    case static_cast<int>(Mode::kStaticAxis):
+      SetDesiredStaticAxis();
+      break;
+    case static_cast<int>(Mode::kStaticHeading):
+      SetStaticHeading();
+      break;
+    default:
+      break;
+  }
 
   params_cb_handle_ = add_on_set_parameters_callback(
       [this](const std::vector<rclcpp::Parameter> &params) {

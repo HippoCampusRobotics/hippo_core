@@ -94,9 +94,8 @@ void PathFollowerNode::InitPublishers() {
   heading_target_pub_ =
       create_publisher<geometry_msgs::msg::Vector3Stamped>(topic, qos);
 
-  topic = "~/distance_error";
-  distance_error_debug_pub_ =
-      create_publisher<hippo_msgs::msg::Float64Stamped>(topic, qos);
+  topic = "~/debug";
+  debug_pub_ = create_publisher<hippo_msgs::msg::PathFollowerDebug>(topic, qos);
 }
 
 void PathFollowerNode::InitSubscriptions() {
@@ -110,11 +109,16 @@ void PathFollowerNode::InitSubscriptions() {
 }
 
 void PathFollowerNode::PublishDistanceError(const rclcpp::Time &_now,
-                                            double _error) {
-  hippo_msgs::msg::Float64Stamped msg;
+                                            const Eigen::Vector3d &_error) {
+  hippo_msgs::msg::PathFollowerDebug msg;
   msg.header.stamp = _now;
-  msg.data = _error;
-  distance_error_debug_pub_->publish(msg);
+  using hippo_common::convert::EigenToRos;
+  EigenToRos(_error, msg.error_vec);
+  EigenToRos(support_vector_, msg.support_vec);
+  EigenToRos(direction_vector_, msg.direction_vec);
+  msg.mode = params_.mode;
+  msg.look_ahead_distance = params_.look_ahead_distance;
+  debug_pub_->publish(msg);
 }
 
 void PathFollowerNode::OnSetPath(
@@ -139,6 +143,35 @@ void PathFollowerNode::OnSetPath(
   _response->success = true;
 }
 
+void PathFollowerNode::SetDesiredStaticAxis() {
+  support_vector_ = Eigen::Vector3d{params_.static_axis.position.x,
+                                    params_.static_axis.position.y,
+                                    params_.static_axis.position.z};
+  direction_vector_ = Eigen::Vector3d{params_.static_axis.heading.x,
+                                      params_.static_axis.heading.y,
+                                      params_.static_axis.heading.z};
+  direction_vector_.normalize();
+}
+
+void PathFollowerNode::SetDesiredDynamicAxis(
+    const Eigen::Vector3d &_support_vector, const Eigen::Vector3d &_direction) {
+  support_vector_ = _support_vector;
+  direction_vector_ = _direction;
+  direction_vector_.normalize();
+}
+
+void PathFollowerNode::SetStaticHeading() {
+  direction_vector_ =
+      Eigen::Vector3d{params_.static_heading.x, params_.static_heading.y,
+                      params_.static_heading.z};
+  direction_vector_.normalize();
+}
+
+Eigen::Vector3d PathFollowerNode::ClosestPointToAxis() {
+  Eigen::Vector3d v = position_ - support_vector_;
+  return direction_vector_ * v.dot(direction_vector_) + support_vector_;
+}
+
 void PathFollowerNode::OnOdometry(
     const nav_msgs::msg::Odometry::SharedPtr _msg) {
   hippo_common::convert::RosToEigen(_msg->pose.pose.orientation, orientation_);
@@ -148,6 +181,29 @@ void PathFollowerNode::OnOdometry(
                                 "No path has been set.");
     return;
   }
+  switch (params_.mode) {
+    case static_cast<int>(Mode::kPoseBasedAxis):
+    case static_cast<int>(Mode::kStaticAxis): {
+      Eigen::Vector3d closest_point = ClosestPointToAxis();
+      Eigen::Vector3d target_point =
+          params_.look_ahead_distance * direction_vector_ + closest_point;
+      target_heading_ = (target_point - position_).normalized();
+
+      Eigen::Vector3d position_error = closest_point - position_;
+      PublishDistanceError(_msg->header.stamp, position_error);
+      // TODO: for a posed base axis we need to express the position error in a
+      // frame aligned with the axis, i.e. e_x = direction_vector
+    } break;
+    case static_cast<int>(Mode::kPoseBasedHeading):
+    case static_cast<int>(Mode::kStaticHeading): {
+      target_heading_ = direction_vector_;
+    } break;
+    case static_cast<int>(Mode::kStaticPath):
+      // TODO
+      break;
+  }
+  PublishHeadingTarget(_msg->header.stamp, target_heading_);
+
   // bool success = path_->Update(position_);
   // if (!success) {
   //   RCLCPP_ERROR_STREAM(get_logger(), "Could not find target waypoint.");
@@ -156,17 +212,6 @@ void PathFollowerNode::OnOdometry(
   // target_position_ = path_->TargetPoint();
   // Eigen::Vector3d heading{target_position_ - position_};
   // heading.z() *= params_.depth_gain;
-  constexpr double desired_axis_x = 1.0;
-  constexpr double desired_axis_z = -0.5;
-  double x_pos = _msg->pose.pose.position.x;
-  double z_pos = _msg->pose.pose.position.z;
-  const double x_error = desired_axis_x - x_pos;
-  const double z_error = desired_axis_z - z_pos;
-  Eigen::Vector3d heading{x_error, params_.look_ahead_distance, z_error};
-  heading.normalize();
-  PublishHeadingTarget(_msg->header.stamp, heading);
-  PublishDistanceError(_msg->header.stamp,
-                       sqrt(x_error * x_error + z_error * z_error));
   if (path_visualizer_ != nullptr) {
     path_visualizer_->PublishPath(path_);
   }
