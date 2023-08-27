@@ -48,6 +48,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/EstimatorSensorBias.msg"
   "msg/EstimatorState.msg"
   "msg/FailureControlDebug.msg"
+  "msg/FailureControlMode.msg"
   "msg/Float64Stamped.msg"
   "msg/Int64Stamped.msg"
   "msg/ModemOut.msg"
