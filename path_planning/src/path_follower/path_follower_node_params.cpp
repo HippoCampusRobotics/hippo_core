@@ -40,15 +40,21 @@ void PathFollowerNode::DeclareParams() {
   HIPPO_COMMON_DECLARE_PARAM_READONLY(static_heading.z);
 
   switch (params_.mode) {
-    case static_cast<int>(Mode::kStaticAxis):
+    case mode::kStaticAxis:
       SetDesiredStaticAxis();
       break;
-    case static_cast<int>(Mode::kStaticHeading):
+    case mode::kStaticHeading:
       SetStaticHeading();
       break;
     default:
       break;
   }
+
+  HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(left_wall);
+  HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(right_wall);
+  HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(bottom_wall);
+  HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(surface);
+  HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(domain_end);
 
   params_cb_handle_ = add_on_set_parameters_callback(
       [this](const std::vector<rclcpp::Parameter> &params) {
@@ -68,6 +74,12 @@ rcl_interfaces::msg::SetParametersResult PathFollowerNode::OnParameters(
     HIPPO_COMMON_ASSIGN_SIMPLE_LOG(look_ahead_distance, updated, text);
     HIPPO_COMMON_ASSIGN_SIMPLE_LOG(depth_gain, updated, text);
     HIPPO_COMMON_ASSIGN_SIMPLE_LOG(ignore_z_distance, updated, text);
+
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(left_wall, updated, text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(right_wall, updated, text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(bottom_wall, updated, text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(surface, updated, text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(domain_end, updated, text);
   }
   if (updated) {
     path_->SetLookAhead(params_.look_ahead_distance);

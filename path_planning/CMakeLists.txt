@@ -38,6 +38,7 @@ find_package(gflags REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(visualization_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 
 install(
   DIRECTORY include/
@@ -88,6 +89,19 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+set(exec_name generate_motor_failure)
+add_executable(${exec_name} src/generate_motor_failure.cpp)
+ament_target_dependencies(${exec_name}
+  Eigen3
+)
+target_link_libraries(${exec_name}
+  gflags
+  path_planning
+)
+install(TARGETS
+  generate_motor_failure
+  DESTINATION lib/${PROJECT_NAME}
+)
 ################################################################################
 # path_follower component
 ################################################################################
@@ -111,6 +125,7 @@ ament_target_dependencies(${component_name}
   geometry_msgs
   nav_msgs
   yaml-cpp
+  std_srvs
 )
 rclcpp_components_register_node(${component_name}
   PLUGIN "path_planning::PathFollowerNode"

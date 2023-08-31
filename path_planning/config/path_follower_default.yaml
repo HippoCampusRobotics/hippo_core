@@ -4,3 +4,25 @@
     ignore_z_distance: true #
     path_file: "" # empty means the nodes tries to load its fallback
     depth_gain: 2.0 # scaler for the z part of the heading vector
+    mode: 0
+    static_axis:
+      position:
+        x: 0.9
+        y: 3.5
+        z: -0.5
+      heading:
+        x: 0.0
+        y: 1.0
+        z: 0.0
+    static_heading:
+      x: 0.0
+      y: 1.0
+      z: 0.0
+    left_wall: 0.1
+    right_wall: 1.4
+    bottom_wall: -1.1
+    surface: 0.0
+    # left camera: 1.5
+    # start position: 3.5
+    # right camera: 8.5
+    domain_end: 8.5

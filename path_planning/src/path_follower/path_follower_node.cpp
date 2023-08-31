@@ -35,12 +35,26 @@ PathFollowerNode::PathFollowerNode(rclcpp::NodeOptions const &_options)
   path_visualizer_ = std::make_shared<path_planning::RvizHelper>(rviz_node);
   DeclareParams();
   LoadDefaultWaypoints();
-  set_path_service_ = create_service<hippo_msgs::srv::SetPath>(
-      "~/set_path", std::bind(&PathFollowerNode::OnSetPath, this,
-                              std::placeholders::_1, std::placeholders::_2));
+  InitServices();
   InitPublishers();
   InitSubscriptions();
   RCLCPP_INFO(get_logger(), "Initialization done.");
+}
+
+void PathFollowerNode::InitServices() {
+  std::string name;
+
+  name = "~/set_path";
+  set_path_service_ = create_service<hippo_msgs::srv::SetPath>(
+      name, std::bind(&PathFollowerNode::OnSetPath, this, std::placeholders::_1,
+                      std::placeholders::_2));
+
+  name = "~/start";
+  start_service_ = create_service<std_srvs::srv::Trigger>(
+      name, [this](const std_srvs::srv::Trigger::Request::SharedPtr request,
+                   std_srvs::srv::Trigger::Response::SharedPtr response) {
+        OnStart(request, response);
+      });
 }
 
 std::string PathFollowerNode::GetWaypointsFilePath() {
@@ -143,6 +157,58 @@ void PathFollowerNode::OnSetPath(
   _response->success = true;
 }
 
+void PathFollowerNode::OnStart(
+    const std_srvs::srv::Trigger::Request::SharedPtr _request,
+    std_srvs::srv::Trigger::Response::SharedPtr _response) {
+  RCLCPP_INFO(get_logger(), "Handling Start Request.");
+  switch (params_.mode) {
+    case mode::kStaticAxis: {
+      SetDesiredStaticAxis();
+      _response->success = true;
+      _response->message = "Follow static axis.";
+    } break;
+    case mode::kPoseBasedAxis: {
+      _response->success = StartPoseBasedAxis();
+      _response->message = "Follow pose based axis.";
+    } break;
+    case mode::kStaticHeading: {
+      SetStaticHeading();
+      _response->success = true;
+      _response->message = "Follow static heading";
+    } break;
+    case mode::kPoseBasedHeading: {
+      direction_vector_ = orientation_ * Eigen::Vector3d::UnitX();
+      _response->success = true;
+      _response->message = "Follow pose based heading.";
+    } break;
+    case mode::kStaticPath: {
+      _response->success = true;
+      _response->message = "Follow static path.";
+      // TODO? depends on waypoint selection implementation. If only y-projected
+      // lookahead distance is used for selection, no action required. Otherwise
+      // make sure to reset the path to the start
+    } break;
+    default:
+      RCLCPP_ERROR(get_logger(), "Unhandled mode: %d", params_.mode);
+      _response->success = false;
+      _response->message = "Unhandled mode.";
+      break;
+  }
+  RCLCPP_INFO_STREAM(get_logger(), _response->message);
+}
+
+bool PathFollowerNode::StartPoseBasedAxis() {
+  Eigen::Vector3d heading = orientation_ * Eigen::Vector3d::UnitX();
+  if (AxisCollidesWithWall(position_, heading)) {
+    return false;
+  }
+  if (AxisCollidesWithSurface(position_, heading)) {
+    return false;
+  }
+  SetDesiredDynamicAxis(position_, heading);
+  return true;
+}
+
 void PathFollowerNode::SetDesiredStaticAxis() {
   support_vector_ = Eigen::Vector3d{params_.static_axis.position.x,
                                     params_.static_axis.position.y,
@@ -172,6 +238,52 @@ Eigen::Vector3d PathFollowerNode::ClosestPointToAxis() {
   return direction_vector_ * v.dot(direction_vector_) + support_vector_;
 }
 
+bool PathFollowerNode::AxisCollidesWithWall(
+    const Eigen::Vector3d &_support_vector,
+    const Eigen::Vector3d &_direction_vector) {
+  // left wall
+  if (AxisCollidesWithWall(_support_vector, _direction_vector,
+                           Eigen::Vector3d{params_.left_wall, 0.0, 0.0},
+                           Eigen::Vector3d{1.0, 0.0, 0.0})) {
+    return true;
+  }
+  // right wall
+  if (AxisCollidesWithWall(_support_vector, _direction_vector,
+                           Eigen::Vector3d{params_.right_wall, 0.0, 0.0},
+                           Eigen::Vector3d{-1.0, 0.0, 0.0})) {
+    return true;
+  }
+  // bottom_wall
+  if (AxisCollidesWithWall(_support_vector, _direction_vector,
+                           Eigen::Vector3d{0.0, 0.0, params_.bottom_wall},
+                           Eigen::Vector3d{0.0, 0.0, 1.0})) {
+    return true;
+  }
+  return false;
+}
+
+bool PathFollowerNode::AxisCollidesWithWall(
+    const Eigen::Vector3d &support_vector,
+    const Eigen::Vector3d &direction_vector, const Eigen::Vector3d &point,
+    const Eigen::Vector3d &normal) {
+  double distance = params_.domain_end - support_vector.y();
+  double scaler = distance / direction_vector.y();
+  Eigen::Vector3d final_position{scaler * direction_vector + support_vector};
+
+  if ((final_position - point).dot(normal) <= 0) {
+    return true;
+  }
+  return false;
+}
+
+bool PathFollowerNode::AxisCollidesWithSurface(
+    const Eigen::Vector3d &_support_vector,
+    const Eigen::Vector3d &_direction_vector) {
+  return AxisCollidesWithWall(_support_vector, _direction_vector,
+                              Eigen::Vector3d{0.0, 0.0, params_.surface},
+                              Eigen::Vector3d{0.0, 0.0, -1.0});
+}
+
 void PathFollowerNode::OnOdometry(
     const nav_msgs::msg::Odometry::SharedPtr _msg) {
   hippo_common::convert::RosToEigen(_msg->pose.pose.orientation, orientation_);
@@ -182,8 +294,8 @@ void PathFollowerNode::OnOdometry(
     return;
   }
   switch (params_.mode) {
-    case static_cast<int>(Mode::kPoseBasedAxis):
-    case static_cast<int>(Mode::kStaticAxis): {
+    case mode::kPoseBasedAxis:
+    case mode::kStaticAxis: {
       Eigen::Vector3d closest_point = ClosestPointToAxis();
       Eigen::Vector3d target_point =
           params_.look_ahead_distance * direction_vector_ + closest_point;
@@ -191,14 +303,15 @@ void PathFollowerNode::OnOdometry(
 
       Eigen::Vector3d position_error = closest_point - position_;
       PublishDistanceError(_msg->header.stamp, position_error);
-      // TODO: for a posed base axis we need to express the position error in a
-      // frame aligned with the axis, i.e. e_x = direction_vector
-    } break;
-    case static_cast<int>(Mode::kPoseBasedHeading):
-    case static_cast<int>(Mode::kStaticHeading): {
+      // TODO: for a posed base axis we need to express the position error in
+      // a frame aligned with the axis, i.e. e_x = direction_vector
+      break;
+    }
+    case mode::kPoseBasedHeading:
+    case mode::kStaticHeading:
       target_heading_ = direction_vector_;
-    } break;
-    case static_cast<int>(Mode::kStaticPath):
+      break;
+    case mode::kStaticPath:
       // TODO
       break;
   }

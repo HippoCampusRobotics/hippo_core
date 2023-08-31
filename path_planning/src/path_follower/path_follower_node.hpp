@@ -27,18 +27,21 @@
 #include <path_planning/rviz_helper.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <std_srvs/srv/trigger.hpp>
 
 namespace path_planning {
-
+namespace mode {
+enum Mode {
+  kStaticAxis = 0,
+  kPoseBasedAxis = 1,
+  kStaticHeading = 2,
+  kPoseBasedHeading = 3,
+  kStaticPath = 4,
+};
+}  // namespace mode
 class PathFollowerNode : public rclcpp::Node {
  public:
-  enum class Mode {
-    kStaticAxis,
-    kPoseBasedAxis,
-    kStaticHeading,
-    kPoseBasedHeading,
-    kStaticPath,
-  };
+  enum class Mode {};
   explicit PathFollowerNode(rclcpp::NodeOptions const &_options);
 
  private:
@@ -60,14 +63,28 @@ class PathFollowerNode : public rclcpp::Node {
     Axis static_axis;
     Vec3d static_heading;
     std::string path_file;
+    double left_wall;
+    double right_wall;
+    double bottom_wall;
+    double surface;
+    double domain_end;
   };
   void DeclareParams();
   void InitPublishers();
   void InitSubscriptions();
+  void InitServices();
   void PublishHeadingTarget(const rclcpp::Time &now,
                             const Eigen::Vector3d &heading);
   void PublishDistanceError(const rclcpp::Time &now,
                             const Eigen::Vector3d &error);
+  bool AxisCollidesWithWall(const Eigen::Vector3d &support_vector,
+                            const Eigen::Vector3d &direction_vector);
+  bool AxisCollidesWithWall(const Eigen::Vector3d &support_vector,
+                            const Eigen::Vector3d &direction_vector,
+                            const Eigen::Vector3d &point,
+                            const Eigen::Vector3d &normal);
+  bool AxisCollidesWithSurface(const Eigen::Vector3d &support_vector,
+                               const Eigen::Vector3d &direction_vector);
   void LoadDefaultWaypoints();
   std::string GetWaypointsFilePath();
   /**
@@ -82,6 +99,8 @@ class PathFollowerNode : public rclcpp::Node {
   void SetStaticHeading();
   Eigen::Vector3d ClosestPointToAxis();
 
+  bool StartPoseBasedAxis();
+
   //////////////////////////////////////////////////////////////////////////////
   // Callbacks
   //////////////////////////////////////////////////////////////////////////////
@@ -89,6 +108,8 @@ class PathFollowerNode : public rclcpp::Node {
   void OnOdometry(const nav_msgs::msg::Odometry::SharedPtr);
   void OnSetPath(const hippo_msgs::srv::SetPath::Request::SharedPtr _req,
                  hippo_msgs::srv::SetPath::Response::SharedPtr _response);
+  void OnStart(const std_srvs::srv::Trigger::Request::SharedPtr request,
+               std_srvs::srv::Trigger::Response::SharedPtr response);
 
   rcl_interfaces::msg::SetParametersResult OnParameters(
       const std::vector<rclcpp::Parameter> &parameters);
@@ -108,6 +129,7 @@ class PathFollowerNode : public rclcpp::Node {
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
 
   rclcpp::Service<hippo_msgs::srv::SetPath>::SharedPtr set_path_service_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_service_;
 
   Eigen::Quaterniond orientation_{1.0, 0.0, 0.0, 0.0};
   Eigen::Vector3d position_{0.0, 0.0, 0.0};
