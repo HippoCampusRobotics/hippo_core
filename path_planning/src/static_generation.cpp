@@ -17,6 +17,8 @@
 
 #include "path_planning/static_generation.hpp"
 
+#include <hippo_common/spline.h>
+
 #include <cmath>
 
 namespace path_planning {
@@ -39,6 +41,25 @@ Path LemniscateOfBernoulli(std::size_t _n_samples, double _x_limit,
   }
 
   return Path{positions, true};
+}
+
+Path MotorFailureSurface(size_t _n_samples) {
+  std::vector<double> y = {0.0, 5.0, 6.0, 7.0};
+  std::vector<double> z = {-0.5, -0.5, -0.3, 0.0};
+  tk::spline s;
+  s.set_boundary(tk::spline::first_deriv, 0.0, tk::spline::first_deriv, 0.3);
+  s.set_points(y, z, tk::spline::cspline);
+  s.make_monotonic();
+
+  double xmin = 0.0, xmax = 8.5;
+  std::vector<Eigen::Vector3d> positions;
+  positions.reserve(_n_samples);
+  for (size_t i = 0; i < _n_samples; ++i) {
+    double x = xmin + (double)i * (xmax - xmin) / (_n_samples - 1);
+    Eigen::Vector3d p{0.0, x, s(x)};
+    positions.push_back(p);
+  }
+  return Path(positions, false);
 }
 }  // namespace static_generation
 
