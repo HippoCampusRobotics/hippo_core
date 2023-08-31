@@ -40,6 +40,7 @@ find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(px4_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 
 include_directories(
   include
@@ -301,7 +302,7 @@ target_include_directories(${component_name}
     $<INSTALL_INTERFACE:include>
 )
 ament_target_dependencies(${component_name}
-  rclcpp rclcpp_components hippo_msgs hippo_common nav_msgs Eigen3
+  rclcpp rclcpp_components hippo_msgs hippo_common nav_msgs Eigen3 std_srvs
 )
 rclcpp_components_register_node(${component_name}
   PLUGIN "hippo_control::motor_failure::ControlNode"

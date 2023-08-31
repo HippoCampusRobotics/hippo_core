@@ -21,6 +21,15 @@ void ControlNode::DeclareParams() {
   SetControllerGains();
   SetControllerModel();
 
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(phase_duration_ms);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(phase_order);
+  if (params_.phase_duration_ms.size() != params_.phase_order.size()) {
+    throw std::runtime_error(
+        "phase order and duration do not match. Order=" +
+        std::to_string(params_.phase_order.size()) +
+        " duration=" + std::to_string(params_.phase_duration_ms.size()));
+  }
+
   params_cb_handle_ = add_on_set_parameters_callback(
       [this](const std::vector<rclcpp::Parameter> &params) {
         return OnParameters(params);
@@ -34,20 +43,26 @@ rcl_interfaces::msg::SetParametersResult ControlNode::OnParameters(
   result.reason = "unhandled";
   result.successful = true;
   bool updated{false};
+  bool controller_updated{false};
   for (const auto &parameter : _parameters) {
-    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.damping.linear.surge, updated, text);
-    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.damping.linear.pitch, updated, text);
-    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.damping.linear.yaw, updated, text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.damping.linear.surge,
+                                   controller_updated, text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.damping.linear.pitch,
+                                   controller_updated, text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.damping.linear.yaw, controller_updated,
+                                   text);
 
-    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.inertia.surge, updated, text);
-    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.inertia.pitch, updated, text);
-    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.inertia.yaw, updated, text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.inertia.surge, controller_updated,
+                                   text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.inertia.pitch, controller_updated,
+                                   text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.inertia.yaw, controller_updated, text);
 
-    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(gains.p.surge, updated, text);
-    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(gains.p.pitch, updated, text);
-    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(gains.p.yaw, updated, text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(gains.p.surge, controller_updated, text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(gains.p.pitch, controller_updated, text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(gains.p.yaw, controller_updated, text);
   }
-  if (updated) {
+  if (controller_updated) {
     SetControllerGains();
     SetControllerModel();
   }

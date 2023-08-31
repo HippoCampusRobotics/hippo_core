@@ -10,6 +10,8 @@ ControlNode::ControlNode(rclcpp::NodeOptions const &_options)
   DeclareParams();
   InitPublishers();
   InitSubscriptions();
+  InitServices();
+  CancelMission();
 }
 
 void ControlNode::InitPublishers() {
@@ -50,6 +52,73 @@ void ControlNode::InitSubscriptions() {
       topic, qos, [this](const Odometry::SharedPtr msg) { OnOdometry(msg); });
 }
 
+void ControlNode::InitServices() {
+  std::string name;
+
+  name = "toggle_untangling";
+  untangling_service_ = create_service<std_srvs::srv::Trigger>(
+      name, [this](const std_srvs::srv::Trigger_Request::SharedPtr request,
+                   std_srvs::srv::Trigger_Response::SharedPtr response) {
+        ServeUntangling(request, response);
+      });
+
+  name = "toggle_mission";
+  start_mission_service_ = create_service<std_srvs::srv::Trigger>(
+      name, [this](const std::shared_ptr<rmw_request_id_t> header,
+                   const std_srvs::srv::Trigger_Request::SharedPtr request) {
+        ServeStartMission(header, request);
+      });
+
+  name = "path_follower/start";
+  start_path_follower_client_ = create_client<std_srvs::srv::Trigger>(name);
+}
+
+void ControlNode::StartUntangling() {
+  CancelMission();
+  mission_running_ = true;
+  controller_.SetMode(mode::kUntangling);
+}
+
+void ControlNode::StartMission() {
+  mission_timer_.reset();
+  phase_index_ = 0;
+  duration_index_ = 0;
+  mission_running_ = true;
+  mission_timer_ = create_timer(
+      std::chrono::milliseconds(params_.phase_duration_ms.at(phase_index_)),
+      [this]() { UpdateMission(); });
+  mode::Mode new_mode =
+      static_cast<mode::Mode>(params_.phase_order.at(phase_index_));
+  controller_.SetMode(new_mode);
+}
+
+void ControlNode::UpdateMission() {
+  // delete current timer. gets recreated depending on next mission phase
+  mission_timer_.reset();
+  ++phase_index_;
+  ++duration_index_;
+  if (phase_index_ >= params_.phase_order.size() ||
+      duration_index_ >= params_.phase_duration_ms.size()) {
+    // mission completed. No new timer required.
+    CancelMission();
+    return;
+  }
+  mode::Mode new_mode =
+      static_cast<mode::Mode>(params_.phase_order.at(phase_index_));
+  auto new_duration =
+      std::chrono::milliseconds(params_.phase_duration_ms.at(duration_index_));
+  controller_.SetMode(new_mode);
+  mission_timer_ = create_timer(new_duration, [this]() { UpdateMission(); });
+}
+
+void ControlNode::CancelMission() {
+  phase_index_ = 0;
+  duration_index_ = 0;
+  mission_timer_.reset();
+  controller_.SetMode(mode::kIdle);
+  mission_running_ = false;
+}
+
 void ControlNode::SetControllerGains() {
   controller_.SetPGains(params_.gains.p.surge, params_.gains.p.pitch,
                         params_.gains.p.yaw);
@@ -80,6 +149,8 @@ void ControlNode::PublishDebugMsg(const rclcpp::Time &_now,
   msg.yaw_inertia = params_.model.inertia.yaw;
   msg.yaw_damping_linear = params_.model.damping.linear.yaw;
 
+  msg.controllability_scaler = _controllability_scaler;
+
   debug_pub_->publish(msg);
 }
 
@@ -108,6 +179,64 @@ void ControlNode::OnOdometry(const nav_msgs::msg::Odometry::SharedPtr _msg) {
     // TODO: think about scaling in case we have values outside [-1, 1]
   }
   PublishThrusterCommand(_msg->header.stamp, thrusts);
+}
+
+void ControlNode::ServeUntangling(
+    [[maybe_unused]] const std_srvs::srv::Trigger_Request::SharedPtr _request,
+    std_srvs::srv::Trigger_Response::SharedPtr _response) {
+  if (mission_running_) {
+    CancelMission();
+    _response->message = "Canceled untangling.";
+  } else {
+    StartUntangling();
+    _response->message = "Started untangling.";
+  }
+  _response->success = true;
+}
+void ControlNode::ServeStartMission(
+    const std::shared_ptr<rmw_request_id_t> _header,
+    [[maybe_unused]] const std_srvs::srv::Trigger_Request::SharedPtr _request) {
+  RCLCPP_INFO(get_logger(), "Serving Toggle Mission Request.");
+  auto callback =
+      [_header, _request,
+       this](rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future) {
+        auto request_params = future.get();
+        std_srvs::srv::Trigger_Response response;
+        response.success = request_params->success;
+        RCLCPP_INFO(get_logger(), "Received path_follower start response: %d", response.success);
+        if (response.success) {
+          StartMission();
+          response.message = "Mission started: " + request_params->message;
+        } else {
+          CancelMission();
+          response.message = "Mission start failed: " + request_params->message;
+        }
+        RCLCPP_INFO(get_logger(), "Sending mission toggle response");
+        start_mission_service_->send_response(*_header, response);
+      };
+  if (mission_running_) {
+    CancelMission();
+    std_srvs::srv::Trigger_Response response;
+    response.success = true;
+    response.message = "Canceled mission.";
+    start_mission_service_->send_response(*_header, response);
+    return;
+  }
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+  if (!start_path_follower_client_) {
+    std::string text =
+        "Required service client to start path follower not created";
+    RCLCPP_ERROR_STREAM(get_logger(), text);
+    std_srvs::srv::Trigger_Response response;
+    response.success = true;
+    response.message = text;
+    start_mission_service_->send_response(*_header, response);
+    return;
+  }
+  start_path_follower_client_->async_send_request(request, std::move(callback));
+  RCLCPP_INFO(get_logger(),
+              "Waiting for path follower start response to complete mission "
+              "toggle service");
 }
 
 void ControlNode::PublishThrusterCommand(const rclcpp::Time &_now,

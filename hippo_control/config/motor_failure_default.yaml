@@ -15,3 +15,10 @@
         surge: 1.0
         pitch: 7.0
         yaw: 7.0
+    # single failure
+    phase_order: [2, 3, 5]
+    # double failure
+    # phase_order: [2, 4, 6]
+    phase_duration_ms: [3000, 5000, 5000]
+
+
