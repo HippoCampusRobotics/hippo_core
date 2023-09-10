@@ -6,14 +6,14 @@ import pigpio
 from rcl_interfaces.msg import SetParametersResult, ParameterDescriptor, ParameterType, IntegerRange
 
 
-class CameraServo(Node):
+class SpotLight(Node):
 
     def __init__(self, node_name):
         super().__init__(node_name=node_name)
         self.timed_out = False
 
         self.pi = pigpio.pi()
-        self.camera_servo_pin = 20
+        self.spotlight_pin = 21
 
         descr = ParameterDescriptor()
         range = IntegerRange()
@@ -22,27 +22,27 @@ class CameraServo(Node):
         range.step = 1
         descr.integer_range = [range]
         descr.type = ParameterType.PARAMETER_INTEGER
-        self.declare_parameter('tilt', 50, descr)
+        self.declare_parameter('brightness', 50, descr)
         self.add_on_set_parameters_callback(self.on_parameters)
 
     def on_parameters(self, params):
         for param in params:
-            if param.name == 'tilt':
+            if param.name == 'brightness':
                 self.set_servo(param.value / 100.0)
         return SetParametersResult(successful=True)
 
     def set_servo(self, value: float):
         val = 1100 + value * 800.0
         val = min(1900, max(1100, val))
-        self.pi.set_servo_pulsewidth(self.camera_servo_pin, val)
+        self.pi.set_servo_pulsewidth(self.spotlight_pin, val)
 
     def on_shutdown(self):
-        self.pi.set_servo_pulsewidth(self.camera_servo_pin, 0)
+        self.pi.set_servo_pulsewidth(self.spotlight_pin, 0)
 
 
 def main():
     rclpy.init()
-    node = CameraServo('camera_servo')
+    node = SpotLight('spotlight')
     try:
         rclpy.spin(node)
     except Exception as e:
