@@ -44,6 +44,10 @@ void QuaternionControlNode::InitPublishers() {
   topic = "~/attitude_target_debug";
   attitude_target_debug_pub_ =
       create_publisher<geometry_msgs::msg::PoseStamped>(topic, qos);
+
+  topic = "~/debug";
+  debug_pub_ =
+      create_publisher<hippo_msgs::msg::QuaternionControlDebug>(topic, qos);
 }
 
 void QuaternionControlNode::InitSubscriptions() {
@@ -86,6 +90,21 @@ void QuaternionControlNode::PublishAttitudeTargetDebug(
   attitude_target_debug_pub_->publish(msg);
 }
 
+void QuaternionControlNode::PublishDebugMsg(const rclcpp::Time &_now) {
+  hippo_msgs::msg::QuaternionControlDebug msg;
+  msg.header.stamp = _now;
+  msg.gain = params_.gain;
+  msg.roll_weight = params_.roll_weight;
+  using hippo_common::convert::EigenToRos;
+  EigenToRos(target_heading_, msg.desired_axis);
+  Eigen::Vector3d current_heading = orientation_ * Eigen::Vector3d::UnitX();
+  EigenToRos(current_heading, msg.current_axis);
+  Eigen::Quaterniond q_error =
+      hippo_common::tf2_utils::RotationBetweenNormalizedVectors(
+          current_heading, target_heading_);
+  msg.angle_error = hippo_common::tf2_utils::AngleOfRotation(q_error);
+  debug_pub_->publish(msg);
+}
 // void QuaternionControlNode::OnHeadingTarget(
 //     const hippo_msgs::msg::HeadingTarget::SharedPtr _msg) {
 //   hippo_common::convert::RosToEigen(_msg->heading, target_heading_);
@@ -108,12 +127,13 @@ void QuaternionControlNode::OnOdometry(
   const rclcpp::Time t_now = _msg->header.stamp;
   PublishAngularVelocitySetpoint(t_now, desired_body_rates);
 
-  Eigen::Quaterniond q = hippo_common::tf2_utils::QuaternionFromHeading(target_heading_, 0.0);
+  Eigen::Quaterniond q =
+      hippo_common::tf2_utils::QuaternionFromHeading(target_heading_, 0.0);
   geometry_msgs::msg::Pose pose;
   pose.position = _msg->pose.pose.position;
   hippo_common::convert::EigenToRos(q, pose.orientation);
   PublishAttitudeTargetDebug(t_now, pose);
-
+  PublishDebugMsg(t_now);
 }
 }  // namespace attitude_control
 }  // namespace hippo_control

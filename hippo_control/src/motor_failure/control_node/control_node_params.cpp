@@ -7,14 +7,17 @@ namespace motor_failure {
 
 void ControlNode::DeclareParams() {
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(model.damping.linear.surge);
+  HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(model.damping.linear.roll);
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(model.damping.linear.pitch);
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(model.damping.linear.yaw);
 
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(model.inertia.surge);
+  HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(model.inertia.roll);
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(model.inertia.pitch);
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(model.inertia.yaw);
 
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(gains.p.surge);
+  HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(gains.p.roll);
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(gains.p.pitch);
   HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(gains.p.yaw);
 
@@ -47,6 +50,8 @@ rcl_interfaces::msg::SetParametersResult ControlNode::OnParameters(
   for (const auto &parameter : _parameters) {
     HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.damping.linear.surge,
                                    controller_updated, text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.damping.linear.roll,
+                                   controller_updated, text);
     HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.damping.linear.pitch,
                                    controller_updated, text);
     HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.damping.linear.yaw, controller_updated,
@@ -54,11 +59,14 @@ rcl_interfaces::msg::SetParametersResult ControlNode::OnParameters(
 
     HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.inertia.surge, controller_updated,
                                    text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.inertia.roll, controller_updated,
+                                   text);
     HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.inertia.pitch, controller_updated,
                                    text);
     HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.inertia.yaw, controller_updated, text);
 
     HIPPO_COMMON_ASSIGN_SIMPLE_LOG(gains.p.surge, controller_updated, text);
+    HIPPO_COMMON_ASSIGN_SIMPLE_LOG(gains.p.roll, controller_updated, text);
     HIPPO_COMMON_ASSIGN_SIMPLE_LOG(gains.p.pitch, controller_updated, text);
     HIPPO_COMMON_ASSIGN_SIMPLE_LOG(gains.p.yaw, controller_updated, text);
   }

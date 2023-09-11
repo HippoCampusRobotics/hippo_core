@@ -21,7 +21,7 @@
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <hippo_control/attitude_control/quaternion_controller.hpp>
 #include <hippo_msgs/msg/actuator_controls.hpp>
-// #include <hippo_msgs/msg/heading_target.hpp>
+#include <hippo_msgs/msg/quaternion_control_debug.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -48,8 +48,9 @@ class QuaternionControlNode : public rclcpp::Node {
   }
   void PublishAngularVelocitySetpoint(const rclcpp::Time &now,
                                       const Eigen::Vector3d &velocity);
-  void PublishAttitudeTargetDebug(
-      const rclcpp::Time &now, const geometry_msgs::msg::Pose &pose);
+  void PublishAttitudeTargetDebug(const rclcpp::Time &now,
+                                  const geometry_msgs::msg::Pose &pose);
+  void PublishDebugMsg(const rclcpp::Time &now);
 
   //////////////////////////////////////////////////////////////////////////////
   // Callbacks
@@ -68,6 +69,8 @@ class QuaternionControlNode : public rclcpp::Node {
       angular_velocity_setpoint_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
       attitude_target_debug_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::QuaternionControlDebug>::SharedPtr
+      debug_pub_;
 
   //////////////////////////////////////////////////////////////////////////////
   // Subscriptions

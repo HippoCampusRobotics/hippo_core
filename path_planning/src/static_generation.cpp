@@ -45,9 +45,9 @@ Path LemniscateOfBernoulli(std::size_t _n_samples, double _x_limit,
 
 Path MotorFailureSurface(size_t _n_samples) {
   std::vector<double> y = {0.0, 5.0, 6.0, 7.0};
-  std::vector<double> z = {-0.5, -0.5, -0.3, 0.0};
+  std::vector<double> z = {-0.5, -0.5, -0.3, 0.7};
   tk::spline s;
-  s.set_boundary(tk::spline::first_deriv, 0.0, tk::spline::first_deriv, 0.3);
+  s.set_boundary(tk::spline::first_deriv, 0.0, tk::spline::first_deriv, 1.0);
   s.set_points(y, z, tk::spline::cspline);
   s.make_monotonic();
 

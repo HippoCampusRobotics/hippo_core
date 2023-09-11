@@ -21,6 +21,7 @@
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <hippo_msgs/msg/float64_stamped.hpp>
 #include <hippo_msgs/msg/path_follower_debug.hpp>
+#include <hippo_msgs/srv/set_axis.hpp>
 #include <hippo_msgs/srv/set_path.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <path_planning/path.hpp>
@@ -110,6 +111,8 @@ class PathFollowerNode : public rclcpp::Node {
                  hippo_msgs::srv::SetPath::Response::SharedPtr _response);
   void OnStart(const std_srvs::srv::Trigger::Request::SharedPtr request,
                std_srvs::srv::Trigger::Response::SharedPtr response);
+  void OnSetAxis(const hippo_msgs::srv::SetAxis::Request::SharedPtr request,
+                 hippo_msgs::srv::SetAxis::Response::SharedPtr response);
 
   rcl_interfaces::msg::SetParametersResult OnParameters(
       const std::vector<rclcpp::Parameter> &parameters);
@@ -129,6 +132,7 @@ class PathFollowerNode : public rclcpp::Node {
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
 
   rclcpp::Service<hippo_msgs::srv::SetPath>::SharedPtr set_path_service_;
+  rclcpp::Service<hippo_msgs::srv::SetAxis>::SharedPtr set_axis_service_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_service_;
 
   Eigen::Quaterniond orientation_{1.0, 0.0, 0.0, 0.0};

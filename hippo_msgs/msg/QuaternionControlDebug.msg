@@ -5,4 +5,3 @@ float64 gain
 geometry_msgs/Vector3 desired_axis
 geometry_msgs/Vector3 current_axis
 float64 angle_error
-geometry_msgs/Vector3 output

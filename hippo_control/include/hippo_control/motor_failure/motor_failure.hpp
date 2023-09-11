@@ -35,26 +35,28 @@ class MotorFailure {
  public:
   static constexpr double kMotorOffset = 0.069;
   /// factor between force and motor induced torque caused by rotation
-  static constexpr double kTorqueFactor = 1.0;
-  Eigen::Vector<double, 4> Update(double pitch_rate, double yaw_rate,
+  static constexpr double kTorqueFactor = 0.1;
+  Eigen::Vector<double, 4> Update(const Eigen::Vector3d &rates,
                                   double surge_velocity,
                                   const Eigen::Quaterniond &_orientation);
-  void SetTarget(double pitch_rate, double yaw_rate, double surge_velocity);
+  void SetTarget(const Eigen::Vector3d &angular_velocity,
+                 double surge_velocity);
 
-  void SetPGains(double surge, double pitch, double yaw) {
+  void SetPGains(double surge, double roll, double pitch, double yaw) {
     surge_p_gain_ = surge;
+    roll_p_gain_ = roll;
     pitch_p_gain_ = pitch;
     yaw_p_gain_ = yaw;
   }
-  void SetLinearDamping(double surge, double pitch, double yaw) {
-    surge_damping_linear_ = surge;
-    pitch_damping_linear_ = pitch;
-    yaw_damping_linear_ = yaw;
+  void SetTranslationalDampingLinear(double damping) {
+    surge_damping_linear_ = damping;
   }
-  void SetInertia(double surge, double pitch, double yaw) {
-    surge_inertia_ = surge;
-    pitch_inertia_ = pitch;
-    yaw_inertia_ = yaw;
+  void SetRotationalDampingLinear(const Eigen::Vector3d &damping) {
+    rotational_damping_linear_ = damping;
+  }
+  void SetTranslationalInertia(double inertia) { surge_inertia_ = inertia; }
+  void SetRotationalInertia(const Eigen::Vector3d &inertia) {
+    rotational_inertia_ = inertia;
   }
   void SetMode(mode::Mode _mode) {
     mode_ = _mode;
@@ -62,34 +64,46 @@ class MotorFailure {
   }
   mode::Mode Mode() const { return mode_; };
 
+  double Controllability() const { return controllability_; }
+  Eigen::Vector3d DesiredTorque() const {
+    return Eigen::Vector3d{torque_force_vec_.head(3)};
+  }
+  Eigen::Vector3d DesiredForce() const {
+    return Eigen::Vector3d{torque_force_vec_.tail(3)};
+  }
+
+  Eigen::Vector4d ThrustCompositon(int i_motor) {
+    return thrust_composition_[i_motor];
+  }
+
  private:
   Eigen::Vector<double, 6> ComputeThrusts(
-      double surge_velocity, double surge_accel, double pitch_velocity,
-      double pitch_accel, double yaw_velocity, double yaw_accel);
+      double surge_velocity, double surge_accel,
+      const Eigen::Vector3d &angular_velocity,
+      const Eigen::Vector3d &angular_accel);
   Eigen::Vector<double, 4> AllocateThrust(
       const Eigen::Vector<double, 6> &thrust);
   Eigen::Matrix<double, 6, 4> FullMixerMatrix() const;
   void UpdateMixerMatrix();
 
   mode::Mode mode_{mode::Mode::kUnset};
-  double pitch_rate_target_{0.0};
-  double yaw_rate_target_{0.0};
+  Eigen::Vector3d rate_target_{0.0, 0.0, 0.0};
   double surge_velocity_target_{0.0};
 
   double surge_p_gain_{1.0};
+  double roll_p_gain_{2.0};
   double pitch_p_gain_{2.0};
   double yaw_p_gain_{2.0};
 
   double surge_inertia_{3.42};
   double surge_damping_linear_{5.39};
-  double pitch_damping_linear_{0.007};
-  double yaw_damping_linear_{0.007};
-  double pitch_inertia_{0.027};
-  double yaw_inertia_{0.027};
+  Eigen::Vector3d rotational_damping_linear_{0.0, 0.007, 0.007};
+  Eigen::Vector3d rotational_inertia_{0.0, 0.027, 0.02};
   Eigen::Matrix<double, 6, 4> mixer_matrix_;
 
   double controllability_{0.0};
   Eigen::Vector<double, 6> torque_force_vec_;
+  std::array<Eigen::Vector4d, 4> thrust_composition_;
 };
 // TODO
 }  // namespace motor_failure

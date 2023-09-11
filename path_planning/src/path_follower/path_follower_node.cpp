@@ -49,6 +49,14 @@ void PathFollowerNode::InitServices() {
       name, std::bind(&PathFollowerNode::OnSetPath, this, std::placeholders::_1,
                       std::placeholders::_2));
 
+  name = "~/set_axis";
+  using hippo_msgs::srv::SetAxis;
+  set_axis_service_ = create_service<SetAxis>(
+      name, [this](const SetAxis::Request::SharedPtr request,
+                   SetAxis::Response::SharedPtr response) {
+        OnSetAxis(request, response);
+      });
+
   name = "~/start";
   start_service_ = create_service<std_srvs::srv::Trigger>(
       name, [this](const std_srvs::srv::Trigger::Request::SharedPtr request,
@@ -184,9 +192,6 @@ void PathFollowerNode::OnStart(
     case mode::kStaticPath: {
       _response->success = true;
       _response->message = "Follow static path.";
-      // TODO? depends on waypoint selection implementation. If only y-projected
-      // lookahead distance is used for selection, no action required. Otherwise
-      // make sure to reset the path to the start
     } break;
     default:
       RCLCPP_ERROR(get_logger(), "Unhandled mode: %d", params_.mode);
@@ -195,6 +200,21 @@ void PathFollowerNode::OnStart(
       break;
   }
   RCLCPP_INFO_STREAM(get_logger(), _response->message);
+}
+
+void PathFollowerNode::OnSetAxis(
+    const hippo_msgs::srv::SetAxis::Request::SharedPtr _request,
+    hippo_msgs::srv::SetAxis::Response::SharedPtr _response) {
+  RCLCPP_INFO(get_logger(), "Handling SetAxis request");
+  params_.static_axis.position.x = _request->support_vector.x; 
+  params_.static_axis.position.y = _request->support_vector.y; 
+  params_.static_axis.position.z = _request->support_vector.z; 
+  params_.static_axis.heading.x = _request->direction_vector.x; 
+  params_.static_axis.heading.y = _request->direction_vector.y; 
+  params_.static_axis.heading.z = _request->direction_vector.z; 
+  SetDesiredStaticAxis();
+  _response->success = true;
+  _response->reason = "Set static axis";
 }
 
 bool PathFollowerNode::StartPoseBasedAxis() {
@@ -305,15 +325,25 @@ void PathFollowerNode::OnOdometry(
       PublishDistanceError(_msg->header.stamp, position_error);
       // TODO: for a posed base axis we need to express the position error in
       // a frame aligned with the axis, i.e. e_x = direction_vector
-      break;
-    }
+    } break;
     case mode::kPoseBasedHeading:
     case mode::kStaticHeading:
       target_heading_ = direction_vector_;
       break;
-    case mode::kStaticPath:
-      // TODO
-      break;
+    case mode::kStaticPath: {
+      if (!path_->UpdateMotorFailure(position_)) {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                             "Failed to update path target");
+      }
+      Eigen::Vector3d target_point = path_->TargetPoint();
+      target_heading_ = (target_point - position_).normalized();
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
+                           "Point: %lf, %lf, %lf", target_point.x(),
+                           target_point.y(), target_point.z());
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
+                           "Heading: %lf, %lf, %lf", target_heading_.x(),
+                           target_heading_.y(), target_heading_.z());
+    } break;
   }
   PublishHeadingTarget(_msg->header.stamp, target_heading_);
 

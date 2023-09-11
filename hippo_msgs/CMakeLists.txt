@@ -49,6 +49,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/EstimatorState.msg"
   "msg/FailureControlDebug.msg"
   "msg/FailureControlMode.msg"
+  "msg/FailureControlModeStamped.msg"
   "msg/Float64Stamped.msg"
   "msg/Int64Stamped.msg"
   "msg/ModemOut.msg"
@@ -61,6 +62,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/RatesDebug.msg"
   "msg/RatesTarget.msg"
   "msg/ThrusterForces.msg"
+  "srv/SetAxis.srv"
   "srv/SetPath.srv"
   DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
 )

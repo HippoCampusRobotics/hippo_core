@@ -5,17 +5,18 @@ namespace hippo_control {
 namespace motor_failure {
 
 Eigen::Vector<double, 4> MotorFailure::Update(
-    double _pitch_rate, double _yaw_rate, double _surge_velocity,
+    const Eigen::Vector3d &_rates, double _surge_velocity,
     const Eigen::Quaterniond &_orientation) {
   double surge_accel =
       surge_p_gain_ * (surge_velocity_target_ - _surge_velocity);
 
-  double pitch_accel = pitch_p_gain_ * (pitch_rate_target_ - _pitch_rate);
-  double yaw_accel = yaw_p_gain_ * (yaw_rate_target_ - _yaw_rate);
+  Eigen::Vector3d angular_accel{roll_p_gain_ * (rate_target_.x() - _rates.x()),
+                                pitch_p_gain_ * (rate_target_.y() - _rates.y()),
+                                yaw_p_gain_ * (rate_target_.z() - _rates.z())};
 
   Eigen::Vector<double, 4> motor_thrusts;
   Eigen::Vector2d control_direction =
-      Eigen::Vector2d{pitch_accel, yaw_accel}.normalized();
+      Eigen::Vector2d{angular_accel.y(), angular_accel.z()}.normalized();
   // in case motors 0 and 2 are working
   Eigen::Vector2d controllability_direction{1.0, -1.0};
   double controllability{1.0};
@@ -26,21 +27,21 @@ Eigen::Vector<double, 4> MotorFailure::Update(
       motor_thrusts = Eigen::Vector4d::Zero();
       break;
     case mode::kUntangling: {
-      motor_thrusts = Eigen::Vector4d::Ones() * 0.3;
+      motor_thrusts = Eigen::Vector4d::Ones() * 0.8;
       break;
     }
     case mode::kSingleFailureUndetected:
     case mode::kSingleFailureDetected: {
-      torque_force_vec_ = ComputeThrusts(_surge_velocity, surge_accel, _pitch_rate,
-                               pitch_accel, _yaw_rate, yaw_accel);
+      torque_force_vec_ =
+          ComputeThrusts(_surge_velocity, surge_accel, _rates, angular_accel);
       motor_thrusts = AllocateThrust(torque_force_vec_);
       // disable the fourth motor to simulate motor failure
       motor_thrusts(3) = 0.0;
       break;
     }
     case mode::kDoubleFailureUndetected: {
-      torque_force_vec_ = ComputeThrusts(_surge_velocity, surge_accel, _pitch_rate,
-                               pitch_accel, _yaw_rate, yaw_accel);
+      torque_force_vec_ =
+          ComputeThrusts(_surge_velocity, surge_accel, _rates, angular_accel);
       motor_thrusts(1) = 0.0;
       motor_thrusts(3) = 0.0;
       break;
@@ -48,26 +49,29 @@ Eigen::Vector<double, 4> MotorFailure::Update(
     case mode::kDoubleFailureDetected: {
       controllability = control_direction.dot(controllability_direction) /
                         controllability_direction.squaredNorm();
-      double torque = Eigen::Vector2d{pitch_accel, yaw_accel}.dot(
+      double torque = Eigen::Vector2d{angular_accel.y(), angular_accel.z()}.dot(
                           controllability_direction) /
                       controllability_direction.squaredNorm();
       // only apply torque if magnitude of controllability is greater 0.5
       // this should result in more wanted than unwanted rotation.
-      if (controllability < 0.5 && controllability > -0.5) {
+      if (false && controllability < 0.5 && controllability > -0.5) {
         torque = 0.0;
       }
       // TODO: verify that it is okay so set zero torque. thrusts can be
       // computed by hand otherwise.
-      torque_force_vec_ = ComputeThrusts(_surge_velocity, surge_accel, _pitch_rate,
-                               torque, _yaw_rate, -torque);
+      angular_accel.x() = 0.0;
+      angular_accel.y() = torque;
+      angular_accel.z() = -torque;
+      torque_force_vec_ =
+          ComputeThrusts(_surge_velocity, surge_accel, _rates, angular_accel);
       torque_force_vec_(2) = -torque_force_vec_(1);
       motor_thrusts = AllocateThrust(torque_force_vec_);
       break;
     }
 
     case mode::kNormal: {
-      torque_force_vec_ = ComputeThrusts(_surge_velocity, surge_accel, _pitch_rate,
-                               pitch_accel, _yaw_rate, yaw_accel);
+      torque_force_vec_ =
+          ComputeThrusts(_surge_velocity, surge_accel, _rates, angular_accel);
       motor_thrusts = AllocateThrust(torque_force_vec_);
       break;
     }
@@ -77,22 +81,30 @@ Eigen::Vector<double, 4> MotorFailure::Update(
   return motor_thrusts;
 }
 
-void MotorFailure::SetTarget(double pitch_rate, double yaw_rate,
+void MotorFailure::SetTarget(const Eigen::Vector3d &_angular_velocity,
                              double surge_velocity) {
-  pitch_rate_target_ = pitch_rate;
-  yaw_rate_target_ = yaw_rate;
+  rate_target_ = _angular_velocity;
   surge_velocity_target_ = surge_velocity;
 }
 
 Eigen::Vector<double, 6> MotorFailure::ComputeThrusts(
-    double _surge_velocity, double _surge_accel, double _pitch_velocity,
-    double _pitch_accel, double _yaw_velocity, double _yaw_accel) {
+    double _surge_velocity, double _surge_accel,
+    const Eigen::Vector3d &_angular_velocity,
+    const Eigen::Vector3d &_angular_accel) {
   Eigen::Vector<double, 6> thrusts = Eigen::Vector<double, 6>::Zero();
-  // pitch
-  thrusts(1) =
-      pitch_inertia_ * _pitch_accel + pitch_damping_linear_ * _pitch_velocity;
-  // yaw
-  thrusts(2) = yaw_inertia_ * _yaw_accel + yaw_damping_linear_ * _yaw_velocity;
+  for (int i = 0; i < 3; ++i) {
+    thrusts(i) = rotational_inertia_(i) * _angular_accel(i) +
+                 rotational_damping_linear_(i) * _angular_velocity(i);
+  }
+  switch (mode_) {
+    case mode::kSingleFailureDetected:
+    case mode::kDoubleFailureDetected:
+      // do not waste effort for roll rate, since we cannot control it.
+      thrusts(0) = 0.0;
+      break;
+    default:
+      break;
+  }
   // surge thrust
   // thrusts(3) = surge_inertia_ * _surge_accel + surge_damping_linear_ *
   // _surge_velocity;
@@ -104,9 +116,15 @@ Eigen::Vector<double, 4> MotorFailure::AllocateThrust(
     const Eigen::Vector<double, 6> &_thrust) {
   Eigen::Vector<double, 4> result =
       mixer_matrix_.colPivHouseholderQr().solve(_thrust);
+  Eigen::Matrix<double, 4, 6> mixer_inv =
+      mixer_matrix_.completeOrthogonalDecomposition().pseudoInverse();
+  for (int i = 0; i < 4; ++i) {
+    for (int j=0; j<4; ++j) {
+      thrust_composition_[i](j) = mixer_inv(i, j) * _thrust(j) / result(i);
+    }
+  }
   return result;
 }
-
 Eigen::Matrix<double, 6, 4> MotorFailure::FullMixerMatrix() const {
   Eigen::Matrix<double, 6, 4> A;
   A.row(0) = Eigen::Vector<double, 4>{kTorqueFactor, kTorqueFactor,

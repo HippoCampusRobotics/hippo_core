@@ -1,5 +1,3 @@
-std_msgs/Header header
-
 int32 mode
 
 int32 MODE_UNSET=-1

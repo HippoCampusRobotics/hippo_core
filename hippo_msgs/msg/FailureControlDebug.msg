@@ -2,13 +2,6 @@ std_msgs/Header header
 
 geometry_msgs/Vector3 desired_thrust
 geometry_msgs/Vector3 desired_torque
+float64[8] allocated_thrust
+float64[16] thrust_composition
 float64 controllability_scaler
-float64 surge_damping_linear
-float64 pitch_damping_linear
-float64 yaw_damping_linear
-float64 surge_inertia
-float64 pitch_inertia
-float64 yaw_inertia
-float64 p_gain_surge
-float64 p_gain_pitch
-float64 p_gain_yaw
