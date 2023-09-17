@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "camera_control.hpp"
+
 struct Buffer {
   void *start;
   size_t length;
@@ -19,6 +21,13 @@ class Device {
 
   sensor_msgs::msg::CompressedImage::UniquePtr Capture();
   void SetV4L2Param(std::string _name, int _value);
+  size_t GetWidth() { return width_; }
+  size_t GetHeight() { return height_; }
+  std::vector<std::string> AvailableFormats();
+  std::vector<std::pair<std::size_t, std::size_t>> AvailableFrameSizes();
+  std::vector<Control> Controls() { return controls_; }
+  int ControlValue(unsigned int id);
+  bool SetControlValue(unsigned int id, int value);
 
  private:
   void InitMemoryMap();
@@ -29,7 +38,10 @@ class Device {
   void StartCapturing();
   void StopCapturing();
   bool ReadFrame();
-  void SetV4L2Param(std::string _name, std::string _value);
+  void InitControls();
+  std::vector<Control> InitUserControls();
+  std::vector<Control> InitCameraControls();
+  Control GetControl(unsigned int id, bool &status);
 
   std::string device_;
   int file_descriptor_;
@@ -39,5 +51,6 @@ class Device {
   size_t height_;
   v4l2_format format_;
   const bool force_format_{true};
+  std::vector<Control> controls_;
 };
 }  // namespace mjpeg_cam
