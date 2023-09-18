@@ -26,13 +26,15 @@ include_directories(
 # device library
 ################################################################################
 set(lib_name device)
-add_library(${lib_name} src/device.cpp)
+add_library(${lib_name}
+    src/device.cpp
+)
 target_include_directories(${lib_name}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(${lib_name} sensor_msgs)
+ament_target_dependencies(${lib_name} sensor_msgs rclcpp)
 ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
 ament_export_dependencies(sensor_msgs)
 
@@ -51,6 +53,7 @@ set(component_name mjpeg_cam)
 add_library(${component_name}
   SHARED
   src/mjpeg_cam.cpp
+  src/mjpeg_cam_params.cpp
 )
 target_link_libraries(${component_name} device)
 target_include_directories(${component_name}

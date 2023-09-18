@@ -6,6 +6,7 @@
 #include <unistd.h>  // close function
 
 #include <cstring>  // reuired for memset
+#include <rclcpp/rclcpp.hpp>
 #include <stdexcept>
 
 namespace mjpeg_cam {
@@ -31,6 +32,35 @@ Device::~Device() {
   Close();
 }
 
+std::vector<std::string> Device::AvailableFormats() {
+  std::vector<std::string> output;
+  struct v4l2_fmtdesc fmt_description;
+  memset(&fmt_description, 0, sizeof(fmt_description));
+  fmt_description.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  while (xioctl(file_descriptor_, VIDIOC_ENUM_FMT, &fmt_description) != -1) {
+    output.push_back(
+        std::string(reinterpret_cast<char *>(fmt_description.description)));
+    ++fmt_description.index;
+  }
+  return output;
+}
+
+std::vector<std::pair<std::size_t, std::size_t>> Device::AvailableFrameSizes() {
+  std::vector<std::pair<std::size_t, std::size_t>> output;
+  struct v4l2_frmsizeenum frame_size;
+  memset(&frame_size, 0, sizeof(frame_size));
+  // only list frame sizes for jpeg format
+  frame_size.pixel_format = V4L2_PIX_FMT_MJPEG;
+  while (xioctl(file_descriptor_, VIDIOC_ENUM_FRAMESIZES, &frame_size) == 0) {
+    if (frame_size.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
+      output.push_back(std::pair<std::size_t, std::size_t>(
+          frame_size.discrete.width, frame_size.discrete.height));
+    }
+    ++frame_size.index;
+  }
+  return output;
+}
+
 sensor_msgs::msg::CompressedImage::UniquePtr Device::Capture() {
   auto buf = v4l2_buffer{};
   buf.type = V4L2_MEMORY_MMAP;
@@ -39,9 +69,9 @@ sensor_msgs::msg::CompressedImage::UniquePtr Device::Capture() {
   }
   auto image = std::make_unique<sensor_msgs::msg::CompressedImage>();
   const Buffer &buffer = buffers_[buf.index];
-  image->data.resize(format_.fmt.pix.sizeimage);
-  std::copy((uint8_t *)buffer.start, (uint8_t *)buffer.start + image->data.size(),
-            image->data.begin());
+  image->data.resize(buf.bytesused);
+  std::copy((uint8_t *)buffer.start,
+            (uint8_t *)buffer.start + image->data.size(), image->data.begin());
 
   if (xioctl(file_descriptor_, VIDIOC_QBUF, &buf) == -1) {
     throw std::runtime_error("VIDIOC_QBUF");
@@ -105,6 +135,7 @@ void Device::Init() {
   width_ = format_.fmt.pix.width;
   height_ = format_.fmt.pix.height;
   InitMemoryMap();
+  InitControls();
 }
 
 void Device::DeInit() {
@@ -186,5 +217,100 @@ void Device::Close() {
   }
   // invalidate file descriptor after closing
   file_descriptor_ = -1;
+}
+
+std::vector<Control> Device::InitCameraControls() {
+  std::vector<Control> controls;
+  auto id = V4L2_CID_CAMERA_CLASS_BASE;
+  while (true) {
+    bool status{false};
+    auto control = GetControl(id, status);
+    if (!control.disabled && status) {
+      controls.push_back(control);
+    }
+    id++;
+    if (V4L2_CTRL_ID2CLASS(id) != V4L2_CTRL_CLASS_CAMERA) {
+      break;
+    }
+  }
+  return controls;
+}
+
+std::vector<Control> Device::InitUserControls() {
+  std::vector<Control> controls;
+  auto id = V4L2_CID_USER_BASE;
+  while (true) {
+    bool status{false};
+    auto control = GetControl(id, status);
+    if (!control.disabled && status) {
+      controls.push_back(control);
+    }
+    ++id;
+    if (V4L2_CTRL_ID2CLASS(id) != V4L2_CTRL_CLASS_USER) {
+      break;
+    }
+  }
+  return controls;
+}
+
+void Device::InitControls() {
+  auto camera_controls = InitCameraControls();
+  controls_.insert(controls_.end(), camera_controls.begin(),
+                   camera_controls.end());
+  auto user_controls = InitUserControls();
+  controls_.insert(controls_.end(), user_controls.begin(), user_controls.end());
+}
+
+Control Device::GetControl(unsigned int id, bool &status) {
+  auto query = v4l2_queryctrl{};
+  query.id = id;
+  if (xioctl(file_descriptor_, VIDIOC_QUERYCTRL, &query) == -1) {
+    status = false;
+    return {};
+  }
+  auto menu_items = std::map<int, std::string>{};
+  if (query.type == V4L2_CTRL_TYPE_MENU) {
+    auto menu = v4l2_querymenu{};
+    menu.id = query.id;
+    for (auto i = query.minimum; i <= query.maximum; ++i) {
+      menu.index = i;
+      if (xioctl(file_descriptor_, VIDIOC_QUERYMENU, &menu) == 0) {
+        menu_items[i] = std::string{reinterpret_cast<const char *>(menu.name)};
+      }
+    }
+  }
+  auto control = Control{};
+  control.id = query.id;
+  control.name = std::string{reinterpret_cast<char *>(query.name)};
+  control.type = static_cast<ControlType>(query.type);
+  control.min = query.minimum;
+  control.max = query.maximum;
+  control.default_value = query.default_value;
+  control.step = query.step;
+  control.disabled = (query.flags & V4L2_CTRL_FLAG_DISABLED) != 0;
+  control.menu_items = std::move(menu_items);
+  control.value = ControlValue(control.id);
+  status = true;
+  return control;
+}
+
+int Device::ControlValue(unsigned int id) {
+  auto control = v4l2_control{};
+  control.id = id;
+  if (xioctl(file_descriptor_, VIDIOC_G_CTRL, &control) == -1) {
+    return -1;
+  }
+  return control.value;
+}
+
+bool Device::SetControlValue(unsigned int id, int value) {
+  auto control = v4l2_control{};
+  control.id = id;
+  control.value = value;
+
+  if (xioctl(file_descriptor_, VIDIOC_S_CTRL, &control) == -1) {
+    return false;
+  }
+  return true;
 }
 }  // namespace mjpeg_cam
