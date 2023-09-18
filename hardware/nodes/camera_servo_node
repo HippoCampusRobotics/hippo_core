@@ -2,8 +2,11 @@
 
 import rclpy
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 import pigpio
-from rcl_interfaces.msg import SetParametersResult, ParameterDescriptor, ParameterType, IntegerRange
+from std_msgs.msg import Float64
+from rcl_interfaces.msg import (SetParametersResult, ParameterDescriptor,
+                                ParameterType, IntegerRange)
 
 
 class CameraServo(Node):
@@ -24,6 +27,8 @@ class CameraServo(Node):
         descr.type = ParameterType.PARAMETER_INTEGER
         self.declare_parameter('tilt', 50, descr)
         self.add_on_set_parameters_callback(self.on_parameters)
+        self.tilt_sub = self.create_subscription(Float64, '~/tilt',
+                                                 self.on_tilt, 10)
 
     def on_parameters(self, params):
         for param in params:
@@ -38,6 +43,12 @@ class CameraServo(Node):
 
     def on_shutdown(self):
         self.pi.set_servo_pulsewidth(self.camera_servo_pin, 0)
+
+    def on_tilt(self, msg: Float64):
+        value = min(1.0, max(0.0, msg.data))
+        self.set_servo(value)
+        param = Parameter('tilt', Parameter.Type.INTEGER, int(value * 100.0))
+        self.set_parameters([param])
 
 
 def main():
