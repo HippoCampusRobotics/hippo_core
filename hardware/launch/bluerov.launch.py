@@ -46,6 +46,20 @@ def add_camera_node():
     return action
 
 
+def add_jpeg_camera_node():
+    action = Node(executable='mjpeg_cam_node',
+                  package='mjpeg_cam',
+                  name='front_camera',
+                  namespace='front_camera',
+                  parameters=[
+                      {
+                          'device_id': 0,
+                          'discrete_size': 3,
+                      },
+                  ])
+    return action
+
+
 def add_newton_gripper_node():
     args = PassLaunchArguments()
     args.add_vehicle_name_and_sim_time()
@@ -101,7 +115,8 @@ def generate_launch_description():
 
     actions = [
         include_mixer(),
-        add_camera_node(),
+        # add_camera_node(),
+        add_jpeg_camera_node(),
         add_newton_gripper_node(),
         add_camera_servo_node(),
         add_spotlight_node(),
