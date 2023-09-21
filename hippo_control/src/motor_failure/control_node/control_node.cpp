@@ -92,7 +92,8 @@ void ControlNode::StartMission() {
   phase_index_ = 0;
   duration_index_ = 0;
   mission_running_ = true;
-  mission_timer_ = create_timer(
+  mission_timer_ = rclcpp::create_timer(
+      this, get_clock(),
       std::chrono::milliseconds(params_.phase_duration_ms.at(phase_index_)),
       [this]() { UpdateMission(); });
   mode::Mode new_mode =
@@ -118,7 +119,8 @@ void ControlNode::UpdateMission() {
       std::chrono::milliseconds(params_.phase_duration_ms.at(duration_index_));
   SetRollWeightParameter(new_mode);
   controller_.SetMode(new_mode);
-  mission_timer_ = create_timer(new_duration, [this]() { UpdateMission(); });
+  mission_timer_ = rclcpp::create_timer(this, get_clock(), new_duration,
+                                        [this]() { UpdateMission(); });
 }
 
 void ControlNode::CancelMission() {
