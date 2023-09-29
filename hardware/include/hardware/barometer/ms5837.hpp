@@ -9,18 +9,20 @@
 namespace hardware {
 namespace barometer {
 
-
 class MS5837 {
 public:
   enum class Model { _02BA = 0, _30BA };
-  enum class Oversampling {
-    k256 = 0,
-    k512,
-    k1024,
-    k2048,
-    k4096,
-    k8192,
+  struct oversampling_s {
+    enum osr_e {
+      k256 = 0,
+      k512,
+      k1024,
+      k2048,
+      k4096,
+      k8192,
+    };
   };
+  typedef oversampling_s::osr_e Oversampling;
   enum class Status { kOk = 0, kCrcError, kIOError, kResetError };
   MS5837();
   ~MS5837();
