@@ -52,8 +52,8 @@ bool ReadData(int file_handle, uint8_t address, uint8_t register_addr,
   return true;
 }
 
-bool ReadWord(int file_handle, uint8_t address, uint8_t register_addr,
-              uint16_t &_data) {
+inline bool ReadWord(int file_handle, uint8_t address, uint8_t register_addr,
+                     uint16_t &_data) {
   std::array<uint8_t, 2> buf;
   if (!ReadData(file_handle, address, register_addr, buf)) {
     return false;
@@ -87,5 +87,5 @@ bool WriteData(int file_handle, uint8_t address, uint8_t register_addr,
   return true;
 }
 
-}  // namespace i2c
-}  // namespace hardware
+} // namespace i2c
+} // namespace hardware
