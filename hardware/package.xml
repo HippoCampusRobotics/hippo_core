@@ -7,15 +7,12 @@
 
   <maintainer email="thies.lennart.alff@tuhh.de">Thies Lennart Alff</maintainer>
 
-
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
-  <license>TODO</license>
-
+  <license>GPLv2</license>
 
   <url type="website">hippocampusrobotics.github.io/docs</url>
-
 
   <author email="thies.lennart.alff@tuhh.de">Thies Lennart Alff</author>
 
@@ -27,8 +24,7 @@
   <depend>hippo_common</depend>
   <depend>hippo_msgs</depend>
   <depend>std_srvs</depend>
-  <depend>std_msgs</depend>
-
+  <depend>sensor_msgs</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
