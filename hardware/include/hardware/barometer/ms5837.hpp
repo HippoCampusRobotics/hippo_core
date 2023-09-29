@@ -9,19 +9,10 @@
 namespace hardware {
 namespace barometer {
 
-// namespace Oversampling {
-// static constexpr int k256 = 0;
-// static constexpr int k512 = 0;
-// static constexpr int k1024 = 0;
-// static constexpr int k2048 = 0;
-// static constexpr int k4096 = 0;
-// static constexpr int k8192 = 0;
-// } // namespace Oversampling
-
-enum class Model { _02BA = 0, _30BA };
 
 class MS5837 {
 public:
+  enum class Model { _02BA = 0, _30BA };
   enum class Oversampling {
     k256 = 0,
     k512,
