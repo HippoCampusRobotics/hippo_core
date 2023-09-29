@@ -12,7 +12,8 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+// USA
 
 #pragma once
 
@@ -26,7 +27,7 @@ namespace hardware {
 namespace barometer {
 
 class MS5837 {
-public:
+ public:
   enum class Model { _02BA = 0, _30BA };
   struct oversampling_s {
     enum osr_e {
@@ -59,17 +60,17 @@ public:
   double Temperature() const { return temperature_; }
   double TemperatureCompensated() const { return temperature_compensated_; }
 
-private:
+ private:
   struct Compensation {
-    uint32_t raw_pressure;     /// pressure as read from the sensor
-    uint32_t raw_temperature;  /// temperature as read from the sensor
-    int32_t delta_temperature; /// difference between actual and reference
-                               /// temperature
-    int32_t temperature_cK;    /// actual temperature in centi Kelvin
+    uint32_t raw_pressure;      /// pressure as read from the sensor
+    uint32_t raw_temperature;   /// temperature as read from the sensor
+    int32_t delta_temperature;  /// difference between actual and reference
+                                /// temperature
+    int32_t temperature_cK;     /// actual temperature in centi Kelvin
     int64_t temperature_correction;
     int64_t offset;
     int64_t offset_correction;
-    int64_t sensitivity; /// sensitivity at current temperature
+    int64_t sensitivity;  /// sensitivity at current temperature
     int64_t sensitivity_correction;
     int32_t pressure_cBar;
   };
@@ -95,5 +96,5 @@ private:
   std::array<uint16_t, 8> prom_;
 };
 
-} // namespace barometer
-} // namespace hardware
+}  // namespace barometer
+}  // namespace hardware

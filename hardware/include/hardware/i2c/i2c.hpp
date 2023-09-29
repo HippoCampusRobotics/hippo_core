@@ -87,5 +87,5 @@ bool WriteData(int file_handle, uint8_t address, uint8_t register_addr,
   return true;
 }
 
-} // namespace i2c
-} // namespace hardware
+}  // namespace i2c
+}  // namespace hardware

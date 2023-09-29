@@ -1,3 +1,20 @@
+// Copyright (C) 2023 Thies Lennart Alff
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+// USA
+
 #include <tf2_ros/static_transform_broadcaster.h>
 
 #include <chrono>
@@ -12,7 +29,8 @@ class MeshPublisher : public rclcpp::Node {
   MeshPublisher() : Node("mesh_publisher") {
     mesh_url_ = declare_parameter<std::string>(
         "mesh_url", "package://hippo_sim/models/pool/meshes/pool.dae");
-    marker_frame_ = declare_parameter<std::string>("marker_frame", "pool_xy_center");
+    marker_frame_ =
+        declare_parameter<std::string>("marker_frame", "pool_xy_center");
 
     topic_ = declare_parameter<std::string>("topic", "marker_topic");
     if (declare_parameter<bool>("static_tf", true)) {

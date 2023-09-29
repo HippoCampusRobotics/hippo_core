@@ -3,10 +3,10 @@
 #include <hippo_control/rate_control/rate_control.hpp>
 #include <hippo_msgs/msg/actuator_setpoint.hpp>
 #include <hippo_msgs/msg/angular_velocity.hpp>
-#include <hippo_msgs/msg/rates_target.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <px4_msgs/msg/vehicle_angular_velocity.hpp>
 #include <hippo_msgs/msg/rates_debug.hpp>
+#include <hippo_msgs/msg/rates_target.hpp>
+#include <px4_msgs/msg/vehicle_angular_velocity.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 namespace hippo_control {
 namespace rate_control {
@@ -20,7 +20,8 @@ class RateController : public rclcpp::Node {
   void DeclareIntegralLimitParams();
   void InitController();
   void UpdateAllControllerParams();
-  void OnAngularVelocity(px4_msgs::msg::VehicleAngularVelocity::ConstSharedPtr _msg);
+  void OnAngularVelocity(
+      px4_msgs::msg::VehicleAngularVelocity::ConstSharedPtr _msg);
   void OnRatesSetpoint(hippo_msgs::msg::RatesTarget::ConstSharedPtr _msg);
   rcl_interfaces::msg::SetParametersResult OnGainParams(
       const std::vector<rclcpp::Parameter> &_parameters);
