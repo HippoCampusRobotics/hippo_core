@@ -14,6 +14,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 // USA
+
 #pragma once
 
 #include <eigen3/Eigen/Dense>
@@ -30,7 +31,9 @@ class Path {
 
   void SetLookAhead(double _distance) { look_ahead_distance_ = _distance; }
   inline std::size_t Size() const { return waypoints_.size(); }
-  inline const std::vector<Eigen::Vector3d> &waypoints() const { return waypoints_; };
+  inline const std::vector<Eigen::Vector3d> &waypoints() const {
+    return waypoints_;
+  };
   bool Update(const Eigen::Vector3d &_position);
   inline Eigen::Vector3d TargetPoint() const { return target_point_; }
   void Move(const Eigen::Vector3d &_offset);

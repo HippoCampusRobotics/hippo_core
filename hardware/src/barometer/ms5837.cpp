@@ -12,7 +12,8 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+// USA
 
 #include "hardware/barometer/ms5837.hpp"
 
@@ -182,5 +183,5 @@ uint8_t MS5837::Crc4(std::array<uint16_t, 8> &prom) {
   return crc ^ 0x00;
 }
 
-} // namespace barometer
-} // namespace hardware
+}  // namespace barometer
+}  // namespace hardware

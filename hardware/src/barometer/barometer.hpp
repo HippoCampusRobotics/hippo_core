@@ -12,20 +12,22 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+// USA
 
 #pragma once
-#include "hardware/barometer/ms5837.hpp"
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/fluid_pressure.hpp>
+
+#include "hardware/barometer/ms5837.hpp"
 
 namespace hardware {
 namespace barometer {
 class Barometer : public rclcpp::Node {
-public:
+ public:
   explicit Barometer(rclcpp::NodeOptions const &_options);
 
-private:
+ private:
   struct Params {
     std::string device;
     int update_period_ms;
@@ -44,5 +46,5 @@ private:
   Params params_;
 };
 
-} // namespace barometer
-} // namespace hardware
+}  // namespace barometer
+}  // namespace hardware

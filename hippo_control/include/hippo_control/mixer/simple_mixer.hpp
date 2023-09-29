@@ -31,7 +31,6 @@ class SimpleMixer {
   SimpleMixer();
   double test;
 
-
   void SetMapping(int _index, const Mapping &_mapping);
   void SetZeroThrustThreshold(double _v) { zero_throttle_threshold_ = _v; }
   inline double ZeroThrustThreshold() const { return zero_throttle_threshold_; }

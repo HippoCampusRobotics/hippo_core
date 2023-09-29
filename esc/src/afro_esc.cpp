@@ -1,3 +1,20 @@
+// Copyright (C) 2023 Thies Lennart Alff
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+// USA
+
 #include "afro_esc.h"
 
 #include <linux/i2c-dev.h>
@@ -93,8 +110,8 @@ EscRetCode AfroESC::WriteThrottle() {
 }
 
 EscRetCode AfroESC::UpdateRevolutionCount() {
-    EscRetCode status;
-    status = ReadWordData(kRegGetSpeed, commutation_count_);
+  EscRetCode status;
+  status = ReadWordData(kRegGetSpeed, commutation_count_);
   if (status != EscRetCode::kOk) {
     return status;
   }
@@ -113,7 +130,7 @@ EscRetCode AfroESC::UpdateBatteryAdc() {
     return status;
   }
   // weird bit-shifting needed due to 10bit adc resolution
-  battery_adc_ >>= 6;  
+  battery_adc_ >>= 6;
   battery_voltage_ = battery_adc_ * kAdcVbatScaler;
   return EscRetCode::kOk;
 }

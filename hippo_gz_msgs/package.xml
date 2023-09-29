@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="thies.lennart.alff@tuhh.de">Thies Lennart Alff</maintainer>
-  <license>TODO: License declaration</license>
+  <license>GPLv2</license>
 
   <depend>ignition-msgs8</depend>
   <depend>protobuf</depend>
