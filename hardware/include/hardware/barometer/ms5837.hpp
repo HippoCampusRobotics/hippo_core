@@ -16,12 +16,12 @@ static constexpr int k1024 = 0;
 static constexpr int k2048 = 0;
 static constexpr int k4096 = 0;
 static constexpr int k8192 = 0;
-}  // namespace Oversampling
+} // namespace Oversampling
 
 enum class Model { _02BA = 0, _30BA };
 
 class MS5837 {
- public:
+public:
   enum class Status { kOk = 0, kCrcError, kIOError, kResetError };
   MS5837();
   ~MS5837();
@@ -35,7 +35,7 @@ class MS5837 {
   bool Open(std::string _device_name = "/dev/i2c-1");
   Status Init();
   bool Reset();
-  bool Read(int oversampling);
+  Status Read(int oversampling);
   /// @brief Pressure in [Pa]
   double Pressure() const { return pressure_; }
   double PressureCompensated() const { return pressure_compensated_; }
@@ -79,5 +79,5 @@ private:
   std::array<uint16_t, 8> prom_;
 };
 
-}  // namespace barometer
-}  // namespace hardware
+} // namespace barometer
+} // namespace hardware

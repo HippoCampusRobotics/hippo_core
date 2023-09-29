@@ -48,7 +48,7 @@ bool MS5837::Reset() {
   return i2c::WriteData(file_handle_, kAddress, kRegisterReset, data);
 }
 
-bool MS5837::Read(int oversampling) {
+MS5837::Status MS5837::Read(int oversampling) {
   using namespace std::chrono;
   double tmp = 2.2e-6 * (0x01 << (8 + oversampling));
   auto conversion_time = round<nanoseconds>(duration<double>(tmp));
@@ -59,17 +59,17 @@ bool MS5837::Read(int oversampling) {
   std::this_thread::sleep_for(conversion_time);
   if (!i2c::ReadData(file_handle_, kAddress, kRegisterAdcRead,
                      temperature_raw_)) {
-    return false;
+    return Status::kIOError;
   }
 
   i2c::WriteData(file_handle_, kAddress,
                  kRegisterConvertPressure + 2 * oversampling, data);
   std::this_thread::sleep_for(conversion_time);
   if (!i2c::ReadData(file_handle_, kAddress, kRegisterAdcRead, pressure_raw_)) {
-    return false;
+    return Status::kIOError;
   }
   ApplyCalibration();
-  return true;
+  return Status::kOk;
 }
 
 void MS5837::ApplyCalibration() {
@@ -166,5 +166,5 @@ uint8_t MS5837::Crc4(std::array<uint16_t, 8> &prom) {
   return crc ^ 0x00;
 }
 
-}  // namespace barometer
-}  // namespace hardware
+} // namespace barometer
+} // namespace hardware
