@@ -18,7 +18,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(std_srvs REQUIRED)
-find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(hippo_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
 
@@ -65,6 +65,28 @@ install(TARGETS ${lib_name}
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
   INCLUDES DESTINATION include
+)
+
+################################################################################
+# barometer node
+################################################################################
+set(exec_name barometer)
+add_executable(${exec_name}
+  src/barometer/barometer_node.cpp
+  src/barometer/barometer.cpp
+  src/barometer/barometer_params.cpp
+)
+target_link_libraries(${exec_name} ms5837)
+ament_target_dependencies(${exec_name}
+  rclcpp
+  rclcpp_components
+  hippo_common
+  hippo_msgs
+  sensor_msgs
+  std_srvs
+)
+install(TARGETS ${exec_name}
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 # Install Python modules

@@ -27,7 +27,7 @@
   <depend>hippo_common</depend>
   <depend>hippo_msgs</depend>
   <depend>std_srvs</depend>
-  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

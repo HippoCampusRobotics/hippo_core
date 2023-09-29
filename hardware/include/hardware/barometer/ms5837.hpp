@@ -25,7 +25,6 @@ public:
   typedef oversampling_s::osr_e Oversampling;
   enum class Status { kOk = 0, kCrcError, kIOError, kResetError };
   MS5837();
-  ~MS5837();
   static constexpr uint8_t kAddress = 0x76;
   static constexpr uint8_t kRegisterReset = 0x1E;
   static constexpr uint8_t kRegisterAdcRead = 0x00;
