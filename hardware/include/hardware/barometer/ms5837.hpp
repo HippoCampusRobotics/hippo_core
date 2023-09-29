@@ -38,17 +38,37 @@ class MS5837 {
   bool Read(int oversampling);
   /// @brief Pressure in [Pa]
   double Pressure() const { return pressure_; }
+  double PressureCompensated() const { return pressure_compensated_; }
   /// @brief Temperature in deg Celsius.
   double Temperature() const { return temperature_; }
+  double TemperatureCompensated() const { return temperature_compensated_; }
 
- private:
+private:
+  struct Compensation {
+    uint32_t raw_pressure;     /// pressure as read from the sensor
+    uint32_t raw_temperature;  /// temperature as read from the sensor
+    int32_t delta_temperature; /// difference between actual and reference
+                               /// temperature
+    int32_t temperature_cK;    /// actual temperature in centi Kelvin
+    int64_t temperature_correction;
+    int64_t offset;
+    int64_t offset_correction;
+    int64_t sensitivity; /// sensitivity at current temperature
+    int64_t sensitivity_correction;
+    int32_t pressure_cBar;
+  };
   uint8_t Crc4(std::array<uint16_t, 8> &_data);
   void ApplyCalibration();
+  void LowTemperatureCompensation(Compensation &_compensation);
+  void HighTemperatureCompensation(Compensation &_compensation);
+  void SecondOrderCompensation(Compensation &_compensation);
   std::string device_name_;
   int file_handle_;
 
   double pressure_;
   double temperature_;
+  double pressure_compensated_;
+  double temperature_compensated_;
 
   /// @brief MSB first
   std::array<uint8_t, 3> temperature_raw_;

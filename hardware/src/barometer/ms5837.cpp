@@ -73,27 +73,70 @@ bool MS5837::Read(int oversampling) {
 }
 
 void MS5837::ApplyCalibration() {
-  uint32_t raw_temperature = temperature_raw_[0] << 16 |
-                             temperature_raw_[1] << 8 | temperature_raw_[2];
-  uint32_t raw_pressure =
+  Compensation c;
+  c.raw_temperature = temperature_raw_[0] << 16 | temperature_raw_[1] << 8 |
+                      temperature_raw_[2];
+  c.raw_pressure =
       pressure_raw_[0] << 16 | pressure_raw_[1] << 8 | pressure_raw_[2];
-  int32_t dT = raw_temperature - prom_[5] * (0x01 << 8);
+  c.delta_temperature = c.raw_temperature - prom_[5] * (0x01 << 8);
 
-  int32_t temperature_cK = 2000 + dT * prom_[6] / (0x01 << 23);
-  temperature_ = temperature_cK / 100.0;
+  c.temperature_cK = 2000 + c.delta_temperature * prom_[6] / (0x01 << 23);
+  temperature_ = c.temperature_cK * 0.01;
 
-  int64_t offset = prom_[2] * (0x01 << 16) + prom_[4] * dT / (0x01 << 7);
-  int64_t sensitivity = prom_[1] * (0x01 << 15) + prom_[3] * dT / (0x01 << 8);
-  int32_t pressure =
-      (raw_pressure * sensitivity / (0x01 << 21) - offset) / (0x01 << 13);
-  pressure_ = pressure * 0.01 * 10e5;
+  c.offset =
+      prom_[2] * (0x01 << 16) + prom_[4] * c.delta_temperature / (0x01 << 7);
+  c.sensitivity =
+      prom_[1] * (0x01 << 15) + prom_[3] * c.delta_temperature / (0x01 << 8);
+  c.pressure_cBar =
+      (c.raw_pressure * c.sensitivity / (0x01 << 21) - c.offset) / (0x01 << 13);
+  pressure_ = c.pressure_cBar * 0.01 * 10e5;
+  SecondOrderCompensation(c);
+}
 
-  // TODO: second order compensation
+void MS5837::SecondOrderCompensation(Compensation &_c) {
   if (temperature_ < 20.0) {
-    // TODO
+    LowTemperatureCompensation(_c);
   } else {
-    // TODO
+    HighTemperatureCompensation(_c);
   }
+  _c.offset_correction = _c.offset - _c.offset_correction;
+  _c.sensitivity_correction = _c.sensitivity - _c.sensitivity_correction;
+
+  temperature_compensated_ =
+      (static_cast<int64_t>(_c.temperature_cK) - _c.temperature_correction) *
+      0.01;
+  int64_t tmp = static_cast<int64_t>(_c.raw_pressure);
+  int64_t pressure_cBar;
+  pressure_cBar =
+      (((tmp * _c.sensitivity_correction) >> 21) - _c.offset_correction) >> 13;
+  pressure_compensated_ = pressure_cBar * 0.01 * 10e5;
+}
+
+void MS5837::LowTemperatureCompensation(Compensation &_c) {
+  int64_t tmp_int64;
+  tmp_int64 = static_cast<int64_t>(_c.delta_temperature);
+  _c.temperature_correction = (3 * tmp_int64) >> 33;
+
+  tmp_int64 = static_cast<int64_t>(_c.temperature_cK) - 2000;
+  _c.offset_correction = (3 * tmp_int64 * tmp_int64) >> 1;
+  _c.sensitivity_correction = (5 * tmp_int64 * tmp_int64) >> 3;
+
+  if (temperature_ >= -15.0) {
+    return;
+  }
+  tmp_int64 = static_cast<int64_t>(_c.temperature_cK) + 1500;
+  _c.offset_correction += 7 * tmp_int64 * tmp_int64;
+  _c.sensitivity_correction += 4 * tmp_int64 * tmp_int64;
+}
+
+void MS5837::HighTemperatureCompensation(Compensation &_c) {
+  int64_t tmp_int64;
+
+  tmp_int64 = static_cast<int64_t>(_c.delta_temperature);
+  _c.temperature_correction = (2 * tmp_int64 * tmp_int64) >> 37;
+  tmp_int64 = static_cast<int64_t>(_c.temperature_cK) - 2000;
+  _c.offset_correction = (tmp_int64 * tmp_int64) >> 4;
+  _c.sensitivity_correction = 0;
 }
 
 uint8_t MS5837::Crc4(std::array<uint16_t, 8> &prom) {
