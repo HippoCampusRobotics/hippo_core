@@ -61,9 +61,9 @@ geometry_msgs::msg::Transform CameraLinkToCameraFrame();
 
 geometry_msgs::msg::Transform CameraFrameToCameraLink();
 
-geometry_msgs::msg::Quaternion
-RotateByQuaternion(const geometry_msgs::msg::Quaternion &_orientation,
-                   const geometry_msgs::msg::Quaternion &_rotation);
+geometry_msgs::msg::Quaternion RotateByQuaternion(
+    const geometry_msgs::msg::Quaternion &_orientation,
+    const geometry_msgs::msg::Quaternion &_rotation);
 
 geometry_msgs::msg::Pose PoseRosToPx4(const geometry_msgs::msg::Pose &_pose);
 
@@ -146,6 +146,6 @@ inline std::string InertialFramePX4() {
   return std::string{kInertialName} + "_ned";
 }
 
-} // namespace frame_id
-} // namespace tf2_utils
-} // namespace hippo_common
+}  // namespace frame_id
+}  // namespace tf2_utils
+}  // namespace hippo_common

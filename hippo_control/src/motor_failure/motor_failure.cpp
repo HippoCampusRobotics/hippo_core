@@ -119,7 +119,7 @@ Eigen::Vector<double, 4> MotorFailure::AllocateThrust(
   Eigen::Matrix<double, 4, 6> mixer_inv =
       mixer_matrix_.completeOrthogonalDecomposition().pseudoInverse();
   for (int i = 0; i < 4; ++i) {
-    for (int j=0; j<4; ++j) {
+    for (int j = 0; j < 4; ++j) {
       thrust_composition_[i](j) = mixer_inv(i, j) * _thrust(j) / result(i);
     }
   }

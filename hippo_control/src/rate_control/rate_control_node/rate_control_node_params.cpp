@@ -16,6 +16,7 @@
 // USA
 
 #include <hippo_common/param_utils.hpp>
+
 #include "rate_control_node.hpp"
 
 namespace hippo_control {
