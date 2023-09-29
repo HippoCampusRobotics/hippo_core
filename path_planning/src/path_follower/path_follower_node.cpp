@@ -35,12 +35,34 @@ PathFollowerNode::PathFollowerNode(rclcpp::NodeOptions const &_options)
   path_visualizer_ = std::make_shared<path_planning::RvizHelper>(rviz_node);
   DeclareParams();
   LoadDefaultWaypoints();
-  set_path_service_ = create_service<hippo_msgs::srv::SetPath>(
-      "~/set_path", std::bind(&PathFollowerNode::OnSetPath, this,
-                              std::placeholders::_1, std::placeholders::_2));
+  InitServices();
   InitPublishers();
   InitSubscriptions();
   RCLCPP_INFO(get_logger(), "Initialization done.");
+}
+
+void PathFollowerNode::InitServices() {
+  std::string name;
+
+  name = "~/set_path";
+  set_path_service_ = create_service<hippo_msgs::srv::SetPath>(
+      name, std::bind(&PathFollowerNode::OnSetPath, this, std::placeholders::_1,
+                      std::placeholders::_2));
+
+  name = "~/set_axis";
+  using hippo_msgs::srv::SetAxis;
+  set_axis_service_ = create_service<SetAxis>(
+      name, [this](const SetAxis::Request::SharedPtr request,
+                   SetAxis::Response::SharedPtr response) {
+        OnSetAxis(request, response);
+      });
+
+  name = "~/start";
+  start_service_ = create_service<std_srvs::srv::Trigger>(
+      name, [this](const std_srvs::srv::Trigger::Request::SharedPtr request,
+                   std_srvs::srv::Trigger::Response::SharedPtr response) {
+        OnStart(request, response);
+      });
 }
 
 std::string PathFollowerNode::GetWaypointsFilePath() {
@@ -93,6 +115,9 @@ void PathFollowerNode::InitPublishers() {
   topic = "heading_target";
   heading_target_pub_ =
       create_publisher<geometry_msgs::msg::Vector3Stamped>(topic, qos);
+
+  topic = "~/debug";
+  debug_pub_ = create_publisher<hippo_msgs::msg::PathFollowerDebug>(topic, qos);
 }
 
 void PathFollowerNode::InitSubscriptions() {
@@ -103,6 +128,19 @@ void PathFollowerNode::InitSubscriptions() {
       topic, 10, [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
         OnOdometry(msg);
       });
+}
+
+void PathFollowerNode::PublishDistanceError(const rclcpp::Time &_now,
+                                            const Eigen::Vector3d &_error) {
+  hippo_msgs::msg::PathFollowerDebug msg;
+  msg.header.stamp = _now;
+  using hippo_common::convert::EigenToRos;
+  EigenToRos(_error, msg.error_vec);
+  EigenToRos(support_vector_, msg.support_vec);
+  EigenToRos(direction_vector_, msg.direction_vec);
+  msg.mode = params_.mode;
+  msg.look_ahead_distance = params_.look_ahead_distance;
+  debug_pub_->publish(msg);
 }
 
 void PathFollowerNode::OnSetPath(
@@ -127,6 +165,145 @@ void PathFollowerNode::OnSetPath(
   _response->success = true;
 }
 
+void PathFollowerNode::OnStart(
+    const std_srvs::srv::Trigger::Request::SharedPtr _request,
+    std_srvs::srv::Trigger::Response::SharedPtr _response) {
+  RCLCPP_INFO(get_logger(), "Handling Start Request.");
+  switch (params_.mode) {
+    case mode::kStaticAxis: {
+      SetDesiredStaticAxis();
+      _response->success = true;
+      _response->message = "Follow static axis.";
+    } break;
+    case mode::kPoseBasedAxis: {
+      _response->success = StartPoseBasedAxis();
+      _response->message = "Follow pose based axis.";
+    } break;
+    case mode::kStaticHeading: {
+      SetStaticHeading();
+      _response->success = true;
+      _response->message = "Follow static heading";
+    } break;
+    case mode::kPoseBasedHeading: {
+      direction_vector_ = orientation_ * Eigen::Vector3d::UnitX();
+      _response->success = true;
+      _response->message = "Follow pose based heading.";
+    } break;
+    case mode::kStaticPath: {
+      _response->success = true;
+      _response->message = "Follow static path.";
+    } break;
+    default:
+      RCLCPP_ERROR(get_logger(), "Unhandled mode: %d", params_.mode);
+      _response->success = false;
+      _response->message = "Unhandled mode.";
+      break;
+  }
+  RCLCPP_INFO_STREAM(get_logger(), _response->message);
+}
+
+void PathFollowerNode::OnSetAxis(
+    const hippo_msgs::srv::SetAxis::Request::SharedPtr _request,
+    hippo_msgs::srv::SetAxis::Response::SharedPtr _response) {
+  RCLCPP_INFO(get_logger(), "Handling SetAxis request");
+  params_.static_axis.position.x = _request->support_vector.x; 
+  params_.static_axis.position.y = _request->support_vector.y; 
+  params_.static_axis.position.z = _request->support_vector.z; 
+  params_.static_axis.heading.x = _request->direction_vector.x; 
+  params_.static_axis.heading.y = _request->direction_vector.y; 
+  params_.static_axis.heading.z = _request->direction_vector.z; 
+  SetDesiredStaticAxis();
+  _response->success = true;
+  _response->reason = "Set static axis";
+}
+
+bool PathFollowerNode::StartPoseBasedAxis() {
+  Eigen::Vector3d heading = orientation_ * Eigen::Vector3d::UnitX();
+  if (AxisCollidesWithWall(position_, heading)) {
+    return false;
+  }
+  if (AxisCollidesWithSurface(position_, heading)) {
+    return false;
+  }
+  SetDesiredDynamicAxis(position_, heading);
+  return true;
+}
+
+void PathFollowerNode::SetDesiredStaticAxis() {
+  support_vector_ = Eigen::Vector3d{params_.static_axis.position.x,
+                                    params_.static_axis.position.y,
+                                    params_.static_axis.position.z};
+  direction_vector_ = Eigen::Vector3d{params_.static_axis.heading.x,
+                                      params_.static_axis.heading.y,
+                                      params_.static_axis.heading.z};
+  direction_vector_.normalize();
+}
+
+void PathFollowerNode::SetDesiredDynamicAxis(
+    const Eigen::Vector3d &_support_vector, const Eigen::Vector3d &_direction) {
+  support_vector_ = _support_vector;
+  direction_vector_ = _direction;
+  direction_vector_.normalize();
+}
+
+void PathFollowerNode::SetStaticHeading() {
+  direction_vector_ =
+      Eigen::Vector3d{params_.static_heading.x, params_.static_heading.y,
+                      params_.static_heading.z};
+  direction_vector_.normalize();
+}
+
+Eigen::Vector3d PathFollowerNode::ClosestPointToAxis() {
+  Eigen::Vector3d v = position_ - support_vector_;
+  return direction_vector_ * v.dot(direction_vector_) + support_vector_;
+}
+
+bool PathFollowerNode::AxisCollidesWithWall(
+    const Eigen::Vector3d &_support_vector,
+    const Eigen::Vector3d &_direction_vector) {
+  // left wall
+  if (AxisCollidesWithWall(_support_vector, _direction_vector,
+                           Eigen::Vector3d{params_.left_wall, 0.0, 0.0},
+                           Eigen::Vector3d{1.0, 0.0, 0.0})) {
+    return true;
+  }
+  // right wall
+  if (AxisCollidesWithWall(_support_vector, _direction_vector,
+                           Eigen::Vector3d{params_.right_wall, 0.0, 0.0},
+                           Eigen::Vector3d{-1.0, 0.0, 0.0})) {
+    return true;
+  }
+  // bottom_wall
+  if (AxisCollidesWithWall(_support_vector, _direction_vector,
+                           Eigen::Vector3d{0.0, 0.0, params_.bottom_wall},
+                           Eigen::Vector3d{0.0, 0.0, 1.0})) {
+    return true;
+  }
+  return false;
+}
+
+bool PathFollowerNode::AxisCollidesWithWall(
+    const Eigen::Vector3d &support_vector,
+    const Eigen::Vector3d &direction_vector, const Eigen::Vector3d &point,
+    const Eigen::Vector3d &normal) {
+  double distance = params_.domain_end - support_vector.y();
+  double scaler = distance / direction_vector.y();
+  Eigen::Vector3d final_position{scaler * direction_vector + support_vector};
+
+  if ((final_position - point).dot(normal) <= 0) {
+    return true;
+  }
+  return false;
+}
+
+bool PathFollowerNode::AxisCollidesWithSurface(
+    const Eigen::Vector3d &_support_vector,
+    const Eigen::Vector3d &_direction_vector) {
+  return AxisCollidesWithWall(_support_vector, _direction_vector,
+                              Eigen::Vector3d{0.0, 0.0, params_.surface},
+                              Eigen::Vector3d{0.0, 0.0, -1.0});
+}
+
 void PathFollowerNode::OnOdometry(
     const nav_msgs::msg::Odometry::SharedPtr _msg) {
   hippo_common::convert::RosToEigen(_msg->pose.pose.orientation, orientation_);
@@ -136,17 +313,48 @@ void PathFollowerNode::OnOdometry(
                                 "No path has been set.");
     return;
   }
-  bool success = path_->Update(position_);
-  if (!success) {
-    RCLCPP_ERROR_STREAM(get_logger(), "Could not find target waypoint.");
-    return;
-  }
-  target_position_ = path_->TargetPoint();
-  Eigen::Vector3d heading{target_position_ - position_};
-  heading.z() *= params_.depth_gain;
-  heading.normalize();
-  PublishHeadingTarget(_msg->header.stamp, heading);
+  switch (params_.mode) {
+    case mode::kPoseBasedAxis:
+    case mode::kStaticAxis: {
+      Eigen::Vector3d closest_point = ClosestPointToAxis();
+      Eigen::Vector3d target_point =
+          params_.look_ahead_distance * direction_vector_ + closest_point;
+      target_heading_ = (target_point - position_).normalized();
 
+      Eigen::Vector3d position_error = closest_point - position_;
+      PublishDistanceError(_msg->header.stamp, position_error);
+      // TODO: for a posed base axis we need to express the position error in
+      // a frame aligned with the axis, i.e. e_x = direction_vector
+    } break;
+    case mode::kPoseBasedHeading:
+    case mode::kStaticHeading:
+      target_heading_ = direction_vector_;
+      break;
+    case mode::kStaticPath: {
+      if (!path_->UpdateMotorFailure(position_)) {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                             "Failed to update path target");
+      }
+      Eigen::Vector3d target_point = path_->TargetPoint();
+      target_heading_ = (target_point - position_).normalized();
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
+                           "Point: %lf, %lf, %lf", target_point.x(),
+                           target_point.y(), target_point.z());
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
+                           "Heading: %lf, %lf, %lf", target_heading_.x(),
+                           target_heading_.y(), target_heading_.z());
+    } break;
+  }
+  PublishHeadingTarget(_msg->header.stamp, target_heading_);
+
+  // bool success = path_->Update(position_);
+  // if (!success) {
+  //   RCLCPP_ERROR_STREAM(get_logger(), "Could not find target waypoint.");
+  //   return;
+  // }
+  // target_position_ = path_->TargetPoint();
+  // Eigen::Vector3d heading{target_position_ - position_};
+  // heading.z() *= params_.depth_gain;
   if (path_visualizer_ != nullptr) {
     path_visualizer_->PublishPath(path_);
   }

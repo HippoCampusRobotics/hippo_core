@@ -1,7 +1,0 @@
-/**: # wildcard for the node name
-  ros__parameters:
-    look_ahead_distance: 0.3
-    ignore_z_distance: true #
-    path_file: '' # empty means the nodes tries to load its fallback
-    depth_gain: 2.0 # scaler for the z part of the heading vector
-

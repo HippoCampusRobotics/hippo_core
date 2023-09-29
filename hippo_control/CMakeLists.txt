@@ -40,45 +40,10 @@ find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(px4_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 
 include_directories(
   include
-)
-
-################################################################################
-# carrot_control component
-################################################################################
-set(component_name carrot_control)
-add_library(${component_name}
-  SHARED
-  src/carrot_control/carrot_controller.cpp
-  src/carrot_control/carrot_controller_params.cpp
-)
-target_include_directories(${component_name}
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(${component_name} yaml-cpp)
-ament_target_dependencies(${component_name}
-  rclcpp
-  rclcpp_components
-  hippo_common
-  hippo_msgs
-  path_planning
-  geometry_msgs
-  nav_msgs
-  yaml-cpp
-)
-rclcpp_components_register_node(${component_name}
-  PLUGIN "hippo_control::carrot_control::CarrotController"
-  EXECUTABLE ${component_name}_node
-)
-install(TARGETS ${component_name}
-  EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
 )
 
 ################################################################################
@@ -164,18 +129,18 @@ install(TARGETS ${lib_name}
 
 
 ################################################################################
-# rate_control library
+# rate_controller library
 ################################################################################
-set(lib_name rate_control)
-add_library(${lib_name} src/rate_control/rate_control.cpp)
+set(lib_name rate_controller)
+add_library(${lib_name} src/rate_control/rate_controller.cpp)
 target_include_directories(${lib_name}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(${lib_name} rclcpp Eigen3 px4_msgs)
+ament_target_dependencies(${lib_name} Eigen3)
 ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
-ament_export_dependencies(rclcpp Eigen3 px4_msgs)
+ament_export_dependencies(Eigen3)
 
 install(TARGETS ${lib_name}
   EXPORT ${lib_name}Target
@@ -188,13 +153,13 @@ install(TARGETS ${lib_name}
 ################################################################################
 # rate_control component
 ################################################################################
-set(component_name rate_controller)
+set(component_name rate_control)
 add_library(${component_name}
   SHARED
-  src/rate_control/rate_controller.cpp
-  src/rate_control/rate_controller_params.cpp
+  src/rate_control/rate_control_node/rate_control_node.cpp
+  src/rate_control/rate_control_node/rate_control_node_params.cpp
 )
-target_link_libraries(${component_name} rate_control)
+target_link_libraries(${component_name} rate_controller)
 target_include_directories(${component_name}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -206,9 +171,10 @@ ament_target_dependencies(${component_name}
   hippo_common
   hippo_msgs
   geometry_msgs
+  nav_msgs
 )
 rclcpp_components_register_node(${component_name}
-  PLUGIN "hippo_control::rate_control::RateController"
+  PLUGIN "hippo_control::rate_control::RateControlNode"
   EXECUTABLE ${component_name}_node
 )
 install(TARGETS ${component_name}
@@ -289,6 +255,57 @@ ament_target_dependencies(${component_name}
 )
 rclcpp_components_register_node(${component_name}
   PLUGIN "hippo_control::attitude_control::QuaternionControlNode"
+  EXECUTABLE ${component_name}_node
+)
+install(TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+################################################################################
+# motor_failure library
+################################################################################
+set(lib_name motor_failure)
+add_library(${lib_name} src/motor_failure/motor_failure.cpp)
+target_include_directories(${lib_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${lib_name} Eigen3)
+ament_export_targets(${lib_name}Target HAS_LIBRARY_TARGET)
+ament_export_dependencies(Eigen3)
+
+install(TARGETS ${lib_name}
+  EXPORT ${lib_name}Target
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
+
+################################################################################
+# motor_failure component
+################################################################################
+set(component_name motor_failure_control)
+add_library(${component_name}
+  SHARED
+  src/motor_failure/control_node/control_node.cpp
+  src/motor_failure/control_node/control_node_params.cpp
+)
+target_link_libraries(${component_name} motor_failure)
+target_include_directories(${component_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(${component_name}
+  rclcpp rclcpp_components hippo_msgs hippo_common nav_msgs Eigen3 std_srvs
+)
+rclcpp_components_register_node(${component_name}
+  PLUGIN "hippo_control::motor_failure::ControlNode"
   EXECUTABLE ${component_name}_node
 )
 install(TARGETS ${component_name}

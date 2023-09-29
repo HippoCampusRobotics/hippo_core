@@ -56,8 +56,39 @@ bool Path::Update(const Eigen::Vector3d &_position) {
   if (!success && !loop_) {
     index = waypoints_.size() - 1;
   }
-  target_index_ = index;
+  target_index_ = std::clamp<std::size_t>(index, 0, waypoints_.size() - 1);
   target_point_ = waypoints_[target_index_];
+  return success;
+}
+
+bool Path::UpdateMotorFailure(const Eigen::Vector3d &_position) {
+  bool success{true};
+  std::size_t index{target_index_};
+
+  if (waypoints_.size() < 1) {
+    return false;
+  }
+
+  if (_position.y() + look_ahead_distance_ > waypoints_.at(index).y()) {
+    while (_position.y() + look_ahead_distance_ > waypoints_.at(index).y()) {
+      if (!(index < waypoints_.size() - 1)) {
+        index = waypoints_.size() - 1;
+        success = false;
+        break;
+      }
+      ++index;
+    }
+  } else {
+    while (_position.y() + look_ahead_distance_ < waypoints_.at(index).y()) {
+      if (index <= 0) {
+        success = false;
+        break;
+      }
+      --index;
+    }
+  }
+  target_index_ = std::clamp<std::size_t>(index, 0, waypoints_.size() - 1);
+  target_point_ = waypoints_.at(index);
   return success;
 }
 

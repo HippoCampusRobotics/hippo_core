@@ -22,13 +22,37 @@
 namespace hippo_control {
 namespace attitude_control {
 
+Eigen::Vector3d QuaternionController::Update(
+    const Eigen::Vector3d &_desired_heading, double _desired_roll,
+    const Eigen::Quaterniond &_orientation) {
+  using hippo_common::tf2_utils::RotationBetweenNormalizedVectors;
+  orientation_ = _orientation;
+  const Eigen::Vector3d current_heading = CurrentForwardAxis();
+
+  Eigen::Quaterniond q_error_red =
+      RotationBetweenNormalizedVectors(current_heading, _desired_heading);
+  Eigen::Quaterniond q_des_red = q_error_red * orientation_;
+
+  using hippo_common::tf2_utils::QuaternionFromHeading;
+  Eigen::Quaterniond q_des =
+      QuaternionFromHeading(_desired_heading, _desired_roll);
+
+  Eigen::Quaterniond q_mix = q_des_red.inverse() * q_des;
+  double acos_tmp = acos(q_mix.w());
+  double asin_tmp = asin(q_mix.x());
+  Eigen::Quaterniond q_mix_scaled = Eigen::Quaterniond{
+      cos(roll_weight_ * acos_tmp), sin(roll_weight_ * asin_tmp), 0.0, 0.0};
+  Eigen::Quaterniond q_des_mixed = q_des_red * q_mix_scaled;
+  Eigen::Quaternion q_error_mixed = orientation_.inverse() * q_des_mixed;
+  return 2.0 * gain_ * sgn(q_error_mixed.w()) * q_error_mixed.vec();
+}
+
 Eigen::Quaterniond QuaternionController::ReducedQuaternionCommand(
     const Eigen::Vector3d &_desired_heading) {
-  auto current_heading = CurrentForwardAxis();
-  auto alpha = acos(current_heading.dot(_desired_heading));
-  Eigen::Quaterniond q_error;
-  q_error.vec() = sin(alpha * 0.5) * current_heading.cross(_desired_heading);
-  q_error.w() = cos(alpha * 0.5);
+  Eigen::Vector3d current_heading = CurrentForwardAxis();
+  using hippo_common::tf2_utils::RotationBetweenNormalizedVectors;
+  Eigen::Quaterniond q_error =
+      RotationBetweenNormalizedVectors(current_heading, _desired_heading);
   return orientation_ * q_error;
 }
 
@@ -37,9 +61,10 @@ Eigen::Quaterniond QuaternionController::MixedQuaternionCommand(
   auto q_mix = ReducedQuaternionCommand(_heading).inverse() *
                FullQuaternionCommand(_heading, _roll);
   double tmp = acos(q_mix.w());
-  return ReducedQuaternionCommand(_heading) *
-         Eigen::Quaterniond{cos(roll_weight_ * tmp), 0.0, 0.0,
-                            sin(roll_weight_ * tmp)};
+  Eigen::Quaterniond q_mix_scaled{cos(roll_weight_ * tmp),
+                                  sin(roll_weight_ * tmp), 0.0, 0.0};
+  Eigen::Quaterniond q_des = ReducedQuaternionCommand(_heading) * q_mix_scaled;
+  return orientation_.inverse() * q_des;
 }
 }  // namespace attitude_control
 }  // namespace hippo_control
