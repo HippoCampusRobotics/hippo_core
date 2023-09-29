@@ -48,14 +48,15 @@ bool MS5837::Reset() {
   return i2c::WriteData(file_handle_, kAddress, kRegisterReset, data);
 }
 
-MS5837::Status MS5837::Read(int oversampling) {
+MS5837::Status MS5837::Read(MS5837::Oversampling oversampling) {
   using namespace std::chrono;
-  double tmp = 2.2e-6 * (0x01 << (8 + oversampling));
+  double tmp = 2.2e-6 * (0x01 << (8 + static_cast<int>(oversampling)));
   auto conversion_time = round<nanoseconds>(duration<double>(tmp));
 
   std::array<uint8_t, 0> data;
-  i2c::WriteData(file_handle_, kAddress,
-                 kRegisterConvertTemperature + 2 * oversampling, data);
+  i2c::WriteData(
+      file_handle_, kAddress,
+      kRegisterConvertTemperature + 2 * static_cast<int>(oversampling), data);
   std::this_thread::sleep_for(conversion_time);
   if (!i2c::ReadData(file_handle_, kAddress, kRegisterAdcRead,
                      temperature_raw_)) {
@@ -63,7 +64,8 @@ MS5837::Status MS5837::Read(int oversampling) {
   }
 
   i2c::WriteData(file_handle_, kAddress,
-                 kRegisterConvertPressure + 2 * oversampling, data);
+                 kRegisterConvertPressure + 2 * static_cast<int>(oversampling),
+                 data);
   std::this_thread::sleep_for(conversion_time);
   if (!i2c::ReadData(file_handle_, kAddress, kRegisterAdcRead, pressure_raw_)) {
     return Status::kIOError;
