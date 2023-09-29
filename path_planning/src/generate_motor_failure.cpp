@@ -1,10 +1,10 @@
 #include <bits/stdc++.h>
 #include <gflags/gflags.h>
 
-#include <iostream>
-#include <fstream>
-#include <cstring>
 #include <cerrno>
+#include <cstring>
+#include <fstream>
+#include <iostream>
 
 #include "path_planning/static_generation.hpp"
 
@@ -35,7 +35,8 @@ int main(int argc, char **argv) {
   std::ofstream f;
   f.open(file_path);
   if (f.fail()) {
-    std::cout << "Failed to write to " << file_path << ": " << std::strerror(errno) << std::endl;
+    std::cout << "Failed to write to " << file_path << ": "
+              << std::strerror(errno) << std::endl;
     return 1;
   }
   f << node;

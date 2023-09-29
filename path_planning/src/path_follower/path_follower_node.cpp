@@ -206,12 +206,12 @@ void PathFollowerNode::OnSetAxis(
     const hippo_msgs::srv::SetAxis::Request::SharedPtr _request,
     hippo_msgs::srv::SetAxis::Response::SharedPtr _response) {
   RCLCPP_INFO(get_logger(), "Handling SetAxis request");
-  params_.static_axis.position.x = _request->support_vector.x; 
-  params_.static_axis.position.y = _request->support_vector.y; 
-  params_.static_axis.position.z = _request->support_vector.z; 
-  params_.static_axis.heading.x = _request->direction_vector.x; 
-  params_.static_axis.heading.y = _request->direction_vector.y; 
-  params_.static_axis.heading.z = _request->direction_vector.z; 
+  params_.static_axis.position.x = _request->support_vector.x;
+  params_.static_axis.position.y = _request->support_vector.y;
+  params_.static_axis.position.z = _request->support_vector.z;
+  params_.static_axis.heading.x = _request->direction_vector.x;
+  params_.static_axis.heading.y = _request->direction_vector.y;
+  params_.static_axis.heading.z = _request->direction_vector.z;
   SetDesiredStaticAxis();
   _response->success = true;
   _response->reason = "Set static axis";

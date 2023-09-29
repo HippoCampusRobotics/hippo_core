@@ -28,6 +28,6 @@ namespace static_generation {
 Path LemniscateOfBernoulli(size_t _n_samples, double _x_limit, double _y_limit);
 Path MotorFailureSurface(size_t _n_samples);
 
-}
+}  // namespace static_generation
 
 }  // namespace path_planning
