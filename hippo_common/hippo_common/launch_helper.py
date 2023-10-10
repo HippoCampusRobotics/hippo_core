@@ -17,10 +17,11 @@
 
 from launch.substitution import Substitution
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
-from launch.actions import GroupAction, DeclareLaunchArgument, OpaqueFunction
+from launch.actions import GroupAction, DeclareLaunchArgument
 from launch_ros.actions import Node, PushRosNamespace
 from launch import LaunchDescription
 from typing import Iterable
+from launch.conditions import IfCondition
 
 
 class PassLaunchArguments(dict):
@@ -65,6 +66,7 @@ def declare_use_sim_time(launch_description: LaunchDescription):
 def create_camera_bridge(
         vehicle_name: str | Substitution,
         camera_name: str | Substitution,
+        use_camera: LaunchConfiguration,
         image_name: str | Substitution = 'image_rect') -> GroupAction:
     base_topic = PathJoinSubstitution(['/', vehicle_name, camera_name])
     image_topic = PathJoinSubstitution([base_topic, image_name])
@@ -90,6 +92,7 @@ def create_camera_bridge(
                                          LaunchConfiguration('camera_info'),
                                          LaunchConfiguration('image_topic'),
                                      ],
+                                     condition=IfCondition(use_camera),
                                      output='screen',
                                  ),
                              ])
