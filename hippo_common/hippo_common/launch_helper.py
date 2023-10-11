@@ -25,9 +25,14 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
 
 
-class PassLaunchArguments(dict):
+class LaunchArgsDict(dict):
 
-    def add(self, name: str | Iterable[str]):
+    def add(self, name: str | Iterable[str]) -> None:
+        """Add a LaunchConfiguration as a key value pair to the internal dict.
+
+        Args:
+            name: Name(s) of the launch configuration.
+        """
         if isinstance(name, str):
             super().__setitem__(name, LaunchConfiguration(name))
         else:
@@ -45,9 +50,11 @@ class PassLaunchArguments(dict):
         self.add_vehicle_name()
 
 
-def declare_vehicle_name_and_sim_time(launch_description: LaunchDescription):
+def declare_vehicle_name_and_sim_time(launch_description: LaunchDescription,
+                                      use_sim_time_default=None):
     declare_vehicle_name(launch_description=launch_description)
-    declare_use_sim_time(launch_description=launch_description)
+    declare_use_sim_time(launch_description=launch_description,
+                         default=use_sim_time_default)
 
 
 def declare_vehicle_name(launch_description: LaunchDescription):
@@ -56,11 +63,12 @@ def declare_vehicle_name(launch_description: LaunchDescription):
     launch_description.add_action(action)
 
 
-def declare_use_sim_time(launch_description: LaunchDescription):
+def declare_use_sim_time(launch_description: LaunchDescription, default=None):
     action = DeclareLaunchArgument(
         'use_sim_time',
         description=('Decides wether to use the wall time or the clock topic '
-                     'as time reference. Set to TRUE for simulation.'))
+                     'as time reference. Set to TRUE for simulation.'),
+        default_value=default)
     launch_description.add_action(action)
 
 

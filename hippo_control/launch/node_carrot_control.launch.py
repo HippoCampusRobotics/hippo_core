@@ -4,7 +4,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from hippo_common.launch_helper import (
-    PassLaunchArguments,
+    LaunchArgsDict,
     declare_vehicle_name_and_sim_time,
 )
 
@@ -18,7 +18,7 @@ def declare_launch_args(launch_description: LaunchDescription):
 
 
 def add_carrot_control_node(launch_description: LaunchDescription):
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     action = Node(package='hippo_control',
                   executable='carrot_control_node',

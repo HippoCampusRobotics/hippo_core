@@ -5,7 +5,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import PushRosNamespace
 
-from hippo_common.launch_helper import PassLaunchArguments
+from hippo_common.launch_helper import LaunchArgsDict
 
 
 def declare_launch_args(launch_description: LaunchDescription):
@@ -19,7 +19,7 @@ def include_launch_files(launch_description: LaunchDescription):
     path = str(package_path / 'launch/node_depth_estimator.launch.py')
     source = PythonLaunchDescriptionSource(path)
 
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
 
     depth_estimator = IncludeLaunchDescription(source,

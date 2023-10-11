@@ -10,7 +10,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, PushRosNamespace
 
 from hippo_common.launch_helper import (
-    PassLaunchArguments,
+    LaunchArgsDict,
     declare_vehicle_name_and_sim_time,
 )
 
@@ -32,7 +32,7 @@ def include_mixer():
     package_path = get_package_share_path('hippo_control')
     path = str(package_path / 'launch/node_actuator_mixer.launch.py')
     source = PythonLaunchDescriptionSource(path)
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     args.add(['mixer_path'])
     mixer = IncludeLaunchDescription(source, launch_arguments=args.items())
@@ -67,7 +67,7 @@ def add_jpeg_camera_node():
 
 
 def add_newton_gripper_node():
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     action = Node(executable='newton_gripper_node',
                   package='hardware',
@@ -77,7 +77,7 @@ def add_newton_gripper_node():
 
 
 def add_esc_node():
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     action = Node(executable='teensy_commander_node',
                   package='esc',
@@ -87,7 +87,7 @@ def add_esc_node():
 
 
 def add_camera_servo_node():
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     action = Node(executable='camera_servo_node',
                   package='hardware',
@@ -97,7 +97,7 @@ def add_camera_servo_node():
 
 
 def add_spotlight_node():
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     action = Node(executable='spotlight_node',
                   package='hardware',

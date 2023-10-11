@@ -6,7 +6,7 @@ from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 
 from hippo_common.launch_helper import (
-    PassLaunchArguments,
+    LaunchArgsDict,
     declare_vehicle_name_and_sim_time,
 )
 
@@ -38,7 +38,7 @@ def declare_launch_args(launch_description: LaunchDescription):
 
 def add_composable_nodes(launch_description: LaunchDescription):
     nodes = []
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     extra_args = [{'use_intra_process_comms': True}]
 

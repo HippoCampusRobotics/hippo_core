@@ -9,7 +9,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import PushRosNamespace
 
 from hippo_common.launch_helper import (
-    PassLaunchArguments,
+    LaunchArgsDict,
     declare_vehicle_name_and_sim_time,
 )
 
@@ -23,14 +23,14 @@ def include_launch_files(launch_description: LaunchDescription):
 
     path = str(package_path / 'launch/node_actuator_mixer.launch.py')
     source = PythonLaunchDescriptionSource(path)
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     args.add(['mixer_path'])
     mixer = IncludeLaunchDescription(source, launch_arguments=args.items())
 
     path = str(package_path / 'launch/node_attitude_control.launch.py')
     source = PythonLaunchDescriptionSource(path)
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     args.add(['attitude_control_config'])
     attitude_controller = IncludeLaunchDescription(

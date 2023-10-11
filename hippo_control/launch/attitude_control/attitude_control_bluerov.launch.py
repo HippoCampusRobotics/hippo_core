@@ -3,7 +3,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
-from hippo_common.launch_helper import PassLaunchArguments
+from hippo_common.launch_helper import LaunchArgsDict
 
 
 def declare_launch_args(launch_description: LaunchDescription):
@@ -30,7 +30,7 @@ def include_launch_files(launch_description: LaunchDescription):
     path = str(package_path /
                'launch/attitude_control/attitude_control_generic.launch.py')
     source = PythonLaunchDescriptionSource(path)
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     args.add(['mixer_path', 'attitude_control_config'])
     action = IncludeLaunchDescription(source, launch_arguments=args.items())

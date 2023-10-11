@@ -10,7 +10,7 @@ from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 
 from hippo_common.launch_helper import (
-    PassLaunchArguments,
+    LaunchArgsDict,
     declare_vehicle_name_and_sim_time,
 )
 
@@ -37,7 +37,7 @@ def declare_launch_args(launch_description: LaunchDescription):
 
 def add_composable_nodes(launch_description: LaunchDescription):
     nodes = []
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     extra_args = [{'use_intra_process_comms': True}]
 
@@ -95,7 +95,7 @@ def include_attitude_control(launch_description: LaunchDescription):
     path = str(package_path /
                'launch/attitude_control/attitude_control_hippocampus.launch.py')
     source = PythonLaunchDescriptionSource(path)
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     action = IncludeLaunchDescription(source, launch_arguments=args.items())
     launch_description.add_action(action)

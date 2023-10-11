@@ -4,7 +4,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-from hippo_common.launch_helper import PassLaunchArguments
+from hippo_common.launch_helper import LaunchArgsDict
 
 
 def declare_launch_args(launch_description: LaunchDescription):
@@ -18,7 +18,7 @@ def declare_launch_args(launch_description: LaunchDescription):
 
 
 def add_path_follower_node(launch_description: LaunchDescription):
-    args = PassLaunchArguments()
+    args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     action = Node(package='path_planning',
                   executable='path_follower_node',
