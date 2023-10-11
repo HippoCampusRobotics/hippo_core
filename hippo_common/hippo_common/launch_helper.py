@@ -15,13 +15,14 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 # USA
 
-from launch.substitution import Substitution
-from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
-from launch.actions import GroupAction, DeclareLaunchArgument
-from launch_ros.actions import Node, PushRosNamespace
-from launch import LaunchDescription
 from typing import Iterable
+
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, GroupAction
 from launch.conditions import IfCondition
+from launch.substitution import Substitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import Node, PushRosNamespace
 
 
 class PassLaunchArguments(dict):

@@ -16,10 +16,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
+import pigpio
 import rclpy
 from rclpy.node import Node
+
 from hippo_msgs.msg import NewtonGripperCommand
-import pigpio
 
 
 class NewtonGripper(Node):
@@ -37,8 +38,7 @@ class NewtonGripper(Node):
 
         self.command_sub = self.create_subscription(NewtonGripperCommand,
                                                     'gripper_command',
-                                                    self.on_gripper_command,
-                                                    10)
+                                                    self.on_gripper_command, 10)
 
     def on_gripper_command(self, msg: NewtonGripperCommand):
         self.timeout_timer.reset()

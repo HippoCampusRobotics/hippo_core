@@ -15,8 +15,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 # USA
 
-import smbus2
 import numpy
+import smbus2
 
 
 class AfroESC(object):
@@ -93,18 +93,15 @@ class AfroESC(object):
         return (data[0] << 8 | data[1]) / self._pole_pairs
 
     def get_battery_adc(self) -> int:
-        data = self._bus.read_i2c_block_data(self.address, self.REG_GET_VBAT,
-                                             2)
+        data = self._bus.read_i2c_block_data(self.address, self.REG_GET_VBAT, 2)
         return int((data[0] << 8 | data[1]) >> 6)
 
     def get_battery_voltage(self) -> float:
-        data = self._bus.read_i2c_block_data(self.address, self.REG_GET_VBAT,
-                                             2)
+        data = self._bus.read_i2c_block_data(self.address, self.REG_GET_VBAT, 2)
         return ((data[0] << 8 | data[1]) >> 6) * self.ADC_VBAT_SCALER
 
     def get_temperature_adc(self) -> int:
-        data = self._bus.read_i2c_block_data(self.address, self.REG_GET_TEMP,
-                                             2)
+        data = self._bus.read_i2c_block_data(self.address, self.REG_GET_TEMP, 2)
         return int(data[0] << 8 | data[1])
 
     def get_id(self) -> int:

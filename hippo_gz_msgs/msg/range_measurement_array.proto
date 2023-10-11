@@ -4,6 +4,6 @@ import "range_measurement.proto";
 import "ignition/msgs/header.proto";
 
 message RangeMeasurementArray {
-    ignition.msgs.Header header = 1;
-    repeated RangeMeasurement measurements = 2;
+  ignition.msgs.Header header = 1;
+  repeated RangeMeasurement measurements = 2;
 }

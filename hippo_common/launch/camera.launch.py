@@ -1,7 +1,5 @@
-from ament_index_python.packages import get_package_share_path
 import launch
 import launch_ros
-import os
 
 
 def generate_launch_description():

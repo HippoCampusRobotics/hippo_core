@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-from typing import Any
 import dataclasses
-from dataclasses import dataclass, astuple
-import rclpy
-from rcl_interfaces.msg import (ParameterDescriptor, ParameterType)
-from rclpy.node import Node
-from sensor_msgs.msg import FluidPressure
-from hippo_msgs.msg import DepthStamped
+from dataclasses import astuple, dataclass
+from typing import Any
 
 import numpy as np
+import rclpy
+from rcl_interfaces.msg import ParameterDescriptor, ParameterType
+from rclpy.node import Node
+from sensor_msgs.msg import FluidPressure
+
+from hippo_msgs.msg import DepthStamped
 
 
 @dataclass

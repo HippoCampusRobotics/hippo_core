@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
+
 import rclpy
-from rclpy.node import Node
-from hippo_msgs.srv import SetPath
 from geometry_msgs.msg import Point
-import sys
+from rclpy.node import Node
+
+from hippo_msgs.srv import SetPath
 
 
 class SetPathNode(Node):
+
     def __init__(self, node_name: str) -> None:
         super().__init__(node_name=node_name)
         self.client = self.create_client(SetPath, 'carrot_controller/set_path')

@@ -1,15 +1,18 @@
 from ament_index_python.packages import get_package_share_path
 from launch import LaunchDescription
-from launch.substitutions import LaunchConfiguration
 from launch.actions import (
     DeclareLaunchArgument,
-    IncludeLaunchDescription,
     GroupAction,
+    IncludeLaunchDescription,
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import PushRosNamespace
-from hippo_common.launch_helper import declare_vehicle_name_and_sim_time
-from hippo_common.launch_helper import PassLaunchArguments
+
+from hippo_common.launch_helper import (
+    PassLaunchArguments,
+    declare_vehicle_name_and_sim_time,
+)
 
 
 def declare_launch_args(launch_description: LaunchDescription):
@@ -39,9 +42,7 @@ def include_carrot_control(launch_description: LaunchDescription):
     args = PassLaunchArguments()
     args.add_vehicle_name_and_sim_time()
     args.add(['carrot_control_config'])
-    action = IncludeLaunchDescription(
-        source,
-        launch_arguments=args.items())
+    action = IncludeLaunchDescription(source, launch_arguments=args.items())
     action = GroupAction([
         PushRosNamespace(LaunchConfiguration('vehicle_name')),
         action,

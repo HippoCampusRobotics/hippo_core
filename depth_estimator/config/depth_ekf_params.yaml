@@ -6,7 +6,7 @@
         dz: 0.0
 
       initial_state_covariance:
-        # standard deviations 
+        # standard deviations
         z: 0.1
         dz: 0.1
 

@@ -21,9 +21,12 @@ from typing import List
 import rcl_interfaces.msg
 import rclpy
 import smbus2  # type: ignore # pylint: disable=import-error
-from rcl_interfaces.msg import (FloatingPointRange, IntegerRange,
-                                ParameterDescriptor, ParameterType)
-from std_msgs.msg import Float64
+from rcl_interfaces.msg import (
+    FloatingPointRange,
+    IntegerRange,
+    ParameterDescriptor,
+    ParameterType,
+)
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 
@@ -34,6 +37,7 @@ from hippo_msgs.msg import ActuatorControls, Float64Stamped
 class ESC(Node):
     """Handles the interaction with the thrusters' ESCs.
     """
+
     def __init__(self, node_name):
         super().__init__(node_name=node_name)
         self.init_params()
@@ -107,8 +111,8 @@ class ESC(Node):
                     print(esc.get_battery_voltage())
                 except IOError:
                     self.get_logger().error(
-                        f'Communication with thruster {hex(esc.address)} failed!'
-                    )
+                        f'Communication with thruster {hex(esc.address)} '
+                        'failed!')
 
     def read_rpm_counter(self):
         now = self.get_clock().now()
