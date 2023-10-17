@@ -106,7 +106,7 @@ void MS5837::ApplyCalibration() {
       prom_[1] * (0x01 << 15) + prom_[3] * c.delta_temperature / (0x01 << 8);
   c.pressure_cBar =
       (c.raw_pressure * c.sensitivity / (0x01 << 21) - c.offset) / (0x01 << 13);
-  pressure_ = c.pressure_cBar * 0.01 * 10e5;
+  pressure_ = c.pressure_cBar * 0.01 * 1e5;
   SecondOrderCompensation(c);
 }
 
@@ -126,7 +126,7 @@ void MS5837::SecondOrderCompensation(Compensation &_c) {
   int64_t pressure_cBar;
   pressure_cBar =
       (((tmp * _c.sensitivity_correction) >> 21) - _c.offset_correction) >> 13;
-  pressure_compensated_ = pressure_cBar * 0.01 * 10e5;
+  pressure_compensated_ = pressure_cBar * 0.01 * 1e5;
 }
 
 void MS5837::LowTemperatureCompensation(Compensation &_c) {

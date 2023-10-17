@@ -46,8 +46,8 @@ class MS5837 {
   static constexpr uint8_t kRegisterReset = 0x1E;
   static constexpr uint8_t kRegisterAdcRead = 0x00;
   static constexpr uint8_t kRegisterPromRead = 0xA0;
-  static constexpr uint8_t kRegisterConvertTemperature = 0x40;
-  static constexpr uint8_t kRegisterConvertPressure = 0x50;
+  static constexpr uint8_t kRegisterConvertPressure = 0x40;
+  static constexpr uint8_t kRegisterConvertTemperature = 0x50;
 
   bool Open(std::string _device_name = "/dev/i2c-1");
   Status Init();
