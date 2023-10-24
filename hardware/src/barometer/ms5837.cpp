@@ -95,9 +95,10 @@ void MS5837::ApplyCalibration() {
                       temperature_raw_[2];
   c.raw_pressure =
       pressure_raw_[0] << 16 | pressure_raw_[1] << 8 | pressure_raw_[2];
-  c.delta_temperature = c.raw_temperature - prom_[5] * (0x01 << 8);
+  c.delta_temperature = c.raw_temperature - ((int32_t)prom_[5] << 8);
 
-  c.temperature_cK = 2000 + c.delta_temperature * prom_[6] / (0x01 << 23);
+  c.temperature_cK =
+      2000 + (int64_t)c.delta_temperature * ((int64_t)prom_[6] >> 23);
   temperature_ = c.temperature_cK * 0.01;
 
   c.offset =
@@ -138,7 +139,7 @@ void MS5837::LowTemperatureCompensation(Compensation &_c) {
   _c.offset_correction = (3 * tmp_int64 * tmp_int64) >> 1;
   _c.sensitivity_correction = (5 * tmp_int64 * tmp_int64) >> 3;
 
-  if (temperature_ >= -15.0) {
+  if (_c.temperature_cK >= -1500) {
     return;
   }
   tmp_int64 = static_cast<int64_t>(_c.temperature_cK) + 1500;
