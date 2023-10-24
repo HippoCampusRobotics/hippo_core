@@ -29,11 +29,15 @@ Barometer::Barometer(rclcpp::NodeOptions const &_options)
 
 void Barometer::InitPublishers() {
   std::string topic;
-
-  topic = "pressure";
   rclcpp::QoS qos = rclcpp::SensorDataQoS();
   qos.keep_last(1);
+
+  topic = "pressure";
   pressure_pub_ = create_publisher<sensor_msgs::msg::FluidPressure>(topic, qos);
+
+  topic = "temperature";
+  temperature_pub_ =
+      create_publisher<sensor_msgs::msg::Temperature>(topic, qos);
 }
 
 void Barometer::InitTimers() {
@@ -63,16 +67,36 @@ void Barometer::OnReadTimer() {
     barometer_initialized_ = false;
     return;
   }
+  const rclcpp::Time t_now = now();
+  const double pressure = barometer_.PressureCompensated();
+  PublishPressure(t_now, pressure);
+  const double temperature = barometer_.TemperatureCompensated();
+  PublishTemperature(t_now, temperature);
+}
 
+void Barometer::PublishPressure(const rclcpp::Time &_now, double _pressure) {
   sensor_msgs::msg::FluidPressure msg;
-  msg.header.stamp = now();
-  msg.fluid_pressure = barometer_.PressureCompensated();
+  msg.header.stamp = _now;
+  msg.fluid_pressure = _pressure;
   if (!pressure_pub_) {
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
                          "Pressure publisher not created!");
     return;
   }
   pressure_pub_->publish(msg);
+}
+
+void Barometer::PublishTemperature(const rclcpp::Time &_now,
+                                   double _temperature) {
+  sensor_msgs::msg::Temperature msg;
+  msg.header.stamp = _now;
+  msg.temperature = _temperature;
+  if (!temperature_pub_) {
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
+                         "Pressure publisher not created!");
+    return;
+  }
+  temperature_pub_->publish(msg);
 }
 
 }  // namespace barometer

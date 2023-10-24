@@ -18,6 +18,7 @@
 #pragma once
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/fluid_pressure.hpp>
+#include <sensor_msgs/msg/temperature.hpp>
 
 #include "hardware/barometer/ms5837.hpp"
 
@@ -36,8 +37,11 @@ class Barometer : public rclcpp::Node {
   void InitTimers();
   void InitParams();
   void OnReadTimer();
+  void PublishPressure(const rclcpp::Time &_now, double _pressure);
+  void PublishTemperature(const rclcpp::Time &_now, double _temperature);
 
   rclcpp::Publisher<sensor_msgs::msg::FluidPressure>::SharedPtr pressure_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr temperature_pub_;
 
   rclcpp::TimerBase::SharedPtr read_timer_;
 
