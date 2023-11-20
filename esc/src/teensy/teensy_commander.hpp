@@ -29,6 +29,25 @@
 
 namespace esc {
 namespace teensy {
+
+constexpr int n_coeffs = 3;
+
+inline double interpolate(const double &x, const double &x_low,
+                          const double &x_up, const double &y_low,
+                          const double &y_up) {
+  return (y_up - y_low) / (x_up - x_low) * (x - x_low) + y_low;
+}
+
+inline double inverseSecondOrderPolynomial(const double &input,
+                                           const double &quadratic_coeff,
+                                           const double &linear_coeff,
+                                           const double &constant_coeff) {
+  return (-1.0 * linear_coeff +
+          sqrt(4.0 * quadratic_coeff * input + linear_coeff * linear_coeff -
+               4.0 * quadratic_coeff * constant_coeff)) /
+         (2.0 * quadratic_coeff);
+}
+
 class TeensyCommander : public rclcpp::Node {
  public:
   static constexpr int kThrottleInputTimeoutMs = 500;
@@ -49,9 +68,12 @@ class TeensyCommander : public rclcpp::Node {
   void InitServices();
   void SetThrottle(const std::array<double, 8> &_values);
   void SetThrottle(double _value);
+  uint16_t InputToPWM(double input);
+  double PWMToInput(uint16_t pwm);
   void PublishArmingState();
   void PublishBatteryVoltage();
   void PublishThrusterValues(std::array<double, 8> &_values);
+  void PublishPWMValues(esc_serial::ActuatorControlsMessage &_msg);
 
   void HandleActuatorControlsMessage(esc_serial::ActuatorControlsMessage &_msg);
   void HandleBatteryVoltageMessage(esc_serial::BatteryVoltageMessage &_msg);
@@ -65,6 +87,8 @@ class TeensyCommander : public rclcpp::Node {
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr battery_voltage_pub_;
   rclcpp::Publisher<hippo_msgs::msg::ActuatorControls>::SharedPtr
       actuator_controls_pub_;
+  rclcpp::Publisher<hippo_msgs::msg::ActuatorControls>::SharedPtr
+      pwm_output_debug_pub_;
   //////////////////////////////////////////////////////////////////////////////
   // Subscribers
   //////////////////////////////////////////////////////////////////////////////
@@ -107,6 +131,28 @@ class TeensyCommander : public rclcpp::Node {
   bool timed_out_{true};
   bool armed_{false};
   double battery_voltage_{0.0};
+  double battery_voltage_mapping_{
+      15.0};  //!< battery voltage used for rpm->pwm mapping, makes sure that
+              //!< battery voltage used for calculation is clamped at edges of
+              //!< expected range
+  double zero_rpm_threshold_{0.0001};
+
+  struct Coefficients {
+    std::array<double, n_coeffs>
+        forward;  //!< polynomial coefficients for forward turning direction,
+                  //!< from high polynomial degree to low
+    std::array<double, n_coeffs>
+        backward;  //!< polynomial coefficients for backward turning direction,
+                   //!< from high polynomial degree to low
+    double voltage;
+  };
+
+  struct MappingCoefficients {
+    Coefficients upper;
+    Coefficients lower;
+  };
+
+  MappingCoefficients mapping_coeffs_;
 
   esc_serial::Packet packet_;
 };

@@ -1,0 +1,25 @@
+/**: # wildcard for the node name
+  ros__parameters:
+
+    zero_rpm_threshold: 0.001 # in interval [-1, 1]
+    coeffs_rpm_pwm: # coefficients calculating relation rpm->pwm for an input [-1, 1] to [1000, 2000] [mus]
+      lower: # lower voltage bound
+        voltage: 14.0 # V
+        backward:
+          quad: -259.02694779
+          lin: 189.34017778
+          const: 1485.53544817
+        forward:
+          quad: 207.83735345
+          lin: 235.18987786
+          const: 1507.77149626
+      upper:
+        voltage: 16.0 # V
+        backward:
+          quad: -216.94302047
+          lin: 188.39531303
+          const: 1489.03973649
+        forward:
+          quad: 185.5935306
+          lin: 213.82420443
+          const: 1507.44112803

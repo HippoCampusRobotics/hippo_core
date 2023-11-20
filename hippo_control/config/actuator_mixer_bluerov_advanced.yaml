@@ -1,0 +1,86 @@
+/**: # wildcard for the node name
+  ros__parameters:
+    channels:
+      torque_x: 0
+      torque_y: 1
+      torque_z: 2
+      thrust_x: 3
+      thrust_y: 4
+      thrust_z: 5
+
+    # OUTPUT = MixerMatrix * INPUT
+
+    #mixer_matrix: [
+    #  +0.00, +0.00, +0.25, +0.25, +0.25, +0.00, # motor 0
+    #  +0.00, +0.00, -0.25, +0.25, -0.25, +0.00, # motor 1
+    #  +0.00, +0.00, +0.25, +0.25, -0.25, +0.00, # motor 2
+    #  +0.00, +0.00, -0.25, +0.25, +0.25, +0.00, # motor 3
+    #  -0.25, -0.25, +0.00, +0.00, +0.00, +0.25, # motor 4
+    #  -0.25, +0.25, +0.00, +0.00, +0.00, -0.25, # motor 5
+    #  +0.25, -0.25, +0.00, +0.00, +0.00, -0.25, # motor 6
+    #  +0.25, +0.25, +0.00, +0.00, +0.00, +0.25, # motor 7
+    #]
+
+    # mixer matrix has structure:
+    # 0, 0, 0, 0, -l_vy, -l_vy, l_vy, l_vy,  # torque x
+    # 0, 0, 0, 0, -l_vx, l_vx, -l_vx, l_vx,  # torque y
+    # l_hf, -l_hf, l_hr, -l_hr, 0, 0, 0, 0,  # torque z
+    # cos(alpha_f), cos(alpha_f), cos(alpha_r), cos(alpha_r), 0, 0, 0, 0,  # force x
+    # sin(alpha_f), -sin(alpha_f), -sin(alpha_r), sin(alpha_r), 0, 0, 0, 0,  # force y
+    # 0, 0, 0, 0, 1, -1, -1, 1,  # force z
+    geometry:
+      alpha_f: 0.733 # 42 / 180 * pi
+      alpha_r: 0.8378 # 48 / 180 * pi
+      l_hf: 0.163
+      l_hr: 0.177
+      l_vx: 0.12
+      l_vy: 0.218
+
+    input_limits: [
+     +0.0, +0.0, +1.0, +1.0, +1.0, +0.0, # motor 0
+     +0.0, +0.0, +1.0, +1.0, +1.0, +0.0, # motor 1
+     +0.0, +0.0, +1.0, +1.0, +1.0, +0.0, # motor 2
+     +0.0, +0.0, +1.0, +1.0, +1.0, +0.0, # motor 3
+     +1.0, +1.0, +0.0, +0.0, +0.0, +1.0, # motor 4
+     +1.0, +1.0, +0.0, +0.0, +0.0, +1.0, # motor 5
+     +1.0, +1.0, +0.0, +0.0, +0.0, +1.0, # motor 6
+     +1.0, +1.0, +0.0, +0.0, +0.0, +1.0, # motor 7
+    ]
+
+    # scaling factor for motor signals after normalization to [-1.0,1.0]
+    #output_scalings: [0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4]
+    output_scalings: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+    compensate_deadzone: true
+    scaling_saturation_limit_up: 0.8 # relative in interval [-1, 1]
+    scaling_saturation_limit_low: -0.8 # relative in interval [-1, 1]
+    weighting_last_input: 3.0 # weighting for choosing solution close to last input
+    # Thrust is assumed to be a quadratic function of revs per second.
+    # assuming linear relation between revs/s and throttle signal
+    forward:
+      # parameters with nonzero offset
+      quadratic_coefficient: 0.0161294
+      linear_coefficient: -0.0857699
+      constant_coefficient: 0.66178842
+
+      # parameters with zero offset
+      #quadratic_coefficient: 0.01561034
+      #linear_coefficient: -0.04616811
+      #constant_coefficient: 0.0
+      minimum: 0.0 # if thrust smaller than this, return polynomial solution for this thrust value
+      deadzone_minimum: 0.9 # if thrust smaller than this, return polynomial solution for this thrust value
+    backward:  # backward direction returns positive thrust value for absolute rpm value, sign is regulated inside mixer
+      ## parameters with nonzero offset
+      quadratic_coefficient: 0.01358496
+      linear_coefficient: -0.11307479
+      constant_coefficient: 1.00810568
+
+      ## parameters with zero offset
+      #quadratic_coefficient: 0.01277337
+      #linear_coefficient: -0.05198962
+      #constant_coefficient: 0.0
+      minimum: 0.0  # if thrust in [N] smaller than this, return polynomial solution for this thrust value
+      deadzone_minimum: 0.9  # if thrust in [N] smaller than this, return polynomial solution for this thrust value
+    # thrust [N] below which a zero output is generated
+    zero_throttle_threshold: 0.000001
+    max_rotations_per_second: 60.0

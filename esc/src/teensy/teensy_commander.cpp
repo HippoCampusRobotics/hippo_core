@@ -47,7 +47,7 @@ void TeensyCommander::InitTimers() {
 
   timers_.publish_arming_state = rclcpp::create_timer(
       this, get_clock(),
-      std ::chrono::milliseconds(kPublishArmingStateIntervalMs),
+      std::chrono::milliseconds(kPublishArmingStateIntervalMs),
       [this]() { OnPublishArmingStateTimer(); });
 
   timers_.publish_battery_voltage = rclcpp::create_timer(
@@ -108,6 +108,9 @@ void TeensyCommander::InitPublishers() {
   topic = "thruster_values";
   actuator_controls_pub_ = create_publisher<hippo_msgs::msg::ActuatorControls>(
       topic, rclcpp::SystemDefaultsQoS());
+  topic = "debug_pwm_output";
+  pwm_output_debug_pub_ = create_publisher<hippo_msgs::msg::ActuatorControls>(
+      topic, rclcpp::SystemDefaultsQoS());
 }
 
 void TeensyCommander::InitSubscribers() {
@@ -134,7 +137,9 @@ void TeensyCommander::OnThrottleInputTimeout() {
 }
 
 void TeensyCommander::OnReadSerialTimer() { ReadSerial(); }
+
 void TeensyCommander::OnPublishArmingStateTimer() { PublishArmingState(); }
+
 void TeensyCommander::OnPublishBatteryVoltageTimer() {
   PublishBatteryVoltage();
 }
@@ -157,6 +162,76 @@ void TeensyCommander::OnActuatorControls(
   ReadSerial();
 }
 
+uint16_t TeensyCommander::InputToPWM(double input) {
+  if (std::abs(input) < zero_rpm_threshold_) {
+    return uint16_t(1500);
+  }
+  double pwm = 0;
+  for (int i = 0; i < n_coeffs; i++) {
+    if (input >= 0) {
+      pwm +=
+          interpolate(battery_voltage_mapping_, mapping_coeffs_.lower.voltage,
+                      mapping_coeffs_.upper.voltage,
+                      mapping_coeffs_.lower.forward[i],
+                      mapping_coeffs_.upper.forward[i]) *
+          std::pow(input, double(n_coeffs - 1 - i));
+    } else {
+      pwm +=
+          interpolate(battery_voltage_mapping_, mapping_coeffs_.lower.voltage,
+                      mapping_coeffs_.upper.voltage,
+                      mapping_coeffs_.lower.backward[i],
+                      mapping_coeffs_.upper.backward[i]) *
+          std::pow(input, double(n_coeffs - 1 - i));
+    }
+  }
+  return std::clamp(uint16_t(pwm), uint16_t(1000), uint16_t(2000));
+}
+
+double TeensyCommander::PWMToInput(uint16_t pwm) {
+  const double upper_limit_deadzone = interpolate(
+      battery_voltage_mapping_, mapping_coeffs_.lower.voltage,
+      mapping_coeffs_.upper.voltage, mapping_coeffs_.lower.forward.back(),
+      mapping_coeffs_.upper.forward.back());
+  const double lower_limit_deadzone = interpolate(
+      battery_voltage_mapping_, mapping_coeffs_.lower.voltage,
+      mapping_coeffs_.upper.voltage, mapping_coeffs_.lower.backward.back(),
+      mapping_coeffs_.upper.backward.back());
+  if (double(pwm) > lower_limit_deadzone &&
+      double(pwm) < upper_limit_deadzone) {
+    return 0.0;
+  } else if (pwm > 1500) {
+    const double quadratic_coeff = interpolate(
+        battery_voltage_mapping_, mapping_coeffs_.lower.voltage,
+        mapping_coeffs_.upper.voltage, mapping_coeffs_.lower.forward[0],
+        mapping_coeffs_.upper.forward[0]);
+    const double linear_coeff = interpolate(
+        battery_voltage_mapping_, mapping_coeffs_.lower.voltage,
+        mapping_coeffs_.upper.voltage, mapping_coeffs_.lower.forward[1],
+        mapping_coeffs_.upper.forward[1]);
+    const double constant_coeff = interpolate(
+        battery_voltage_mapping_, mapping_coeffs_.lower.voltage,
+        mapping_coeffs_.upper.voltage, mapping_coeffs_.lower.forward[2],
+        mapping_coeffs_.upper.forward[2]);
+    return inverseSecondOrderPolynomial(double(pwm), quadratic_coeff,
+                                        linear_coeff, constant_coeff);
+  } else {
+    const double quadratic_coeff = interpolate(
+        battery_voltage_mapping_, mapping_coeffs_.lower.voltage,
+        mapping_coeffs_.upper.voltage, mapping_coeffs_.lower.backward[0],
+        mapping_coeffs_.upper.backward[0]);
+    const double linear_coeff = interpolate(
+        battery_voltage_mapping_, mapping_coeffs_.lower.voltage,
+        mapping_coeffs_.upper.voltage, mapping_coeffs_.lower.backward[1],
+        mapping_coeffs_.upper.backward[1]);
+    const double constant_coeff = interpolate(
+        battery_voltage_mapping_, mapping_coeffs_.lower.voltage,
+        mapping_coeffs_.upper.voltage, mapping_coeffs_.lower.backward[2],
+        mapping_coeffs_.upper.backward[2]);
+    return inverseSecondOrderPolynomial(double(pwm), quadratic_coeff,
+                                        linear_coeff, constant_coeff);
+  }
+}
+
 void TeensyCommander::SetThrottle(const std::array<double, 8> &_values) {
   if (!serial_initialized_) {
     serial_initialized_ = InitSerial(params_.serial_port);
@@ -168,9 +243,10 @@ void TeensyCommander::SetThrottle(const std::array<double, 8> &_values) {
   esc_serial::ActuatorControlsMessage msg;
   esc_serial::Packet packet;
   for (size_t i = 0; i < _values.size(); ++i) {
-    uint16_t pwm = (uint16_t)1500 + (std::clamp(_values[i], -1.0, 1.0) * 500);
+    uint16_t pwm = InputToPWM(std::clamp(_values[i], -1.0, 1.0));
     msg.payload_.pwm[i] = pwm;
   }
+  PublishPWMValues(msg);
   size_t size =
       msg.Serialize(packet.MutablePayloadStart(), packet.PayloadCapacity());
   if (!size) {
@@ -231,6 +307,20 @@ void TeensyCommander::PublishThrusterValues(std::array<double, 8> &_values) {
   actuator_controls_pub_->publish(msg);
 }
 
+void TeensyCommander::PublishPWMValues(
+    esc_serial::ActuatorControlsMessage &_msg) {
+  if (!pwm_output_debug_pub_) {
+    RCLCPP_WARN(get_logger(), "PWM Values Publisher not available.");
+    return;
+  }
+  hippo_msgs::msg::ActuatorControls msg;
+  for (int i = 0; i < 8; i++) {
+    msg.control[i] = double(_msg.payload_.pwm[i]);
+  }
+  msg.header.stamp = now();
+  pwm_output_debug_pub_->publish(msg);
+}
+
 bool TeensyCommander::InitSerial(std::string _port_name) {
   serial_port_ = open(_port_name.c_str(), O_RDWR, O_NOCTTY);
   if (serial_port_ < 0) {
@@ -264,7 +354,7 @@ void TeensyCommander::HandleActuatorControlsMessage(
     esc_serial::ActuatorControlsMessage &_msg) {
   std::array<double, 8> values;
   for (int i = 0; i < 8; ++i) {
-    values[i] = (_msg.payload_.pwm[i] - 1500) / 500.0;
+    values[i] = PWMToInput(_msg.payload_.pwm[i]);
   }
   PublishThrusterValues(values);
 }
@@ -272,6 +362,9 @@ void TeensyCommander::HandleActuatorControlsMessage(
 void TeensyCommander::HandleBatteryVoltageMessage(
     esc_serial::BatteryVoltageMessage &_msg) {
   battery_voltage_ = _msg.payload_.voltage_mv / 1000.0;
+  battery_voltage_mapping_ =
+      std::min(std::max(battery_voltage_, mapping_coeffs_.lower.voltage),
+               mapping_coeffs_.upper.voltage);
 }
 
 void TeensyCommander::ReadSerial() {
@@ -321,4 +414,5 @@ void TeensyCommander::ReadSerial() {
 }  // namespace esc
 
 #include <rclcpp_components/register_node_macro.hpp>
+
 RCLCPP_COMPONENTS_REGISTER_NODE(esc::teensy::TeensyCommander)

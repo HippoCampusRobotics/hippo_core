@@ -1,0 +1,4 @@
+std_msgs/Header header
+bool use_acceleration
+geometry_msgs/Twist velocity
+geometry_msgs/Twist acceleration

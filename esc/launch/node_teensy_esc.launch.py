@@ -1,9 +1,12 @@
 import launch
 import launch_ros
+from ament_index_python.packages import get_package_share_path
 
 
 def generate_launch_description():
     package_name = 'esc'
+    package_path = get_package_share_path(package_name)
+    config_path = str(package_path / "config/teensy_config.yaml")
 
     use_sim_time = launch.substitutions.LaunchConfiguration('use_sim_time')
     vehicle_name = launch.substitutions.LaunchConfiguration('vehicle_name')
@@ -30,6 +33,7 @@ def generate_launch_description():
                                         'serial_port': serial_port,
                                         'vehicle_name': vehicle_name,
                                     },
+                                    config_path,
                                 ],
                                 output='screen'),
     ])
