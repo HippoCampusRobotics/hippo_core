@@ -64,6 +64,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ThrusterForces.msg"
   "srv/SetAxis.srv"
   "srv/SetPath.srv"
+  "msg/VelocityControlTarget.msg"
   DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
 )
 
