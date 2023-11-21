@@ -1,4 +1,6 @@
 # Hippo-Core
+[Our Website](https://hippocampusrobotics.github.io/)
+
 This repository contains packages/libraries used on onboard/offboard devices and are required in every setup.
 
 ## Check for formatting errors
