@@ -95,6 +95,9 @@ bool AssignIfMatch(const rclcpp::Parameter &_param, const std::string &_name,
 bool AssignIfMatch(const rclcpp::Parameter &_param, const std::string &_name,
                    bool &_var, std::string &_log_text);
 
+bool AssignIfMatch(const rclcpp::Parameter &_param, const std::string &_name,
+                   std::string &_var, std::string &_log_text);
+
 /**
  * @brief Simplifying the construction a parameter descriptor.
  *

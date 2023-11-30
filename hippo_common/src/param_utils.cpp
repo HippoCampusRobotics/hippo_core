@@ -50,6 +50,16 @@ bool AssignIfMatch(const rclcpp::Parameter &_param, const std::string &_name,
   return false;
 }
 
+bool AssignIfMatch(const rclcpp::Parameter &_param, const std::string &_name,
+                   std::string &_var, std::string &_log_text) {
+  if (_param.get_name() == _name) {
+    Assign(_param, _var);
+    _log_text = "Set [" + _name + "]=" + _var;
+    return true;
+  }
+  return false;
+}
+
 rcl_interfaces::msg::ParameterDescriptor Description(
     const std::string &_description, const bool &read_only) {
   rcl_interfaces::msg::ParameterDescriptor d;
