@@ -57,7 +57,7 @@ MjpegCam::MjpegCam(const rclcpp::NodeOptions &_options)
 }
 
 void MjpegCam::InitFrameSizes() {
-  auto camera = std::make_shared<Device>(DeviceName(), 0, 0);
+  auto camera = std::make_shared<Device>(DeviceName(), 0, 0, params_.fps);
   frame_sizes_ = camera->AvailableFrameSizes();
   camera.reset();
   if (frame_sizes_.size() <= 0) {
