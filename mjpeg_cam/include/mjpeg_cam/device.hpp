@@ -45,6 +45,7 @@ class Device {
   std::vector<Control> Controls() { return controls_; }
   int ControlValue(unsigned int id);
   bool SetControlValue(unsigned int id, int value);
+  bool SetFrameRate(const struct v4l2_fract &fract);
 
  private:
   void InitMemoryMap();

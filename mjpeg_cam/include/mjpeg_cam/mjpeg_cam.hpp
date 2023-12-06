@@ -37,9 +37,9 @@ class MjpegCam : public rclcpp::Node {
  private:
   struct Params {
     int device_id;
-    int test;
     int discrete_size;
-    double fps;
+    int fps;
+    int publish_nth_frame;
   };
 
   std::string DeviceName() {

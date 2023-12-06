@@ -61,6 +61,8 @@ def add_jpeg_camera_node():
                       {
                           'device_id': 0,
                           'discrete_size': 3,
+                          'fps': 30,
+                          'publish_nth_frame': 1,
                       },
                   ])
     return action

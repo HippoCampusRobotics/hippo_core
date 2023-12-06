@@ -38,12 +38,18 @@ MjpegCam::MjpegCam(const rclcpp::NodeOptions &_options)
   InitCameraParams();
 
   capture_thread_ = std::thread{[this]() -> void {
+    static int frame_counter = 0;
     while (rclcpp::ok()) {
       auto img = camera_->Capture();
       if (img == nullptr) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         continue;
       }
+      frame_counter++;
+      if (frame_counter < params_.publish_nth_frame) {
+        continue;
+      }
+      frame_counter = 0;
       img->header.stamp = now();
       image_pub_->publish(std::move(img));
     }

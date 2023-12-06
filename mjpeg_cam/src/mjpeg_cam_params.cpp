@@ -24,6 +24,8 @@ namespace mjpeg_cam {
 void MjpegCam::InitParams() {
   HIPPO_COMMON_DECLARE_PARAM_READONLY(device_id);
   HIPPO_COMMON_DECLARE_PARAM_READONLY(discrete_size);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(fps);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(publish_nth_frame);
 }
 
 void MjpegCam::InitCameraParams() {

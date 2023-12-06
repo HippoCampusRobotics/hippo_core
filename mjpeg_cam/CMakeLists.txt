@@ -104,9 +104,9 @@ install(
 ################################################################################
 # install shared resources
 ################################################################################
-# install(
-#   DIRECTORY launch config
-#   DESTINATION share/${PROJECT_NAME}
-# )
+ install(
+   DIRECTORY launch config
+   DESTINATION share/${PROJECT_NAME}
+ )
 
 ament_package()

@@ -153,6 +153,10 @@ void Device::Init() {
   height_ = format_.fmt.pix.height;
   InitMemoryMap();
   InitControls();
+  struct v4l2_fract fract;
+  fract.numerator = 1;
+  fract.denominator = 100;
+  SetFrameRate(fract);
 }
 
 void Device::DeInit() {
@@ -326,6 +330,23 @@ bool Device::SetControlValue(unsigned int id, int value) {
   control.value = value;
 
   if (xioctl(file_descriptor_, VIDIOC_S_CTRL, &control) == -1) {
+    return false;
+  }
+  return true;
+}
+
+bool Device::SetFrameRate(const struct v4l2_fract &fract) {
+  v4l2_streamparm streamparm;
+  memset(&streamparm, 0, sizeof(streamparm));
+
+  streamparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  if (xioctl(file_descriptor_, VIDIOC_G_PARM, &streamparm) == -1) {
+    return false;
+  }
+  streamparm.parm.capture.capturemode |= V4L2_CAP_TIMEPERFRAME;
+  streamparm.parm.capture.timeperframe.numerator = fract.numerator;
+  streamparm.parm.capture.timeperframe.denominator = fract.denominator;
+  if (xioctl(file_descriptor_, VIDIOC_S_PARM, &streamparm) == -1) {
     return false;
   }
   return true;
