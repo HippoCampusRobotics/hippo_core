@@ -33,7 +33,7 @@ struct Buffer {
 namespace mjpeg_cam {
 class Device {
  public:
-  Device(std::string _device, int width, int height);
+  Device(std::string _device, int width, int height, int fps);
   ~Device();
 
   sensor_msgs::msg::CompressedImage::UniquePtr Capture();
@@ -67,6 +67,7 @@ class Device {
 
   size_t width_;
   size_t height_;
+  int fps_;
   v4l2_format format_;
   const bool force_format_{true};
   std::vector<Control> controls_;

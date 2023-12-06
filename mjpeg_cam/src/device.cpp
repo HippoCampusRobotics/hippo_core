@@ -36,8 +36,8 @@ static int xioctl(int _file_handle, unsigned long int _request, void *_arg) {
   return result;
 }
 
-Device::Device(std::string _device, int _width, int _height)
-    : device_(_device), width_(_width), height_(_height) {
+Device::Device(std::string _device, int _width, int _height, int _fps)
+    : device_(_device), width_(_width), height_(_height), fps_(_fps) {
   Open();
   Init();
   StartCapturing();
@@ -148,6 +148,10 @@ void Device::Init() {
       throw std::runtime_error("VIDIOC_G_FMT");
     }
   }
+  v4l2_fract fract;
+  fract.numerator = 1;
+  fract.denominator = fps_;
+  SetFrameRate(fract);
   // check for actually applied resolution
   width_ = format_.fmt.pix.width;
   height_ = format_.fmt.pix.height;
