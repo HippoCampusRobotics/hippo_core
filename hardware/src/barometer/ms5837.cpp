@@ -98,7 +98,7 @@ void MS5837::ApplyCalibration() {
   c.delta_temperature = c.raw_temperature - ((int32_t)prom_[5] << 8);
 
   c.temperature_cK =
-      2000 + ((int64_t)c.delta_temperature * ((int64_t)prom_[6]) >> 23);
+      2000 + (((int64_t)c.delta_temperature * (int64_t)prom_[6]) >> 23);
   temperature_ = c.temperature_cK * 0.01;
 
   c.offset =
