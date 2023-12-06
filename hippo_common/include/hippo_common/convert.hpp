@@ -57,6 +57,14 @@ inline void EigenToRos(const Eigen::Vector3d &_eigen,
 }
 
 template <>
+inline void EigenToRos(const Eigen::Ref<const Eigen::Vector3d> &_eigen,
+                       geometry_msgs::msg::Vector3 &_ros) {
+  _ros.x = _eigen.x();
+  _ros.y = _eigen.y();
+  _ros.z = _eigen.z();
+}
+
+template <>
 inline void EigenToRos(const Eigen::Quaterniond &_eigen,
                        geometry_msgs::msg::Quaternion &_ros) {
   _ros.w = _eigen.w();
