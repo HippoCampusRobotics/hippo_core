@@ -21,8 +21,10 @@ namespace mjpeg_cam {
 MjpegCam::MjpegCam(const rclcpp::NodeOptions &_options)
     : rclcpp::Node("mjpeg_cam", _options) {
   if (_options.use_intra_process_comms() || true) {
+    rclcpp::QoS qos = rclcpp::SensorDataQoS();
+    qos.keep_last(1);
     image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>(
-        "image_raw/compressed", 10);
+        "image_raw/compressed", qos);
     info_pub_ =
         create_publisher<sensor_msgs::msg::CameraInfo>("camera_info", 10);
   }
