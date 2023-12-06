@@ -153,10 +153,6 @@ void Device::Init() {
   height_ = format_.fmt.pix.height;
   InitMemoryMap();
   InitControls();
-  struct v4l2_fract fract;
-  fract.numerator = 1;
-  fract.denominator = 100;
-  SetFrameRate(fract);
 }
 
 void Device::DeInit() {

@@ -32,6 +32,10 @@ MjpegCam::MjpegCam(const rclcpp::NodeOptions &_options)
       params_.discrete_size, 0, frame_sizes_.size() - 1));
   camera_ = std::make_shared<Device>(DeviceName(), frame_size.first,
                                      frame_size.second);
+  v4l2_fract fract;
+  fract.numerator = 1;
+  fract.denominator = params_.fps;
+  camera_->SetFrameRate(fract);
   RCLCPP_INFO(get_logger(), "Opened %s with size [%lu, %lu]",
               DeviceName().c_str(), camera_->GetWidth(), camera_->GetHeight());
   LogAvailableFrameSizes();
