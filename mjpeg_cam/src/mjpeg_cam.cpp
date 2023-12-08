@@ -17,6 +17,8 @@
 
 #include "mjpeg_cam/mjpeg_cam.hpp"
 
+#include <hippo_common/tf2_utils.hpp>
+
 namespace mjpeg_cam {
 MjpegCam::MjpegCam(const rclcpp::NodeOptions &_options)
     : rclcpp::Node("mjpeg_cam", _options) {
@@ -24,12 +26,15 @@ MjpegCam::MjpegCam(const rclcpp::NodeOptions &_options)
     rclcpp::QoS qos = rclcpp::SensorDataQoS();
     qos.keep_last(1);
     image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>(
-        "image_raw/compressed", qos);
+        "~/image_raw/compressed", qos);
     info_pub_ =
-        create_publisher<sensor_msgs::msg::CameraInfo>("camera_info", 10);
+        create_publisher<sensor_msgs::msg::CameraInfo>("~/camera_info", 10);
   }
   InitParams();
   InitFrameSizes();
+  camera_info_manager_ =
+      std::make_shared<camera_info_manager::CameraInfoManager>(this,
+                                                               get_name());
   auto frame_size = frame_sizes_.at(std::clamp<std::size_t>(
       params_.discrete_size, 0, frame_sizes_.size() - 1));
   camera_ = std::make_shared<Device>(DeviceName(), frame_size.first,
@@ -53,6 +58,20 @@ MjpegCam::MjpegCam(const rclcpp::NodeOptions &_options)
       }
       frame_counter = 0;
       img->header.stamp = now();
+      auto camera_info = camera_info_manager_->getCameraInfo();
+      if (!CameraInfoIsOkay(camera_info)) {
+        camera_info = sensor_msgs::msg::CameraInfo{};
+
+        camera_info.width = camera_->GetWidth();
+        camera_info.height = camera_->GetHeight();
+      }
+      camera_info.header.stamp = img->header.stamp;
+
+      img->header.frame_id =
+          hippo_common::tf2_utils::frame_id::FrontCameraFrame(this);
+      camera_info.header.frame_id = img->header.frame_id;
+
+      info_pub_->publish(camera_info);
       image_pub_->publish(std::move(img));
     }
   }};
@@ -88,6 +107,11 @@ void MjpegCam::LogAvailableFrameSizes() {
     ++i;
   }
   RCLCPP_INFO_STREAM(get_logger(), text);
+}
+
+bool MjpegCam::CameraInfoIsOkay(const sensor_msgs::msg::CameraInfo &info) {
+  return (camera_->GetWidth() == info.width) &&
+         (camera_->GetHeight() == info.height);
 }
 
 }  // namespace mjpeg_cam

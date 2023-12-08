@@ -16,6 +16,7 @@
 // USA
 
 #pragma once
+#include <camera_info_manager/camera_info_manager.hpp>
 #include <hippo_common/param_utils.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -58,7 +59,11 @@ class MjpegCam : public rclcpp::Node {
   rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr image_pub_;
   rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr info_pub_;
 
+  std::shared_ptr<camera_info_manager::CameraInfoManager> camera_info_manager_;
+
   std::unordered_map<std::string, int> control_name_to_id_map_;
+
+  bool CameraInfoIsOkay(const sensor_msgs::msg::CameraInfo &info);
 
   std::shared_ptr<Device> camera_;
   std::thread capture_thread_;
