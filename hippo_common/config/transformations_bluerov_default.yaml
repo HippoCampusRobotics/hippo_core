@@ -1,0 +1,21 @@
+/**: # wildcard for the node name
+  ros__parameters:
+    has_front_camera: true
+    front_camera:
+      x: 0.2
+      y: 0.0
+      z: 0.1
+      qw: 1.0
+      qx: 0.0
+      qy: 0.0
+      qz: 0.0
+    has_vertical_camera: true
+    vertical_camera:
+      x: 0.15
+      y: 0.0
+      z: -0.03
+      qw: 0.7071068
+      qx: 0.0
+      qy: 0.7071068
+      qz: 0.0
+
