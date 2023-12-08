@@ -35,6 +35,21 @@ find_package(rclcpp_components REQUIRED)
 find_package(hippo_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+
+set(exec_name image_decoder)
+add_executable(${exec_name}
+  src/image_decoder.cpp
+)
+ament_target_dependencies(${exec_name}
+  rclcpp
+  rclcpp_components
+  sensor_msgs
+  cv_bridge
+)
+install(TARGETS ${exec_name}
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 include_directories(
   include
