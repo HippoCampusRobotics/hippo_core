@@ -26,9 +26,9 @@ MjpegCam::MjpegCam(const rclcpp::NodeOptions &_options)
     rclcpp::QoS qos = rclcpp::SensorDataQoS();
     qos.keep_last(1);
     image_pub_ = create_publisher<sensor_msgs::msg::CompressedImage>(
-        "~/image_raw/compressed", qos);
+        "image_raw/compressed", qos);
     info_pub_ =
-        create_publisher<sensor_msgs::msg::CameraInfo>("~/camera_info", 10);
+        create_publisher<sensor_msgs::msg::CameraInfo>("camera_info", 10);
   }
   InitParams();
   InitFrameSizes();
@@ -70,8 +70,7 @@ MjpegCam::MjpegCam(const rclcpp::NodeOptions &_options)
       if (camera_info.header.frame_id.empty()) {
         camera_info.header.frame_id = "uncalibrated_camera";
       }
-      img->header.frame_id = hippo_common::tf2_utils::frame_id::Prefix(this) +
-                             '/' + camera_info.header.frame_id;
+      img->header.frame_id = hippo_common::tf2_utils::frame_id::Prefix(this);
 
       info_pub_->publish(camera_info);
       image_pub_->publish(std::move(img));

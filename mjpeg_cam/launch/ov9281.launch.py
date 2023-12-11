@@ -12,6 +12,7 @@ def generate_launch_description():
 
     action = Node(executable='mjpeg_cam_node',
                   name=LaunchConfiguration('camera_name'),
+                  namespace=LaunchConfiguration('camera_name'),
                   package='mjpeg_cam',
                   parameters=[
                       {
