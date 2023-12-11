@@ -67,9 +67,11 @@ MjpegCam::MjpegCam(const rclcpp::NodeOptions &_options)
       }
       camera_info.header.stamp = img->header.stamp;
 
-      img->header.frame_id =
-          hippo_common::tf2_utils::frame_id::FrontCameraFrame(this);
-      camera_info.header.frame_id = img->header.frame_id;
+      if (camera_info.header.frame_id.empty()) {
+        camera_info.header.frame_id = "uncalibrated_camera";
+      }
+      img->header.frame_id = hippo_common::tf2_utils::frame_id::Prefix(this) +
+                             '/' + camera_info.header.frame_id;
 
       info_pub_->publish(camera_info);
       image_pub_->publish(std::move(img));
