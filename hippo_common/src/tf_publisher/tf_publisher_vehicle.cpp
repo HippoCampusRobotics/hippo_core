@@ -236,6 +236,7 @@ void TfPublisherVehicle::BroadCastStatic() {
     // same transformation for the vision subtree
     t2.header.frame_id = tf2_utils::frame_id::VisionFrontCameraLink(this);
     t2.child_frame_id = tf2_utils::frame_id::VisionFrontCameraFrame(this);
+    transforms.push_back(t2);
   }
   static_broadcaster_->sendTransform(transforms);
 }
