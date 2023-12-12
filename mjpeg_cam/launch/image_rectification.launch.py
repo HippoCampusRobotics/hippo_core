@@ -19,7 +19,7 @@ def generate_launch_description():
         ],
     )
     action = ComposableNodeContainer(
-        name='image_proc_container',
+        name=[LaunchConfiguration('camera_name'), '_image_proc_container'],
         package='rclcpp_components',
         namespace='',
         executable='component_container',
