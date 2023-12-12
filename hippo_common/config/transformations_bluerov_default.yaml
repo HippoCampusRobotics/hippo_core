@@ -11,7 +11,7 @@
       qz: 0.0
     has_vertical_camera: true
     vertical_camera:
-      x: 0.15
+      x: -0.15
       y: 0.0
       z: -0.08
       qw: 0.7071068
