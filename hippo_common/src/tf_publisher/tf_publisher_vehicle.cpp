@@ -233,6 +233,9 @@ void TfPublisherVehicle::BroadCastStatic() {
     t2.child_frame_id =
         hippo_common::tf2_utils::frame_id::FrontCameraFrame(this);
     transforms.push_back(t2);
+    // same transformation for the vision subtree
+    t2.header.frame_id = tf2_utils::frame_id::VisionFrontCameraLink(this);
+    t2.child_frame_id = tf2_utils::frame_id::VisionFrontCameraFrame(this);
   }
   static_broadcaster_->sendTransform(transforms);
 }

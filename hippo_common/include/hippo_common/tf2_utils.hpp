@@ -124,6 +124,12 @@ inline std::string VisionVerticalCameraLink(rclcpp::Node *_node) {
 inline std::string VisionVerticalCameraFrame(rclcpp::Node *_node) {
   return Prefix(_node) + "/" + kVerticalCameraName;
 }
+inline std::string VisionFrontCameraLink(rclcpp::Node *_node) {
+  return Prefix(_node) + "/" + kFrontCameraLinkName;
+}
+inline std::string VisionFrontCameraFrame(rclcpp::Node *_node) {
+  return Prefix(_node) + "/" + kFrontCameraName;
+}
 inline std::string VerticalCameraLink(rclcpp::Node *_node) {
   return Prefix(_node) + "/" + kVerticalCameraLinkName;
 }
