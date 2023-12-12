@@ -31,6 +31,18 @@
     param = declare_parameter(#x, param); \
   } while (false)
 
+#define HIPPO_COMMON_DECLARE_PARAM_DOUBLE_RANGE(x, lower, upper)    \
+  do {                                                              \
+    auto &param = params_.x;                                        \
+    rcl_interfaces::msg::ParameterDescriptor descriptor;            \
+    rcl_interfaces::msg::FloatingPointRange range;                  \
+    range.from_value = lower;                                       \
+    range.to_value = upper;                                         \
+    descriptor.read_only = false;                                   \
+    descriptor.floating_point_range = {range};                      \
+    param = declare_parameter<decltype(params_.x)>(#x, descriptor); \
+  } while (false)
+
 // will throw an exception if no runtime override by the user is provided
 #define HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(x)            \
   do {                                                      \
@@ -72,7 +84,8 @@ void Assign(const rclcpp::Parameter &_param, T &_var) {
  * @tparam T
  * @param _param Input parameter.
  * @param _name Name of the parameter associated with \a _var.
- * @param _var[out] Reference to the variable the parameter value is written to.
+ * @param _var[out] Reference to the variable the parameter value is written
+ * to.
  * @retval true if names match.
  * @retval false if names do not match.
  */
