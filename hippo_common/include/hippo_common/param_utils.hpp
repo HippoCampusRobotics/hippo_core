@@ -43,6 +43,19 @@
     param = declare_parameter<decltype(params_.x)>(#x, descriptor); \
   } while (false)
 
+#define HIPPO_COMMON_DECLARE_PARAM_INTEGER_RANGE(x, lower, upper, step_size) \
+  do {                                                                       \
+    auto &param = params_.x;                                                 \
+    rcl_interfaces::msg::ParameterDescriptor descriptor;                     \
+    rcl_interfaces::msg::IntegerRange range;                                 \
+    range.from_value = lower;                                                \
+    range.to_value = upper;                                                  \
+    range.step = step_size;                                                  \
+    descriptor.read_only = false;                                            \
+    descriptor.integer_range = {range};                                      \
+    param = declare_parameter<decltype(params_.x)>(#x, descriptor);          \
+  } while (false)
+
 // will throw an exception if no runtime override by the user is provided
 #define HIPPO_COMMON_DECLARE_PARAM_NO_DEFAULT(x)            \
   do {                                                      \
