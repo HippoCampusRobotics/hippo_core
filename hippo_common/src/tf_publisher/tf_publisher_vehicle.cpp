@@ -223,7 +223,7 @@ void TfPublisherVehicle::BroadCastStatic() {
     transforms.push_back(t);
     // same transformation for the vision subtree
     t.header.frame_id = tf2_utils::frame_id::VisionBaseLink(this);
-    t.child_frame_id = tf2_utils::frame_id::FrontCameraName(this);
+    t.child_frame_id = tf2_utils::frame_id::VisionFrontCameraLink(this);
     transforms.push_back(t);
 
     geometry_msgs::msg::TransformStamped t2;
