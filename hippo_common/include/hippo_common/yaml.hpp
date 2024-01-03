@@ -33,9 +33,16 @@ struct TagPose {
   double size;
 };
 
+struct Pose {
+  std::string frame_id;
+  Eigen::Quaterniond orientation;
+  Eigen::Vector3d position;
+};
+
 typedef std::vector<TagPose> TagPoses;
 typedef Eigen::Vector3d Waypoint;
 typedef std::vector<Waypoint> Waypoints;
+typedef std::vector<Pose> Poses;
 
 }  // namespace yaml
 }  // namespace hippo_common
@@ -130,6 +137,50 @@ struct convert<hippo_common::yaml::Waypoints> {
   static bool decode(const Node &node, hippo_common::yaml::Waypoints &rhs) {
     for (const auto &value : node) {
       rhs.push_back(value.as<hippo_common::yaml::Waypoint>());
+    }
+    return true;
+  }
+};
+
+template <>
+struct convert<hippo_common::yaml::Pose> {
+  static Node encode(const hippo_common::yaml::Pose &rhs) {
+    Node node;
+    node["x"] = rhs.position.x();
+    node["y"] = rhs.position.y();
+    node["z"] = rhs.position.z();
+    node["qw"] = rhs.orientation.w();
+    node["qx"] = rhs.orientation.x();
+    node["qy"] = rhs.orientation.y();
+    node["qz"] = rhs.orientation.z();
+    node["frame_id"] = rhs.frame_id;
+    return node;
+  }
+  static bool decode(const Node &node, hippo_common::yaml::Pose &rhs) {
+    rhs.position.x() = node["x"].as<double>();
+    rhs.position.y() = node["y"].as<double>();
+    rhs.position.z() = node["z"].as<double>();
+    rhs.orientation.w() = node["qw"].as<double>();
+    rhs.orientation.x() = node["qx"].as<double>();
+    rhs.orientation.y() = node["qy"].as<double>();
+    rhs.orientation.z() = node["qz"].as<double>();
+    rhs.frame_id = node["frame_id"].as<std::string>();
+    return true;
+  }
+};
+
+template <>
+struct convert<hippo_common::yaml::Poses> {
+  static Node encode(const hippo_common::yaml::Poses &rhs) {
+    Node node;
+    for (const auto &pose : rhs) {
+      node.push_back(pose);
+    }
+    return node;
+  }
+  static bool decode(const Node &node, hippo_common::yaml::Poses &rhs) {
+    for (const auto &value : node) {
+      rhs.push_back(value.as<hippo_common::yaml::Pose>());
     }
     return true;
   }
