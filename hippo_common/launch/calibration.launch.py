@@ -1,67 +1,61 @@
-import launch
-import launch_ros
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, GroupAction
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node, PushROSNamespace
 
 
 def generate_launch_description():
-
     launch_args = [
-        launch.actions.DeclareLaunchArgument(
-            name='grid_size',
-            default_value='7x4',
-            description='Grid size of inner corners of the calibration pattern.'
+        DeclareLaunchArgument(
+            name="grid_size",
+            default_value="7x4",
+            description="Grid size of inner corners of the calibration "
+            "pattern.",
         ),
-        launch.actions.DeclareLaunchArgument(
-            name='square_size',
-            default_value='0.03',
-            description='Edge length of a single square [m].'),
-        launch.actions.DeclareLaunchArgument(
-            name='camera_name',
-            default_value='vertical_camera',
-            description='The name of the camera.',
+        DeclareLaunchArgument(
+            name="square_size",
+            default_value="0.03",
+            description="Edge length of a single square [m].",
         ),
-        launch.actions.DeclareLaunchArgument(
-            name='vehicle_name',
-            default_value='uuv00',
-            description='Vehicle name used as top level namespace.'),
-        launch.actions.DeclareLaunchArgument(
-            name='radial_distortion_coeffs',
-            default_value='3',
-            description=(
-                'Number of radial distortion coefficients. Between 2 and 6')),
+        DeclareLaunchArgument(
+            name="camera_name",
+            default_value="vertical_camera",
+            description="The name of the camera.",
+        ),
+        DeclareLaunchArgument(
+            name="vehicle_name",
+            description="Vehicle name used as top level namespace.",
+        ),
+        DeclareLaunchArgument(
+            name="radial_distortion_coeffs",
+            default_value="3",
+            description="Number of radial distortion coefficients. "
+            "Between 2 and 6",
+        ),
     ]
 
     calibration_args = [
-        '-s',
-        launch.substitutions.LaunchConfiguration('grid_size'),
-        '-q',
-        launch.substitutions.LaunchConfiguration('square_size'),
-        '-k',
-        launch.substitutions.LaunchConfiguration('radial_distortion_coeffs'),
-        '--no-service-check',
+        "-s",
+        LaunchConfiguration("grid_size"),
+        "-q",
+        LaunchConfiguration("square_size"),
+        "-k",
+        LaunchConfiguration("radial_distortion_coeffs"),
+        "--no-service-check",
     ]
 
-    calibration_node = launch_ros.actions.Node(package='camera_calibration',
-                                               executable='cameracalibrator',
-                                               arguments=calibration_args,
-                                               remappings=[('image',
-                                                            'image_raw')],
-                                               output='screen')
+    calibration_node = Node(
+        package="camera_calibration",
+        executable="cameracalibrator",
+        arguments=calibration_args,
+        remappings=[("image", "image_raw")],
+        output="screen",
+    )
 
-    nodes_group = launch.actions.GroupAction([
-        launch_ros.actions.PushRosNamespace(
-            launch.substitutions.LaunchConfiguration('vehicle_name')),
-        launch_ros.actions.PushRosNamespace(
-            launch.substitutions.LaunchConfiguration('camera_name')),
+    nodes_group = GroupAction([
+        PushROSNamespace(LaunchConfiguration("vehicle_name")),
+        PushROSNamespace(LaunchConfiguration("camera_name")),
         calibration_node,
     ])
 
-    return launch.LaunchDescription(launch_args + [
-        nodes_group,
-        launch.actions.RegisterEventHandler(
-            event_handler=launch.event_handlers.OnProcessExit(
-                target_action=calibration_node,
-                on_exit=[
-                    launch.actions.EmitEvent(event=launch.events.Shutdown()),
-                ],
-            )),
-    ])
+    return LaunchDescription(launch_args + [nodes_group])
