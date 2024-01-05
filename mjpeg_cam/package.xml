@@ -26,7 +26,6 @@
   <depend>hippo_common</depend>
   <depend>hippo_msgs</depend>
   <depend>sensor_msgs</depend>
-  <depend>cv_bridge</depend>
 
   <depend>libv4l-dev</depend>
   <depend>v4l-utils</depend>
