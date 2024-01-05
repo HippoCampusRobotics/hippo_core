@@ -166,7 +166,7 @@ void PathFollowerNode::OnSetPath(
 }
 
 void PathFollowerNode::OnStart(
-    const std_srvs::srv::Trigger::Request::SharedPtr _request,
+    const std_srvs::srv::Trigger::Request::SharedPtr,
     std_srvs::srv::Trigger::Response::SharedPtr _response) {
   RCLCPP_INFO(get_logger(), "Handling Start Request.");
   switch (params_.mode) {

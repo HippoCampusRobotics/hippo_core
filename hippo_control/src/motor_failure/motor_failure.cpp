@@ -6,7 +6,7 @@ namespace motor_failure {
 
 Eigen::Vector<double, 4> MotorFailure::Update(
     const Eigen::Vector3d &_rates, double _surge_velocity,
-    const Eigen::Quaterniond &_orientation) {
+    [[maybe_unused]] const Eigen::Quaterniond &_orientation) {
   double surge_accel =
       surge_p_gain_ * (surge_velocity_target_ - _surge_velocity);
 
@@ -88,7 +88,7 @@ void MotorFailure::SetTarget(const Eigen::Vector3d &_angular_velocity,
 }
 
 Eigen::Vector<double, 6> MotorFailure::ComputeThrusts(
-    double _surge_velocity, double _surge_accel,
+    [[maybe_unused]] double _surge_velocity, double _surge_accel,
     const Eigen::Vector3d &_angular_velocity,
     const Eigen::Vector3d &_angular_accel) {
   Eigen::Vector<double, 6> thrusts = Eigen::Vector<double, 6>::Zero();

@@ -45,7 +45,6 @@ rcl_interfaces::msg::SetParametersResult ControlNode::OnParameters(
   rcl_interfaces::msg::SetParametersResult result;
   result.reason = "unhandled";
   result.successful = true;
-  bool updated{false};
   bool controller_updated{false};
   for (const auto &parameter : _parameters) {
     HIPPO_COMMON_ASSIGN_SIMPLE_LOG(model.damping.linear.surge,
