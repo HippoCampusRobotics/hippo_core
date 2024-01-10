@@ -106,6 +106,42 @@ install(
 )
 
 ################################################################################
+# tf_publisher_tags composable node
+################################################################################
+set(component_name tf_publisher_tags_component)
+add_library(${component_name}
+  SHARED
+  src/tf_publisher/tf_publisher_tags.cpp
+)
+target_include_directories(${component_name}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(${component_name}
+  hippo_common
+)
+ament_target_dependencies(${component_name}
+  rclcpp
+  rclcpp_components
+  geometry_msgs
+  yaml-cpp
+  tf2_ros
+)
+rclcpp_components_register_node(${component_name}
+  PLUGIN "hippo_common::TfPublisherTags"
+  EXECUTABLE tf_publisher_tags
+)
+
+install(
+  TARGETS ${component_name}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+################################################################################
 ## rviz_mesh_publisher
 ################################################################################
 set(exec_name rviz_mesh_publisher)
