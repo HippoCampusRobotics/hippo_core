@@ -46,7 +46,7 @@ class ESC : public rclcpp::Node {
       : Node("esc_commander"),
         i2c_addresses_(8),
         timed_out_(false),
-        i2c_device_("/dev/i2c-1") {
+        i2c_device_("/dev/i2c-4") {
     Init();
   }
   void Init() {
@@ -93,9 +93,10 @@ class ESC : public rclcpp::Node {
         this, get_clock(), std::chrono::milliseconds(kArmingStatePeriodMs),
         std::bind(&ESC::OnArmingStateTimer, this));
 
+    rclcpp::QoS qos = rclcpp::SensorDataQoS().keep_last(1);
     actuator_controls_sub_ =
         create_subscription<hippo_msgs::msg::ActuatorControls>(
-            "thruster_command", 10,
+            "thruster_command", qos,
             std::bind(&ESC::OnThrusterCommand, this, _1));
   }
 
