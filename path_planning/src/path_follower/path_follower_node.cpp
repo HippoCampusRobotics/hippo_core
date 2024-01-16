@@ -313,6 +313,14 @@ void PathFollowerNode::OnOdometry(
                                 "No path has been set.");
     return;
   }
+  if (!path_->Update(position_)) {
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
+                         "Failed to update path target.");
+  }
+  Eigen::Vector3d target_point = path_->TargetPoint();
+  target_heading_ = (target_point - position_).normalized();
+
+  /*
   switch (params_.mode) {
     case mode::kPoseBasedAxis:
     case mode::kStaticAxis: {
@@ -345,6 +353,7 @@ void PathFollowerNode::OnOdometry(
                            target_heading_.y(), target_heading_.z());
     } break;
   }
+  */
   PublishHeadingTarget(_msg->header.stamp, target_heading_);
 
   // bool success = path_->Update(position_);
