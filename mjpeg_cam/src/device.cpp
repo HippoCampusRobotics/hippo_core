@@ -138,7 +138,9 @@ void Device::Init() {
     format_.fmt.pix.field = V4L2_FIELD_NONE;
 
     if (xioctl(file_descriptor_, VIDIOC_S_FMT, &format_) == -1) {
-      throw std::runtime_error("VIDIOC_S_FMT");
+      char buffer[256];
+      snprintf(buffer, 256, "VIDIOC_S_FMT errno: %d", errno);
+      throw std::runtime_error(std::string{buffer});
     }
     if (format_.fmt.pix.pixelformat != V4L2_PIX_FMT_MJPEG) {
       throw std::runtime_error("MJPEG format not supported.");
