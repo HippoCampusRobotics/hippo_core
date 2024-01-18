@@ -161,6 +161,29 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+################################################################################
+## rviz_robot_mesh_publisher
+################################################################################
+set(exec_name rviz_robot_mesh_publisher)
+add_executable(${exec_name} src/nodes/rviz_robot_mesh_publisher.cpp)
+ament_target_dependencies(${exec_name}
+  rclcpp
+  visualization_msgs
+  geometry_msgs
+  tf2_ros
+)
+target_link_libraries(${exec_name}
+  hippo_common
+)
+
+install(TARGETS
+  ${exec_name}
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+################################################################################
+
+
 install(
   DIRECTORY include/
   DESTINATION include
