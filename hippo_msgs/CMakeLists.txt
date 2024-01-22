@@ -38,6 +38,8 @@ find_package(builtin_interfaces REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ActuatorControls.msg"
   "msg/ActuatorSetpoint.msg"
+  "msg/AnchorPose.msg"
+  "msg/AnchorPoses.msg"
   "msg/AngularVelocity.msg"
   "msg/AttitudeTarget.msg"
   "msg/ControlTarget.msg"
