@@ -207,6 +207,15 @@ class ESC : public rclcpp::Node {
         RCLCPP_WARN(get_logger(),
                     "Setting non-zero thrust for unused ESC at index %d!", i);
       }
+      if (!escs_[i].available()) {
+        if (msg->control[i] != 0.0) {
+          RCLCPP_WARN(
+              get_logger(),
+              "Setting non-zero thrust for unavailable thruster at index %d",
+              i);
+        }
+        continue;
+      }
       escs_[i].SetThrottle(msg->control[i]);
       if (escs_[i].WriteThrottle() != EscRetCode::kOk) {
         RCLCPP_ERROR(get_logger(),
