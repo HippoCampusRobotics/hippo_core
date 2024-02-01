@@ -12,7 +12,8 @@ from hippo_common.launch_helper import (
 
 
 def declare_launch_args(launch_description: LaunchDescription):
-    declare_vehicle_name_and_sim_time(launch_description=launch_description)
+    declare_vehicle_name_and_sim_time(launch_description=launch_description,
+                                      use_sim_time_default='false')
 
 
 def include_vertical_camera_node():
