@@ -40,7 +40,7 @@ def declare_launch_args(launch_description: LaunchDescription):
 def include_path_follower():
     package_path = get_package_share_path('hippo_control')
     path = str(package_path /
-               'launch/ttop_path_following_intra_process.launch.py')
+               'launch/top_path_following_intra_process.launch.py')
     source = PythonLaunchDescriptionSource(path)
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
