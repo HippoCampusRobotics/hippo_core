@@ -36,6 +36,7 @@ class Path {
   };
   bool Update(const Eigen::Vector3d &_position);
   bool UpdateMotorFailure(const Eigen::Vector3d &_position);
+  bool IsLoop() const { return loop_; }
   inline Eigen::Vector3d TargetPoint() const { return target_point_; }
   void Move(const Eigen::Vector3d &_offset);
   void Scale(double _scale);
