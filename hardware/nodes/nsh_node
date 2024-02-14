@@ -30,6 +30,8 @@ class NSHNode(Node):
         self.serial_port: Serial = None
         self.ekf2_restart_service = self.create_service(Trigger, 'ekf2_restart',
                                                         self.serve_ekf2_restart)
+        self.fcu_reboot_service = self.create_service(Trigger,
+                                                      self.serve_fcu_reboot)
 
     def open_serial_port(self):
         try:
@@ -38,6 +40,20 @@ class NSHNode(Node):
             self.serial_port = None
             return False
         return True
+
+    def serve_fcu_reboot_service(self, _: Trigger_Request,
+                                 response: Trigger_Response):
+        if self.serial_port is None:
+            self.open_serial_port()
+        if self.serial_port is None:
+            response.success = False
+            response.message = 'Serial port not available'
+            return response
+        self.serial_port.write(b'reboot\r')
+        self.serial_port.flush()
+        response.success = True
+        response.message = "Rebooted FCU."
+        return response
 
     def serve_ekf2_restart(self, _: Trigger_Request,
                            response: Trigger_Response):
