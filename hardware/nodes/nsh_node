@@ -41,8 +41,7 @@ class NSHNode(Node):
             return False
         return True
 
-    def serve_fcu_reboot_service(self, _: Trigger_Request,
-                                 response: Trigger_Response):
+    def serve_fcu_reboot(self, _: Trigger_Request, response: Trigger_Response):
         if self.serial_port is None:
             self.open_serial_port()
         if self.serial_port is None:
