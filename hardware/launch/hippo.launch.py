@@ -41,6 +41,13 @@ def add_micro_xrce_agent():
     return action
 
 
+def add_nsh_node():
+    return Node(
+        executable='nsh_node',
+        package='hardware',
+    )
+
+
 def add_mavlink_routerd():
     action = ExecuteProcess(
         cmd=['mavlink-routerd'],
@@ -70,6 +77,7 @@ def generate_launch_description():
             add_esc_commander(),
             add_micro_xrce_agent(),
             add_mavlink_routerd(),
+            add_nsh_node(),
         ],
         launch_configurations={'camera_name': 'vertical_camera'})
     launch_description.add_action(action)
