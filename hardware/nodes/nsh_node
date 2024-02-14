@@ -30,7 +30,7 @@ class NSHNode(Node):
         self.serial_port: Serial = None
         self.ekf2_restart_service = self.create_service(Trigger, 'ekf2_restart',
                                                         self.serve_ekf2_restart)
-        self.fcu_reboot_service = self.create_service(Trigger,
+        self.fcu_reboot_service = self.create_service(Trigger, 'fcu_reboot',
                                                       self.serve_fcu_reboot)
 
     def open_serial_port(self):
