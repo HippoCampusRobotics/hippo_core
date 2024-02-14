@@ -108,8 +108,9 @@ install(TARGETS ${exec_name}
 # Install Python executables
 install(PROGRAMS
   nodes/camera_servo_node
-  nodes/spotlight_node
   nodes/newton_gripper_node
+  nodes/nsh_node
+  nodes/spotlight_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
