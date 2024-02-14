@@ -41,6 +41,18 @@ def add_micro_xrce_agent():
     return action
 
 
+def add_mavlink_routerd():
+    action = ExecuteProcess(
+        cmd=['mavlink-routerd'],
+        output='screen',
+        emulate_tty=True,
+        # respan required because a FCU reboot will kill mavlink-routerd
+        respawn=True,
+        respawn_delay=5.0,
+    )
+    return action
+
+
 def add_esc_commander():
     return Node(
         executable='esc_commander_node',
@@ -57,6 +69,7 @@ def generate_launch_description():
             include_vertical_camera_node(),
             add_esc_commander(),
             add_micro_xrce_agent(),
+            add_mavlink_routerd(),
         ],
         launch_configurations={'camera_name': 'vertical_camera'})
     launch_description.add_action(action)
