@@ -3,10 +3,18 @@
     has_front_camera: false
     has_vertical_camera: true
     vertical_camera:
-      x: 0.15
+      x: 0.123
       y: 0.0
-      z: -0.03
+      z: -0.021
       qw: 0.7071068
       qx: 0.0
       qy: 0.7071068
       qz: 0.0
+    # PixRacer
+    # x: 0.074
+    # y: 0.0
+    # z: -0.02
+    # qw: 1.0
+    # qx: 0.0
+    # qy: 0.0
+    # qz: 0.0
