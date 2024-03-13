@@ -33,6 +33,7 @@ DEFINE_double(z, -0.7, "Offset in z direction.");
 DEFINE_string(bounds, "2.5x1.0",
               "Bounding box before other transformations are applied.");
 DEFINE_double(scale, 1.0, "Scaling factor for the path size.");
+DEFINE_int64(n, 100, "Number of waypoints to sample the path");
 
 int main(int argc, char **argv) {
   gflags::AllowCommandLineReparsing();
@@ -60,7 +61,8 @@ int main(int argc, char **argv) {
   ylim = std::stod(token);
 
   path_planning::Path path =
-      path_planning::static_generation::LemniscateOfBernoulli(100, xlim, ylim);
+      path_planning::static_generation::LemniscateOfBernoulli(FLAGS_n, xlim,
+                                                              ylim);
   if (FLAGS_swap_xy) {
     path.SwapXY();
   }
