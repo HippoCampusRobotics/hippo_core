@@ -20,8 +20,8 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <hippo_control/attitude_control/quaternion_controller.hpp>
-#include <hippo_msgs/msg/actuator_controls.hpp>
-#include <hippo_msgs/msg/quaternion_control_debug.hpp>
+#include <hippo_control_msgs/msg/actuator_controls.hpp>
+#include <hippo_control_msgs/msg/quaternion_control_debug.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -55,7 +55,8 @@ class QuaternionControlNode : public rclcpp::Node {
   //////////////////////////////////////////////////////////////////////////////
   // Callbacks
   //////////////////////////////////////////////////////////////////////////////
-  //   void OnHeadingTarget(const hippo_msgs::msg::HeadingTarget::SharedPtr);
+  //   void OnHeadingTarget(const
+  //   hippo_control_msgs::msg::HeadingTarget::SharedPtr);
   void OnHeadingTarget(const geometry_msgs::msg::Vector3Stamped::SharedPtr);
   void OnOdometry(const nav_msgs::msg::Odometry::SharedPtr);
 
@@ -69,13 +70,13 @@ class QuaternionControlNode : public rclcpp::Node {
       angular_velocity_setpoint_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
       attitude_target_debug_pub_;
-  rclcpp::Publisher<hippo_msgs::msg::QuaternionControlDebug>::SharedPtr
+  rclcpp::Publisher<hippo_control_msgs::msg::QuaternionControlDebug>::SharedPtr
       debug_pub_;
 
   //////////////////////////////////////////////////////////////////////////////
   // Subscriptions
   //////////////////////////////////////////////////////////////////////////////
-  //   rclcpp::Subscription<hippo_msgs::msg::HeadingTarget>::SharedPtr
+  //   rclcpp::Subscription<hippo_control_msgs::msg::HeadingTarget>::SharedPtr
   //       heading_target_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr

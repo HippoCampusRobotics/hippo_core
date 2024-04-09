@@ -33,7 +33,7 @@ void TrackingControllerNode::InitPublishers() {
 
   topic = "attitude_target";
   attitude_target_pub_ =
-      create_publisher<hippo_msgs::msg::AttitudeTarget>(topic, 10);
+      create_publisher<hippo_control_msgs::msg::AttitudeTarget>(topic, 10);
 }
 
 void TrackingControllerNode::InitSubscriptions() {
@@ -98,7 +98,7 @@ void TrackingControllerNode::PublishAttitudeTarget(
                          "Publisher for attitude_target not available");
     return;
   }
-  auto msg = std::make_unique<hippo_msgs::msg::AttitudeTarget>();
+  auto msg = std::make_unique<hippo_control_msgs::msg::AttitudeTarget>();
   msg->header.stamp = _now;
   msg->header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
   hippo_common::convert::EigenToRos(_attitude, msg->attitude);

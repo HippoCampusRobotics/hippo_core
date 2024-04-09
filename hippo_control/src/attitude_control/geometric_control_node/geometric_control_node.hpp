@@ -20,7 +20,7 @@
 #include <eigen3/Eigen/Dense>
 #include <geometry_msgs/msg/quaternion_stamped.hpp>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
-#include <hippo_msgs/msg/actuator_setpoint.hpp>
+#include <hippo_control_msgs/msg/actuator_setpoint.hpp>
 #include <hippo_msgs/msg/float64_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
@@ -53,7 +53,8 @@ class GeometricControlNode : public rclcpp::Node {
   void InitPublishers();
   void InitTimers();
   void InitSubscriptions();
-  hippo_msgs::msg::ActuatorSetpoint ZeroMsg(const rclcpp::Time &_now) const;
+  hippo_control_msgs::msg::ActuatorSetpoint ZeroMsg(
+      const rclcpp::Time &_now) const;
   void PublishZeroActuatorSetpoints(const rclcpp::Time &now);
   void PublishCurrentSetpoint(const rclcpp::Time &now,
                               const Eigen::Quaterniond &attitude);
@@ -73,7 +74,8 @@ class GeometricControlNode : public rclcpp::Node {
   //////////////////////////////////////////////////////////////////////////////
   // publishers
   //////////////////////////////////////////////////////////////////////////////
-  rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr torque_pub_;
+  rclcpp::Publisher<hippo_control_msgs::msg::ActuatorSetpoint>::SharedPtr
+      torque_pub_;
   rclcpp::Publisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr
       current_setpoint_pub_;
 

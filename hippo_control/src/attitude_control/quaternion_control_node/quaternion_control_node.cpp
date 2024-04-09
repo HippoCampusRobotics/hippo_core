@@ -47,7 +47,8 @@ void QuaternionControlNode::InitPublishers() {
 
   topic = "~/debug";
   debug_pub_ =
-      create_publisher<hippo_msgs::msg::QuaternionControlDebug>(topic, qos);
+      create_publisher<hippo_control_msgs::msg::QuaternionControlDebug>(topic,
+                                                                        qos);
 }
 
 void QuaternionControlNode::InitSubscriptions() {
@@ -56,7 +57,7 @@ void QuaternionControlNode::InitSubscriptions() {
       rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_sensor_data);
 
   // topic = "heading_target";
-  // using hippo_msgs::msg::HeadingTarget;
+  // using hippo_control_msgs::msg::HeadingTarget;
   // heading_target_sub_ = create_subscription<HeadingTarget>(
   //     topic, qos,
   //     [this](const HeadingTarget::SharedPtr msg) { OnHeadingTarget(msg); });
@@ -91,7 +92,7 @@ void QuaternionControlNode::PublishAttitudeTargetDebug(
 }
 
 void QuaternionControlNode::PublishDebugMsg(const rclcpp::Time &_now) {
-  hippo_msgs::msg::QuaternionControlDebug msg;
+  hippo_control_msgs::msg::QuaternionControlDebug msg;
   msg.header.stamp = _now;
   msg.gain = params_.gain;
   msg.roll_weight = params_.roll_weight;
@@ -106,7 +107,7 @@ void QuaternionControlNode::PublishDebugMsg(const rclcpp::Time &_now) {
   debug_pub_->publish(msg);
 }
 // void QuaternionControlNode::OnHeadingTarget(
-//     const hippo_msgs::msg::HeadingTarget::SharedPtr _msg) {
+//     const hippo_control_msgs::msg::HeadingTarget::SharedPtr _msg) {
 //   hippo_common::convert::RosToEigen(_msg->heading, target_heading_);
 //   hippo_common::convert::RosToEigen(_msg->current_orientation, orientation_);
 //   const Eigen::Vector3d desired_body_rates =

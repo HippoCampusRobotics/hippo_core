@@ -1,7 +1,7 @@
 #pragma once
 #include <hippo_common/param_utils.hpp>
-#include <hippo_msgs/msg/actuator_controls.hpp>
-#include <hippo_msgs/msg/actuator_setpoint.hpp>
+#include <hippo_control_msgs/msg/actuator_controls.hpp>
+#include <hippo_control_msgs/msg/actuator_setpoint.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 #include "hippo_control/mixer_bluerov/simple_mixer_bluerov.hpp"
@@ -12,9 +12,9 @@ class ActuatorMixerNode : public rclcpp::Node {
  public:
   explicit ActuatorMixerNode(rclcpp::NodeOptions const &_options);
   void OnThrustSetpoint(
-      const hippo_msgs::msg::ActuatorSetpoint::SharedPtr _msg);
+      const hippo_control_msgs::msg::ActuatorSetpoint::SharedPtr _msg);
   void OnTorqueSetpoint(
-      const hippo_msgs::msg::ActuatorSetpoint::SharedPtr _msg);
+      const hippo_control_msgs::msg::ActuatorSetpoint::SharedPtr _msg);
   rcl_interfaces::msg::SetParametersResult OnThrustParams(
       const std::vector<rclcpp::Parameter> &_parameters);
   rcl_interfaces::msg::SetParametersResult OnWeightingFactor(
@@ -28,11 +28,11 @@ class ActuatorMixerNode : public rclcpp::Node {
   void ResetTorque();
   void PublishActuatorCommand(const rclcpp::Time &_now);
   mixer_bluerov::SimpleMixer mixer_;
-  rclcpp::Subscription<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr
+  rclcpp::Subscription<hippo_control_msgs::msg::ActuatorSetpoint>::SharedPtr
       torque_setpoint_sub_;
-  rclcpp::Subscription<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr
+  rclcpp::Subscription<hippo_control_msgs::msg::ActuatorSetpoint>::SharedPtr
       thrust_setpoint_sub_;
-  rclcpp::Publisher<hippo_msgs::msg::ActuatorControls>::SharedPtr
+  rclcpp::Publisher<hippo_control_msgs::msg::ActuatorControls>::SharedPtr
       actuator_controls_pub_;
 
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr

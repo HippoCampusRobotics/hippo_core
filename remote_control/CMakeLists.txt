@@ -33,6 +33,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(hippo_msgs REQUIRED)
+find_package(hippo_control_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
@@ -58,6 +59,7 @@ ament_target_dependencies(${component_name}
   rclcpp_components
   hippo_common
   hippo_msgs
+  hippo_control_msgs
   sensor_msgs
 )
 rclcpp_components_register_node(${component_name}

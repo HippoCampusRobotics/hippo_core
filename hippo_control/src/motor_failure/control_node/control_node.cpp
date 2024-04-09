@@ -20,15 +20,15 @@ void ControlNode::InitPublishers() {
   qos.keep_last(1);
 
   topic = "thruster_command";
-  using hippo_msgs::msg::ActuatorControls;
+  using hippo_control_msgs::msg::ActuatorControls;
   actuator_controls_pub_ = create_publisher<ActuatorControls>(topic, qos);
 
   topic = "~/mode";
-  using hippo_msgs::msg::FailureControlModeStamped;
+  using hippo_control_msgs::msg::FailureControlModeStamped;
   mode_pub_ = create_publisher<FailureControlModeStamped>(topic, qos);
 
   topic = "~/debug";
-  using hippo_msgs::msg::FailureControlDebug;
+  using hippo_control_msgs::msg::FailureControlDebug;
   debug_pub_ = create_publisher<FailureControlDebug>(topic, qos);
 }
 
@@ -38,7 +38,7 @@ void ControlNode::InitSubscriptions() {
   qos.keep_last(1);
 
   topic = "thrust_setpoint";
-  using hippo_msgs::msg::ActuatorSetpoint;
+  using hippo_control_msgs::msg::ActuatorSetpoint;
   thrust_sub_ = create_subscription<ActuatorSetpoint>(
       topic, qos,
       [this](const ActuatorSetpoint::SharedPtr msg) { OnThrustSetpoint(msg); });
@@ -182,7 +182,7 @@ void ControlNode::SetControllerModel() {
 
 void ControlNode::PublishDebugMsg(const rclcpp::Time &_now,
                                   const Eigen::Vector4d &_allocated_thrust) {
-  hippo_msgs::msg::FailureControlDebug msg;
+  hippo_control_msgs::msg::FailureControlDebug msg;
   msg.header.stamp = _now;
   // msg.p_gain_surge = params_.gains.p.surge;
   // msg.surge_inertia = params_.model.inertia.surge;
@@ -208,7 +208,7 @@ void ControlNode::PublishDebugMsg(const rclcpp::Time &_now,
 }
 
 void ControlNode::PublishMode(const rclcpp::Time &_now, mode::Mode _mode) {
-  hippo_msgs::msg::FailureControlModeStamped msg;
+  hippo_control_msgs::msg::FailureControlModeStamped msg;
   msg.header.stamp = _now;
   msg.mode.mode = _mode;
   mode_pub_->publish(msg);
@@ -220,7 +220,7 @@ void ControlNode::OnAngularVelocitySetpoint(
 }
 
 void ControlNode::OnThrustSetpoint(
-    const hippo_msgs::msg::ActuatorSetpoint::SharedPtr _msg) {
+    const hippo_control_msgs::msg::ActuatorSetpoint::SharedPtr _msg) {
   hippo_common::convert::RosToEigen(*_msg, thrust_setpoint_);
 }
 
@@ -303,7 +303,7 @@ void ControlNode::ServeStartMission(
 
 void ControlNode::PublishThrusterCommand(const rclcpp::Time &_now,
                                          Eigen::Vector4d &_cmds) {
-  hippo_msgs::msg::ActuatorControls msg;
+  hippo_control_msgs::msg::ActuatorControls msg;
   msg.header.stamp = _now;
   for (int i = 0; i < 4; ++i) {
     msg.control[i] = _cmds(i);

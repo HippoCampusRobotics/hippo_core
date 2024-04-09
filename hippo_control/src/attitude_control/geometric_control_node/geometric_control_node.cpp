@@ -39,7 +39,7 @@ void GeometricControlNode::InitTimers() {
 
 void GeometricControlNode::InitPublishers() {
   using geometry_msgs::msg::QuaternionStamped;
-  using hippo_msgs::msg::ActuatorSetpoint;
+  using hippo_control_msgs::msg::ActuatorSetpoint;
 
   std::string topic;
   rclcpp::QoS qos = rclcpp::SensorDataQoS();
@@ -76,9 +76,9 @@ void GeometricControlNode::InitSubscriptions() {
       [this](const Float64Stamped::SharedPtr msg) { OnRollTarget(msg); });
 }
 
-hippo_msgs::msg::ActuatorSetpoint GeometricControlNode::ZeroMsg(
+hippo_control_msgs::msg::ActuatorSetpoint GeometricControlNode::ZeroMsg(
     const rclcpp::Time &_now) const {
-  hippo_msgs::msg::ActuatorSetpoint msg;
+  hippo_control_msgs::msg::ActuatorSetpoint msg;
   msg.header.stamp = _now;
   msg.x = 0.0;
   msg.y = 0.0;
@@ -158,7 +158,7 @@ void GeometricControlNode::OnOdometry(
   const rclcpp::Time t_now = _msg->header.stamp;
   using hippo_common::tf2_utils::frame_id::BaseLink;
 
-  hippo_msgs::msg::ActuatorSetpoint torque_msg;
+  hippo_control_msgs::msg::ActuatorSetpoint torque_msg;
   torque_msg.header.stamp = t_now;
   torque_msg.header.frame_id = BaseLink(this);
   Eigen::Quaterniond orientation;

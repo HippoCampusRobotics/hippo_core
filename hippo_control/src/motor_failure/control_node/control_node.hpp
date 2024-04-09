@@ -4,10 +4,10 @@
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <hippo_control/motor_failure/motor_failure.hpp>
 #include <hippo_control/thruster_model.hpp>
-#include <hippo_msgs/msg/actuator_controls.hpp>
-#include <hippo_msgs/msg/actuator_setpoint.hpp>
-#include <hippo_msgs/msg/failure_control_debug.hpp>
-#include <hippo_msgs/msg/failure_control_mode_stamped.hpp>
+#include <hippo_control_msgs/msg/actuator_controls.hpp>
+#include <hippo_control_msgs/msg/actuator_setpoint.hpp>
+#include <hippo_control_msgs/msg/failure_control_debug.hpp>
+#include <hippo_control_msgs/msg/failure_control_mode_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rcl_interfaces/srv/set_parameters.hpp>
@@ -60,7 +60,8 @@ class ControlNode : public rclcpp::Node {
   void PublishMode(const rclcpp::Time &now, mode::Mode mode);
   void SetRollWeightParameter(mode::Mode mode);
 
-  void OnThrustSetpoint(const hippo_msgs::msg::ActuatorSetpoint::SharedPtr);
+  void OnThrustSetpoint(
+      const hippo_control_msgs::msg::ActuatorSetpoint::SharedPtr);
   void OnAngularVelocitySetpoint(
       const geometry_msgs::msg::Vector3Stamped::SharedPtr);
   void OnOdometry(const nav_msgs::msg::Odometry::SharedPtr);
@@ -76,15 +77,16 @@ class ControlNode : public rclcpp::Node {
   //////////////////////////////////////////////////////////////////////////////
   // Publishers
   //////////////////////////////////////////////////////////////////////////////
-  rclcpp::Publisher<hippo_msgs::msg::ActuatorControls>::SharedPtr
+  rclcpp::Publisher<hippo_control_msgs::msg::ActuatorControls>::SharedPtr
       actuator_controls_pub_;
-  rclcpp::Publisher<hippo_msgs::msg::FailureControlDebug>::SharedPtr debug_pub_;
-  rclcpp::Publisher<hippo_msgs::msg::FailureControlModeStamped>::SharedPtr
-      mode_pub_;
+  rclcpp::Publisher<hippo_control_msgs::msg::FailureControlDebug>::SharedPtr
+      debug_pub_;
+  rclcpp::Publisher<
+      hippo_control_msgs::msg::FailureControlModeStamped>::SharedPtr mode_pub_;
   //////////////////////////////////////////////////////////////////////////////
   // Subscriptions
   //////////////////////////////////////////////////////////////////////////////
-  rclcpp::Subscription<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr
+  rclcpp::Subscription<hippo_control_msgs::msg::ActuatorSetpoint>::SharedPtr
       thrust_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr
       angular_velocity_setpoint_sub_;

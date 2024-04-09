@@ -19,7 +19,7 @@
 
 using namespace hippo_control;
 using namespace hippo_common;
-using namespace hippo_msgs::msg;
+using namespace hippo_control_msgs::msg;
 using namespace rcl_interfaces;
 using std::placeholders::_1;
 
@@ -42,16 +42,18 @@ ActuatorMixerNode::ActuatorMixerNode(rclcpp::NodeOptions const &_options)
   actuator_controls_pub_ = create_publisher<ActuatorControls>(name, qos);
 
   name = "thrust_setpoint";
-  thrust_setpoint_sub_ = create_subscription<hippo_msgs::msg::ActuatorSetpoint>(
-      name, qos,
-      std::bind(&ActuatorMixerNode::OnThrustSetpoint, this,
-                std::placeholders::_1));
+  thrust_setpoint_sub_ =
+      create_subscription<hippo_control_msgs::msg::ActuatorSetpoint>(
+          name, qos,
+          std::bind(&ActuatorMixerNode::OnThrustSetpoint, this,
+                    std::placeholders::_1));
 
   name = "torque_setpoint";
-  torque_setpoint_sub_ = create_subscription<hippo_msgs::msg::ActuatorSetpoint>(
-      name, qos,
-      std::bind(&ActuatorMixerNode::OnTorqueSetpoint, this,
-                std::placeholders::_1));
+  torque_setpoint_sub_ =
+      create_subscription<hippo_control_msgs::msg::ActuatorSetpoint>(
+          name, qos,
+          std::bind(&ActuatorMixerNode::OnTorqueSetpoint, this,
+                    std::placeholders::_1));
 
   watchdog_timer_ = rclcpp::create_timer(
       this, get_clock(), std::chrono::milliseconds(kTimeoutMs),
@@ -88,7 +90,7 @@ void ActuatorMixerNode::WatchdogTimeout() {
 }
 
 void ActuatorMixerNode::PublishActuatorCommand(const rclcpp::Time &_now) {
-  hippo_msgs::msg::ActuatorControls msg;
+  hippo_control_msgs::msg::ActuatorControls msg;
   msg.control = mixer_.Mix(inputs_);
   msg.header.stamp = _now;
   actuator_controls_pub_->publish(msg);
@@ -106,7 +108,7 @@ void ActuatorMixerNode::ResetTorque() {
 }
 
 void ActuatorMixerNode::OnThrustSetpoint(
-    const hippo_msgs::msg::ActuatorSetpoint::SharedPtr _msg) {
+    const hippo_control_msgs::msg::ActuatorSetpoint::SharedPtr _msg) {
   if (!_msg->ignore_x) {
     inputs_[mixer::InputChannels::kThrustX] = _msg->x;
   }
@@ -121,7 +123,7 @@ void ActuatorMixerNode::OnThrustSetpoint(
 }
 
 void ActuatorMixerNode::OnTorqueSetpoint(
-    const hippo_msgs::msg::ActuatorSetpoint::SharedPtr _msg) {
+    const hippo_control_msgs::msg::ActuatorSetpoint::SharedPtr _msg) {
   if (!_msg->ignore_x) {
     inputs_[mixer::InputChannels::kTorqueX] = _msg->x;
   }

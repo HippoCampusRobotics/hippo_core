@@ -20,7 +20,7 @@
 #include <termios.h>
 
 #include <esc_serial.hpp>
-#include <hippo_msgs/msg/actuator_controls.hpp>
+#include <hippo_control_msgs/msg/actuator_controls.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
@@ -85,16 +85,17 @@ class TeensyCommander : public rclcpp::Node {
   //////////////////////////////////////////////////////////////////////////////
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr arming_state_pub_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr battery_voltage_pub_;
-  rclcpp::Publisher<hippo_msgs::msg::ActuatorControls>::SharedPtr
+  rclcpp::Publisher<hippo_control_msgs::msg::ActuatorControls>::SharedPtr
       actuator_controls_pub_;
-  rclcpp::Publisher<hippo_msgs::msg::ActuatorControls>::SharedPtr
+  rclcpp::Publisher<hippo_control_msgs::msg::ActuatorControls>::SharedPtr
       pwm_output_debug_pub_;
   //////////////////////////////////////////////////////////////////////////////
   // Subscribers
   //////////////////////////////////////////////////////////////////////////////
-  rclcpp::Subscription<hippo_msgs::msg::ActuatorControls>::SharedPtr
+  rclcpp::Subscription<hippo_control_msgs::msg::ActuatorControls>::SharedPtr
       actuator_controls_sub_;
-  void OnActuatorControls(hippo_msgs::msg::ActuatorControls::ConstSharedPtr);
+  void OnActuatorControls(
+      hippo_control_msgs::msg::ActuatorControls::ConstSharedPtr);
 
   //////////////////////////////////////////////////////////////////////////////
   // Services

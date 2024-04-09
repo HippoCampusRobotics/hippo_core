@@ -22,7 +22,7 @@
 
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
-  <depend>hippo_msgs</depend>
+  <depend>hippo_control_msgs</depend>
   <depend>hippo_common</depend>
   <depend>path_planning</depend>
   <depend>eigen</depend>

@@ -11,10 +11,10 @@ RateControlNode::RateControlNode(rclcpp::NodeOptions const &_options)
   InitController();
   t_last_update_ = t_last_setpoint_ = now();
 
-  torque_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(
+  torque_pub_ = create_publisher<hippo_control_msgs::msg::ActuatorSetpoint>(
       "torque_setpoint", rclcpp::SensorDataQoS());
 
-  rates_debug_pub_ = create_publisher<hippo_msgs::msg::RatesDebug>(
+  rates_debug_pub_ = create_publisher<hippo_control_msgs::msg::RatesDebug>(
       "~/rates_debug", rclcpp::SensorDataQoS());
 
   std::string topic;
@@ -62,7 +62,7 @@ void RateControlNode::UpdateAllControllerParams() {
 
 void RateControlNode::PublishTorqueOutput(const rclcpp::Time &_now,
                                           const Eigen::Vector3d &_torque) {
-  hippo_msgs::msg::ActuatorSetpoint msg;
+  hippo_control_msgs::msg::ActuatorSetpoint msg;
   msg.header.stamp = _now;
   hippo_common::convert::EigenToRos(_torque, msg);
   torque_pub_->publish(msg);
@@ -92,7 +92,7 @@ void RateControlNode::OnOdometry(
     PublishTorqueOutput(_msg->header.stamp, u_rpy);
   }
 
-  hippo_msgs::msg::RatesDebug debug_msg;
+  hippo_control_msgs::msg::RatesDebug debug_msg;
   debug_msg.header.stamp = _msg->header.stamp;
   hippo_common::convert::EigenToRos(body_rates_setpoint_,
                                     debug_msg.rates_desired);

@@ -33,7 +33,7 @@ find_package(ament_cmake REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(hippo_msgs REQUIRED)
+find_package(hippo_control_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
 find_package(path_planning REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -87,7 +87,7 @@ ament_target_dependencies(${component_name}
   rclcpp
   rclcpp_components
   hippo_common
-  hippo_msgs
+  hippo_control_msgs
   geometry_msgs
   nav_msgs
 )
@@ -169,7 +169,7 @@ ament_target_dependencies(${component_name}
   rclcpp
   rclcpp_components
   hippo_common
-  hippo_msgs
+  hippo_control_msgs
   geometry_msgs
   nav_msgs
 )
@@ -244,7 +244,7 @@ target_include_directories(${component_name}
     $<INSTALL_INTERFACE:include>
 )
 ament_target_dependencies(${component_name}
-  rclcpp rclcpp_components hippo_msgs hippo_common nav_msgs Eigen3
+  rclcpp rclcpp_components hippo_control_msgs hippo_common nav_msgs Eigen3
 )
 rclcpp_components_register_node(${component_name}
   PLUGIN "hippo_control::attitude_control::GeometricControlNode"
@@ -273,7 +273,7 @@ target_include_directories(${component_name}
     $<INSTALL_INTERFACE:include>
 )
 ament_target_dependencies(${component_name}
-  rclcpp rclcpp_components hippo_msgs hippo_common nav_msgs Eigen3
+  rclcpp rclcpp_components hippo_control_msgs hippo_common nav_msgs Eigen3
 )
 rclcpp_components_register_node(${component_name}
   PLUGIN "hippo_control::attitude_control::QuaternionControlNode"
@@ -324,7 +324,7 @@ target_include_directories(${component_name}
     $<INSTALL_INTERFACE:include>
 )
 ament_target_dependencies(${component_name}
-  rclcpp rclcpp_components hippo_msgs hippo_common nav_msgs Eigen3 std_srvs
+  rclcpp rclcpp_components hippo_control_msgs hippo_common nav_msgs Eigen3 std_srvs
 )
 rclcpp_components_register_node(${component_name}
   PLUGIN "hippo_control::motor_failure::ControlNode"
@@ -348,7 +348,7 @@ add_library(${component_name}
 )
 target_link_libraries(${component_name} mixer)
 ament_target_dependencies(${component_name}
-  rclcpp rclcpp_components hippo_msgs hippo_common
+  rclcpp rclcpp_components hippo_control_msgs hippo_common
 )
 rclcpp_components_register_node(${component_name}
   PLUGIN "hippo_control::mixer::ActuatorMixerNode"
@@ -370,7 +370,7 @@ add_executable(${exec_name}
   src/mixer_bluerov/actuator_mixer_bluerov_node.cpp
   src/mixer_bluerov/actuator_mixer_bluerov_node_params.cpp
 )
-ament_target_dependencies(${exec_name} rclcpp hippo_msgs hippo_common hippo_msgs)
+ament_target_dependencies(${exec_name} rclcpp hippo_control_msgs hippo_common hippo_control_msgs)
 target_link_libraries(${exec_name} mixer_bluerov)
 install (TARGETS ${exec_name}
   DESTINATION lib/${PROJECT_NAME}

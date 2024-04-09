@@ -2,9 +2,9 @@
 
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <hippo_control/rate_control/rate_controller.hpp>
-#include <hippo_msgs/msg/actuator_setpoint.hpp>
-#include <hippo_msgs/msg/rates_debug.hpp>
-#include <hippo_msgs/msg/rates_target.hpp>
+#include <hippo_control_msgs/msg/actuator_setpoint.hpp>
+#include <hippo_control_msgs/msg/rates_debug.hpp>
+#include <hippo_control_msgs/msg/rates_target.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 
@@ -54,8 +54,10 @@ class RateControlNode : public rclcpp::Node {
     bool updated{false};
   } params_;
 
-  rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr torque_pub_;
-  rclcpp::Publisher<hippo_msgs::msg::RatesDebug>::SharedPtr rates_debug_pub_;
+  rclcpp::Publisher<hippo_control_msgs::msg::ActuatorSetpoint>::SharedPtr
+      torque_pub_;
+  rclcpp::Publisher<hippo_control_msgs::msg::RatesDebug>::SharedPtr
+      rates_debug_pub_;
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr

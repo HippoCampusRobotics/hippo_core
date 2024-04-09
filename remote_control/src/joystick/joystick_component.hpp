@@ -19,7 +19,7 @@
 
 #include <stdint.h>
 
-#include <hippo_msgs/msg/actuator_setpoint.hpp>
+#include <hippo_control_msgs/msg/actuator_setpoint.hpp>
 #include <hippo_msgs/msg/newton_gripper_command.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -98,8 +98,10 @@ class JoyStick : public rclcpp::Node {
   //////////////////////////////////////////////////////////////////////////////
   // Publishers
   //////////////////////////////////////////////////////////////////////////////
-  rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr thrust_pub_;
-  rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr torque_pub_;
+  rclcpp::Publisher<hippo_control_msgs::msg::ActuatorSetpoint>::SharedPtr
+      thrust_pub_;
+  rclcpp::Publisher<hippo_control_msgs::msg::ActuatorSetpoint>::SharedPtr
+      torque_pub_;
   rclcpp::Publisher<hippo_msgs::msg::NewtonGripperCommand>::SharedPtr
       gripper_pub_;
   //////////////////////////////////////////////////////////////////////////////

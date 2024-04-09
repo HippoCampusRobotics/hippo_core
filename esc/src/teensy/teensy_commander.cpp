@@ -106,11 +106,13 @@ void TeensyCommander::InitPublishers() {
       topic, rclcpp::SystemDefaultsQoS());
 
   topic = "thruster_values";
-  actuator_controls_pub_ = create_publisher<hippo_msgs::msg::ActuatorControls>(
-      topic, rclcpp::SystemDefaultsQoS());
+  actuator_controls_pub_ =
+      create_publisher<hippo_control_msgs::msg::ActuatorControls>(
+          topic, rclcpp::SystemDefaultsQoS());
   topic = "debug_pwm_output";
-  pwm_output_debug_pub_ = create_publisher<hippo_msgs::msg::ActuatorControls>(
-      topic, rclcpp::SystemDefaultsQoS());
+  pwm_output_debug_pub_ =
+      create_publisher<hippo_control_msgs::msg::ActuatorControls>(
+          topic, rclcpp::SystemDefaultsQoS());
 }
 
 void TeensyCommander::InitSubscribers() {
@@ -118,7 +120,7 @@ void TeensyCommander::InitSubscribers() {
 
   topic = "thruster_command";
   actuator_controls_sub_ =
-      create_subscription<hippo_msgs::msg::ActuatorControls>(
+      create_subscription<hippo_control_msgs::msg::ActuatorControls>(
           topic, rclcpp::SensorDataQoS(),
           std::bind(&TeensyCommander::OnActuatorControls, this,
                     std::placeholders::_1));
@@ -145,7 +147,7 @@ void TeensyCommander::OnPublishBatteryVoltageTimer() {
 }
 
 void TeensyCommander::OnActuatorControls(
-    hippo_msgs::msg::ActuatorControls::ConstSharedPtr _msg) {
+    hippo_control_msgs::msg::ActuatorControls::ConstSharedPtr _msg) {
   // reset/restart the timeout timmer since we got a message obviously.
   timers_.control_timeout->reset();
   if (timed_out_) {
@@ -301,7 +303,7 @@ void TeensyCommander::PublishThrusterValues(std::array<double, 8> &_values) {
     RCLCPP_WARN(get_logger(), "Thruster Values Publisher not available.");
     return;
   }
-  hippo_msgs::msg::ActuatorControls msg;
+  hippo_control_msgs::msg::ActuatorControls msg;
   msg.control = _values;
   msg.header.stamp = now();
   actuator_controls_pub_->publish(msg);
@@ -313,7 +315,7 @@ void TeensyCommander::PublishPWMValues(
     RCLCPP_WARN(get_logger(), "PWM Values Publisher not available.");
     return;
   }
-  hippo_msgs::msg::ActuatorControls msg;
+  hippo_control_msgs::msg::ActuatorControls msg;
   for (int i = 0; i < 8; i++) {
     msg.control[i] = double(_msg.payload_.pwm[i]);
   }

@@ -33,10 +33,12 @@ void JoyStick::InitPublishers() {
   std::string topic;
 
   topic = "thrust_setpoint";
-  thrust_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(topic, 10);
+  thrust_pub_ =
+      create_publisher<hippo_control_msgs::msg::ActuatorSetpoint>(topic, 10);
 
   topic = "torque_setpoint";
-  torque_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(topic, 10);
+  torque_pub_ =
+      create_publisher<hippo_control_msgs::msg::ActuatorSetpoint>(topic, 10);
 
   topic = "gripper_command";
   gripper_pub_ =
@@ -110,7 +112,7 @@ hippo_msgs::msg::NewtonGripperCommand JoyStick::ComputeNewtonGripperCommand(
 }
 
 void JoyStick::PublishThrust(const std::array<double, 3> &_thrust) {
-  hippo_msgs::msg::ActuatorSetpoint msg;
+  hippo_control_msgs::msg::ActuatorSetpoint msg;
   msg.header.stamp = now();
   msg.header.frame_id = hippo_common::tf2_utils::frame_id::BaseLink(this);
   msg.x = _thrust[0];
@@ -125,7 +127,7 @@ void JoyStick::PublishThrust(const std::array<double, 3> &_thrust) {
 }
 
 void JoyStick::PublishTorque(const std::array<double, 3> &_torque) {
-  hippo_msgs::msg::ActuatorSetpoint msg;
+  hippo_control_msgs::msg::ActuatorSetpoint msg;
   msg.header.stamp = now();
   msg.header.frame_id = hippo_common::tf2_utils::frame_id::BaseLink(this);
   msg.x = _torque[0];

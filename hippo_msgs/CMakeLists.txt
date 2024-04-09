@@ -36,37 +36,25 @@ find_package(geometry_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/ActuatorControls.msg"
-  "msg/ActuatorSetpoint.msg"
   "msg/AnchorPose.msg"
   "msg/AnchorPoses.msg"
   "msg/AngularVelocity.msg"
-  "msg/AttitudeTarget.msg"
-  "msg/ControlTarget.msg"
   "msg/DepthStamped.msg"
   "msg/EscRpms.msg"
   "msg/EscVoltages.msg"
   "msg/EstimatorInnovation.msg"
   "msg/EstimatorSensorBias.msg"
   "msg/EstimatorState.msg"
-  "msg/FailureControlDebug.msg"
-  "msg/FailureControlMode.msg"
-  "msg/FailureControlModeStamped.msg"
   "msg/Float64Stamped.msg"
   "msg/Int64Stamped.msg"
   "msg/ModemOut.msg"
   "msg/NewtonGripperCommand.msg"
   "msg/Path.msg"
   "msg/PathFollowerDebug.msg"
-  "msg/QuaternionControlDebug.msg"
   "msg/RangeMeasurement.msg"
   "msg/RangeMeasurementArray.msg"
-  "msg/RatesDebug.msg"
-  "msg/RatesTarget.msg"
-  "msg/ThrusterForces.msg"
   "srv/SetAxis.srv"
   "srv/SetPath.srv"
-  "msg/VelocityControlTarget.msg"
   DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
 )
 

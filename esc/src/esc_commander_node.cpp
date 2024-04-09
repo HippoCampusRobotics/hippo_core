@@ -17,7 +17,7 @@
 
 #include <fcntl.h>
 
-#include <hippo_msgs/msg/actuator_controls.hpp>
+#include <hippo_control_msgs/msg/actuator_controls.hpp>
 #include <hippo_msgs/msg/esc_rpms.hpp>
 #include <hippo_msgs/msg/esc_voltages.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
@@ -95,7 +95,7 @@ class ESC : public rclcpp::Node {
 
     rclcpp::QoS qos = rclcpp::SensorDataQoS().keep_last(1);
     actuator_controls_sub_ =
-        create_subscription<hippo_msgs::msg::ActuatorControls>(
+        create_subscription<hippo_control_msgs::msg::ActuatorControls>(
             "thruster_command", qos,
             std::bind(&ESC::OnThrusterCommand, this, _1));
   }
@@ -188,7 +188,7 @@ class ESC : public rclcpp::Node {
   }
 
   void OnThrusterCommand(
-      const hippo_msgs::msg::ActuatorControls::SharedPtr msg) {
+      const hippo_control_msgs::msg::ActuatorControls::SharedPtr msg) {
     // reset/restart the timeout timer since we got a message
     control_timeout_timer_->reset();
     if (timed_out_) {
@@ -397,7 +397,7 @@ class ESC : public rclcpp::Node {
   rclcpp::TimerBase::SharedPtr send_throttle_timer_;
   rclcpp::TimerBase::SharedPtr read_battery_timer_;
   rclcpp::TimerBase::SharedPtr send_arming_state_timer_;
-  rclcpp::Subscription<hippo_msgs::msg::ActuatorControls>::SharedPtr
+  rclcpp::Subscription<hippo_control_msgs::msg::ActuatorControls>::SharedPtr
       actuator_controls_sub_;
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr
       paramter_callback_handle_;

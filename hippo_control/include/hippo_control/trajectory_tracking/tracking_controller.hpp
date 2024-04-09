@@ -6,7 +6,7 @@
 #include <hippo_common/convert.hpp>
 #include <hippo_common/param_utils.hpp>
 #include <hippo_common/tf2_utils.hpp>
-#include <hippo_msgs/msg/attitude_target.hpp>
+#include <hippo_control_msgs/msg/attitude_target.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -51,7 +51,7 @@ class TrackingControllerNode : public rclcpp::Node {
 
   OnSetParametersCallbackHandle::SharedPtr params_cb_handle_{nullptr};
 
-  rclcpp::Publisher<hippo_msgs::msg::AttitudeTarget>::SharedPtr
+  rclcpp::Publisher<hippo_control_msgs::msg::AttitudeTarget>::SharedPtr
       attitude_target_pub_{nullptr};
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr roll_target_sub_{
       nullptr};

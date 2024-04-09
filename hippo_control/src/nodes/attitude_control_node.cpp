@@ -18,8 +18,8 @@
 #include <eigen3/Eigen/Dense>
 #include <hippo_common/convert.hpp>
 #include <hippo_common/param_utils.hpp>
-#include <hippo_msgs/msg/actuator_setpoint.hpp>
-#include <hippo_msgs/msg/attitude_target.hpp>
+#include <hippo_control_msgs/msg/actuator_setpoint.hpp>
+#include <hippo_control_msgs/msg/attitude_target.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -28,7 +28,7 @@
 
 using namespace hippo_control::attitude_control;
 using namespace hippo_common;
-using namespace hippo_msgs::msg;
+using namespace hippo_control_msgs::msg;
 using namespace rcl_interfaces::msg;
 using namespace geometry_msgs::msg;
 using nav_msgs::msg::Odometry;
@@ -135,11 +135,11 @@ class AttitudeControlNode : public rclcpp::Node {
     rclcpp::QoS qos = rclcpp::SystemDefaultsQoS();
 
     topic = "thrust_setpoint";
-    thrust_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(
+    thrust_pub_ = create_publisher<hippo_control_msgs::msg::ActuatorSetpoint>(
         topic, rclcpp::SensorDataQoS());
 
     topic = "torque_setpoint";
-    torque_pub_ = create_publisher<hippo_msgs::msg::ActuatorSetpoint>(
+    torque_pub_ = create_publisher<hippo_control_msgs::msg::ActuatorSetpoint>(
         topic, rclcpp::SensorDataQoS());
 
     topic = "~/current_setpoint";
@@ -160,8 +160,8 @@ class AttitudeControlNode : public rclcpp::Node {
         topic, qos, std::bind(&AttitudeControlNode::OnOdometry, this, _1));
   }
 
-  hippo_msgs::msg::ActuatorSetpoint ZeroMsg(rclcpp::Time _stamp) {
-    hippo_msgs::msg::ActuatorSetpoint msg;
+  hippo_control_msgs::msg::ActuatorSetpoint ZeroMsg(rclcpp::Time _stamp) {
+    hippo_control_msgs::msg::ActuatorSetpoint msg;
     msg.header.stamp = _stamp;
     msg.x = 0.0;
     msg.y = 0.0;
@@ -218,8 +218,8 @@ class AttitudeControlNode : public rclcpp::Node {
     controller_.SetOrientationTarget(attitude);
     setpoint_pub_->publish(attitude_target_);
     if (feedthrough_) {
-      hippo_msgs::msg::ActuatorSetpoint thrust_msg;
-      hippo_msgs::msg::ActuatorSetpoint torque_msg;
+      hippo_control_msgs::msg::ActuatorSetpoint thrust_msg;
+      hippo_control_msgs::msg::ActuatorSetpoint torque_msg;
       if (setpoint_timed_out_) {
         thrust_msg = ZeroMsg(now());
         torque_msg = ZeroMsg(now());
@@ -246,8 +246,8 @@ class AttitudeControlNode : public rclcpp::Node {
     Eigen::Quaterniond orientation{q_ros.w, q_ros.x, q_ros.y, q_ros.z};
     Eigen::Vector3d v_angular{omega.x, omega.y, omega.z};
 
-    hippo_msgs::msg::ActuatorSetpoint thrust_msg;
-    hippo_msgs::msg::ActuatorSetpoint torque_msg;
+    hippo_control_msgs::msg::ActuatorSetpoint thrust_msg;
+    hippo_control_msgs::msg::ActuatorSetpoint torque_msg;
     {
       std::lock_guard<std::mutex> lock(mutex_);
       if (setpoint_timed_out_) {
@@ -335,8 +335,10 @@ class AttitudeControlNode : public rclcpp::Node {
   //////////////////////////////////////////////////////////////////////////////
   // publishers
   //////////////////////////////////////////////////////////////////////////////
-  rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr thrust_pub_;
-  rclcpp::Publisher<hippo_msgs::msg::ActuatorSetpoint>::SharedPtr torque_pub_;
+  rclcpp::Publisher<hippo_control_msgs::msg::ActuatorSetpoint>::SharedPtr
+      thrust_pub_;
+  rclcpp::Publisher<hippo_control_msgs::msg::ActuatorSetpoint>::SharedPtr
+      torque_pub_;
   rclcpp::Publisher<AttitudeTarget>::SharedPtr setpoint_pub_;
 
   //////////////////////////////////////////////////////////////////////////////

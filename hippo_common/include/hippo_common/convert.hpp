@@ -20,7 +20,6 @@
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/quaternion.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
-#include <hippo_msgs/msg/actuator_setpoint.hpp>
 
 namespace hippo_common {
 namespace convert {
@@ -29,40 +28,12 @@ template <typename T>
 constexpr bool always_false = false;
 
 template <typename In, typename Out>
-inline void EigenToRos(const In &, Out &) {
-  static_assert(always_false<In>, "This conversion is not implemented");
+inline void EigenToRos(const In &_eigen, Out &_ros) {
+  // static_assert(always_false<In>, "This conversion is not implemented");
+  _ros.x = _eigen.x();
+  _ros.y = _eigen.y();
+  _ros.z = _eigen.z();
 };
-
-template <>
-inline void EigenToRos(const Eigen::Vector3d &_eigen,
-                       geometry_msgs::msg::Point &_ros) {
-  _ros.x = _eigen.x();
-  _ros.y = _eigen.y();
-  _ros.z = _eigen.z();
-}
-template <>
-inline void EigenToRos(const Eigen::Ref<const Eigen::Vector3d> &_eigen,
-                       geometry_msgs::msg::Point &_ros) {
-  _ros.x = _eigen.x();
-  _ros.y = _eigen.y();
-  _ros.z = _eigen.z();
-}
-
-template <>
-inline void EigenToRos(const Eigen::Vector3d &_eigen,
-                       geometry_msgs::msg::Vector3 &_ros) {
-  _ros.x = _eigen.x();
-  _ros.y = _eigen.y();
-  _ros.z = _eigen.z();
-}
-
-template <>
-inline void EigenToRos(const Eigen::Ref<const Eigen::Vector3d> &_eigen,
-                       geometry_msgs::msg::Vector3 &_ros) {
-  _ros.x = _eigen.x();
-  _ros.y = _eigen.y();
-  _ros.z = _eigen.z();
-}
 
 template <>
 inline void EigenToRos(const Eigen::Quaterniond &_eigen,
@@ -73,34 +44,13 @@ inline void EigenToRos(const Eigen::Quaterniond &_eigen,
   _ros.z = _eigen.z();
 }
 
-template <>
-inline void EigenToRos(const Eigen::Vector3d &in,
-                       hippo_msgs::msg::ActuatorSetpoint &out) {
-  out.x = in.x();
-  out.y = in.y();
-  out.z = in.z();
-}
-
 template <typename In, typename Out>
-inline void RosToEigen(const In &, Out &) {
-  static_assert(always_false<In>, "This conversion is not implemented");
+inline void RosToEigen(const In &_ros, Out &_eigen) {
+  // static_assert(always_false<In>, "This conversion is not implemented");
+  _eigen.x() = _ros.x;
+  _eigen.y() = _ros.y;
+  _eigen.z() = _ros.z;
 };
-
-template <>
-inline void RosToEigen(const geometry_msgs::msg::Point &_ros,
-                       Eigen::Vector3d &_eigen) {
-  _eigen.x() = _ros.x;
-  _eigen.y() = _ros.y;
-  _eigen.z() = _ros.z;
-}
-
-template <>
-inline void RosToEigen(const geometry_msgs::msg::Vector3 &_ros,
-                       Eigen::Vector3d &_eigen) {
-  _eigen.x() = _ros.x;
-  _eigen.y() = _ros.y;
-  _eigen.z() = _ros.z;
-}
 
 template <>
 inline void RosToEigen(const geometry_msgs::msg::Quaternion &_ros,
@@ -130,14 +80,6 @@ inline void RosToEigenRef(const geometry_msgs::msg::Vector3 &_ros,
   _eigen.x() = _ros.x;
   _eigen.y() = _ros.y;
   _eigen.z() = _ros.z;
-}
-
-template <>
-inline void RosToEigen(const hippo_msgs::msg::ActuatorSetpoint &in,
-                       Eigen::Vector3d &out) {
-  out.x() = in.x;
-  out.y() = in.y;
-  out.z() = in.z;
 }
 
 template <typename In, typename Out>
