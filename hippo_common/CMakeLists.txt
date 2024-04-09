@@ -160,6 +160,24 @@ install(TARGETS
   ${exec_name}
   DESTINATION lib/${PROJECT_NAME}
 )
+################################################################################
+## tag_markers_publisher
+################################################################################
+set(exec_name tag_markers_publisher)
+add_executable(${exec_name} src/nodes/tag_markers_publisher.cpp)
+ament_target_dependencies(${exec_name}
+  rclcpp
+  visualization_msgs
+  geometry_msgs
+)
+target_link_libraries(${exec_name}
+  hippo_common
+)
+
+install(TARGETS
+  ${exec_name}
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ################################################################################
 ## rviz_robot_mesh_publisher
