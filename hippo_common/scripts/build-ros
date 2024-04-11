@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+import argparse
+import os
+import pathlib
+import subprocess
+import sys
+import xml.etree.ElementTree as ET
+
+import argcomplete
+
+
+def find_setup_script(working_dir=None, recursive=False):
+    if working_dir is None:
+        working_dir = os.getcwd()
+    while True:
+        dirs = os.listdir(working_dir)
+        dirs = [
+            os.path.basename(os.path.join(working_dir, d)) for d in dirs
+            if os.path.isdir(os.path.join(working_dir, d))
+        ]
+        if 'install' in dirs:
+            print('Found install dir.')
+            file_path = os.path.join(working_dir, 'install', 'setup.bash')
+            if os.path.isfile(file_path):
+                return file_path
+        if working_dir == '/':
+            print('Could not find setup file. Giving up.')
+            return None
+        if not recursive:
+            return None
+        working_dir = os.path.dirname(working_dir)
+
+
+def get_environments(file_path):
+    paths = []
+    filename = 'local_setup.bash'
+    with open(file_path, 'r') as f:
+        for line in f:
+            line_start = 'COLCON_CURRENT_PREFIX='
+            if line.startswith(line_start) and ('$' not in line):
+                path = line.removeprefix(line_start).replace('\n', '').replace(
+                    '\r', '').replace('"', '')
+                path = os.path.join(path, filename)
+                paths.append(path)
+
+    return paths
+
+
+def pkg_name():
+    try:
+        tree = ET.parse('package.xml')
+    except FileNotFoundError:
+        print('Could not find package.xml in current working directory.\n'
+              'Are you sure we are inside a ROS package?')
+        exit(2)
+    root = tree.getroot()
+    pkg_name = root.find('name').text
+    return pkg_name
+
+
+def auto_source_paths():
+    setup_file_path = find_setup_script(recursive=True)
+    env_paths = get_environments(setup_file_path)
+    return env_paths
+
+
+def manual_source_paths(ws_paths):
+    source_paths = []
+    for ws_path in ws_paths:
+        tmp = str(ws_path.resolve())
+        setup_path = find_setup_script(working_dir=tmp)
+        if setup_path:
+            tmp_paths = get_environments(setup_path)
+            if tmp_paths is None:
+                continue
+            for p in tmp_paths:
+                if p not in source_paths:
+                    source_paths.append(p)
+            local_setup_path = os.path.join(os.path.dirname(setup_path),
+                                            'local_setup.bash')
+            if local_setup_path not in source_paths:
+                source_paths.append(local_setup_path)
+    return source_paths
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('verb',
+                        nargs='?',
+                        default='',
+                        choices=('all', 'this', 'up-to-this'))
+    parser.add_argument('--underlay',
+                        type=pathlib.Path,
+                        required=False,
+                        action='append')
+    argcomplete.autocomplete(parser)
+    args = parser.parse_args()
+    if args.underlay is None:
+        source_paths = auto_source_paths()
+        if None in source_paths:
+            print('Failed to automagically source the enviroment. '
+                  'If it is the first time building the workspace, specify the '
+                  'underlay workspaces manually, e.g.:\n'
+                  'build-ros --underlay ~/ros2_underlay')
+            exit(1)
+    else:
+        source_paths = manual_source_paths(args.underlay)
+        if None in source_paths:
+            print('Failed to source the manually specified underlays. '
+                  'Do they exist?')
+    print(source_paths)
+    if args.verb == '' or args.verb == 'all':
+        print('Build all')
+        colcon_arg = ''
+    elif args.verb == 'this':
+        colcon_arg = f'--packages-select {pkg_name()}'
+    elif args.verb == 'up-to-this':
+        colcon_arg = f'--packages-up-to {pkg_name()}'
+    else:
+        print(f'Unhandled verb: {args.verb}')
+        exit(1)
+
+    term = 'xterm-256color'
+    env_cmd = f'env -i $TERM={term}'
+    source_cmd = (' && ').join([f'. {source}' for source in source_paths])
+    colcon_cmd = (
+        f'colcon build --symlink-install {colcon_arg} '
+        '--cmake-args --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ')
+
+    file_path = find_setup_script(recursive=True)
+    ros_dir = os.path.dirname(os.path.dirname(file_path))
+    cd_cmd = f'cd {ros_dir}'
+    tmp = ' && '.join([cd_cmd, source_cmd, colcon_cmd])
+    bash_cmd = f'bash -l -c \'{tmp}\''
+    cmd = ' '.join([env_cmd, bash_cmd])
+    print(cmd)
+    x = subprocess.Popen(
+        cmd,
+        shell=True,
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+        text=True,
+        universal_newlines=True,
+    )
+    x.wait()
+
+
+if __name__ == '__main__':
+    main()
