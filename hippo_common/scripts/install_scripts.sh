@@ -6,8 +6,7 @@ BIN_DIR="$HOME/.local/bin"
 if [[ ":$PATH:" == *":$BIN_DIR:"* ]]; then
     echo "Installing to $BIN_DIR"
 else
-    echo "Installation dir not in PATH! Aborting."
-    exit 1
+    echo "Installation dir not in PATH! The scripts will be most likely not executable."
 fi
 
 declare -a files=("build-ros" "clean-ros")
