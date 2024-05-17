@@ -10,7 +10,8 @@ def generate_launch_description():
     vehicle_name_launch_arg = launch.actions.DeclareLaunchArgument(
         name='vehicle_name',
         default_value=default_vehicle_name,
-        description='Vehicle name used as namespace.')
+        description='Vehicle name used as namespace.',
+    )
 
     launch_paths = [
         str(package_path / 'launch/node_actuator_mixer.launch.py'),
@@ -19,14 +20,19 @@ def generate_launch_description():
     launch_includes = [
         launch.actions.IncludeLaunchDescription(
             launch.launch_description_sources.PythonLaunchDescriptionSource(x),
-            launch_arguments={'attitude_control_feedthrough': 'true'}.items())
+            launch_arguments={'attitude_control_feedthrough': 'true'}.items(),
+        )
         for x in launch_paths
     ]
 
-    namespace_group = launch.actions.GroupAction([
-        launch_ros.actions.PushRosNamespace(
-            launch.substitutions.LaunchConfiguration('vehicle_name'))
-    ] + launch_includes)
+    namespace_group = launch.actions.GroupAction(
+        [
+            launch_ros.actions.PushRosNamespace(
+                launch.substitutions.LaunchConfiguration('vehicle_name')
+            )
+        ]
+        + launch_includes
+    )
 
     launch_descriptions = [vehicle_name_launch_arg, namespace_group]
 

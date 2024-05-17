@@ -23,10 +23,13 @@ def declare_launch_args(launch_description: LaunchDescription):
     action = DeclareLaunchArgument('mixer_path', default_value=path)
     launch_description.add_action(action)
 
-    path = str(package_path /
-               'config/attitude_control/geometric_hippocampus_default.yaml')
-    action = DeclareLaunchArgument('attitude_control_config',
-                                   default_value=path)
+    path = str(
+        package_path
+        / 'config/attitude_control/geometric_hippocampus_default.yaml'
+    )
+    action = DeclareLaunchArgument(
+        'attitude_control_config', default_value=path
+    )
     launch_description.add_action(action)
 
     package_path = get_package_share_path('path_planning')
@@ -92,8 +95,10 @@ def add_composable_nodes(launch_description: LaunchDescription):
 
 def include_attitude_control(launch_description: LaunchDescription):
     package_path = get_package_share_path('hippo_control')
-    path = str(package_path /
-               'launch/attitude_control/attitude_control_hippocampus.launch.py')
+    path = str(
+        package_path
+        / 'launch/attitude_control/attitude_control_hippocampus.launch.py'
+    )
     source = PythonLaunchDescriptionSource(path)
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()

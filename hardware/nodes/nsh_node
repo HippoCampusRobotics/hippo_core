@@ -24,14 +24,15 @@ from std_srvs.srv import Trigger, Trigger_Request, Trigger_Response
 
 
 class NSHNode(Node):
-
     def __init__(self):
         super().__init__(node_name='nsh_node')
         self.serial_port: Serial = None
-        self.ekf2_restart_service = self.create_service(Trigger, 'ekf2_restart',
-                                                        self.serve_ekf2_restart)
-        self.fcu_reboot_service = self.create_service(Trigger, 'fcu_reboot',
-                                                      self.serve_fcu_reboot)
+        self.ekf2_restart_service = self.create_service(
+            Trigger, 'ekf2_restart', self.serve_ekf2_restart
+        )
+        self.fcu_reboot_service = self.create_service(
+            Trigger, 'fcu_reboot', self.serve_fcu_reboot
+        )
 
     def open_serial_port(self):
         try:
@@ -51,11 +52,12 @@ class NSHNode(Node):
         self.serial_port.write(b'reboot\r')
         self.serial_port.flush()
         response.success = True
-        response.message = "Rebooted FCU."
+        response.message = 'Rebooted FCU.'
         return response
 
-    def serve_ekf2_restart(self, _: Trigger_Request,
-                           response: Trigger_Response):
+    def serve_ekf2_restart(
+        self, _: Trigger_Request, response: Trigger_Response
+    ):
         if self.serial_port is None:
             self.open_serial_port()
 

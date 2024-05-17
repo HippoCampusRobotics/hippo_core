@@ -12,8 +12,9 @@ from hippo_common.launch_helper import (
 
 
 def declare_launch_args(launch_description: LaunchDescription):
-    declare_vehicle_name_and_sim_time(launch_description=launch_description,
-                                      use_sim_time_default='false')
+    declare_vehicle_name_and_sim_time(
+        launch_description=launch_description, use_sim_time_default='false'
+    )
 
 
 def include_vertical_camera_node():
@@ -79,6 +80,7 @@ def generate_launch_description():
             add_mavlink_routerd(),
             add_nsh_node(),
         ],
-        launch_configurations={'camera_name': 'vertical_camera'})
+        launch_configurations={'camera_name': 'vertical_camera'},
+    )
     launch_description.add_action(action)
     return launch_description

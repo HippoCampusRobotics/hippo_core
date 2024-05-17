@@ -13,8 +13,10 @@ def pkg_name():
     try:
         tree = ET.parse('package.xml')
     except FileNotFoundError:
-        print('Could not find package.xml in current working directory.\n'
-              'Are you sure we are inside a ROS package?')
+        print(
+            'Could not find package.xml in current working directory.\n'
+            'Are you sure we are inside a ROS package?'
+        )
         return None
     root = tree.getroot()
     pkg_name = root.find('name').text
@@ -26,7 +28,8 @@ def workspace_root(recursive=False):
     while True:
         dirs = os.listdir(working_dir)
         dirs = [
-            os.path.basename(os.path.join(working_dir, d)) for d in dirs
+            os.path.basename(os.path.join(working_dir, d))
+            for d in dirs
             if os.path.isdir(os.path.join(working_dir, d))
         ]
         if 'install' in dirs:
@@ -71,10 +74,12 @@ def delete(paths):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('selection',
-                        nargs='?',
-                        default='',
-                        choices=('all', 'this', 'up-to-this'))
+    parser.add_argument(
+        'selection',
+        nargs='?',
+        default='',
+        choices=('all', 'this', 'up-to-this'),
+    )
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
 

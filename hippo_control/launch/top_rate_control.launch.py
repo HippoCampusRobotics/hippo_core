@@ -23,11 +23,13 @@ def include_launch_files(launch_description: LaunchDescription):
     source = PythonLaunchDescriptionSource(path)
     rate_controller = IncludeLaunchDescription(source)
 
-    action = GroupAction([
-        PushRosNamespace(LaunchConfiguration('vehicle_name')),
-        mixer,
-        rate_controller,
-    ])
+    action = GroupAction(
+        [
+            PushRosNamespace(LaunchConfiguration('vehicle_name')),
+            mixer,
+            rate_controller,
+        ]
+    )
     launch_description.add_action(action)
 
 

@@ -29,16 +29,16 @@ class RobotMeshPublisher : public rclcpp::Node {
   RobotMeshPublisher() : Node("robot_mesh_publisher") {
     mesh_url_ = declare_parameter<std::string>(
         "mesh_url", "package://hippo_sim/models/bluerov/meshes/bluerov.dae");
-    marker_frame_ =
-        declare_parameter<std::string>("marker_frame", hippo_common::tf2_utils::frame_id::BaseLink(this));
+    marker_frame_ = declare_parameter<std::string>(
+        "marker_frame", hippo_common::tf2_utils::frame_id::BaseLink(this));
 
     topic_ = declare_parameter<std::string>("topic", "robot_mesh_marker");
 
     rclcpp::SystemDefaultsQoS qos;
     publisher_ = create_publisher<visualization_msgs::msg::Marker>(topic_, qos);
-    timer_ =
-        rclcpp::create_timer(this, get_clock(), std::chrono::milliseconds(20),
-                             std::bind(&RobotMeshPublisher::PublishMarker, this));
+    timer_ = rclcpp::create_timer(
+        this, get_clock(), std::chrono::milliseconds(20),
+        std::bind(&RobotMeshPublisher::PublishMarker, this));
   }
   void PublishMarker() {
     visualization_msgs::msg::Marker marker;

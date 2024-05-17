@@ -32,6 +32,7 @@ def generate_launch_description():
             PushROSNamespace(LaunchConfiguration('vehicle_name')),
             include_vertical_camera_node(),
         ],
-        launch_configurations={'camera_name': 'vertical_camera'})
+        launch_configurations={'camera_name': 'vertical_camera'},
+    )
     launch_description.add_action(action)
     return launch_description

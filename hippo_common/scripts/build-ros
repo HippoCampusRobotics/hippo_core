@@ -15,7 +15,8 @@ def find_setup_script(working_dir=None, recursive=False):
     while True:
         dirs = os.listdir(working_dir)
         dirs = [
-            os.path.basename(os.path.join(working_dir, d)) for d in dirs
+            os.path.basename(os.path.join(working_dir, d))
+            for d in dirs
             if os.path.isdir(os.path.join(working_dir, d))
         ]
         if 'install' in dirs:
@@ -38,8 +39,12 @@ def get_environments(file_path):
         for line in f:
             line_start = 'COLCON_CURRENT_PREFIX='
             if line.startswith(line_start) and ('$' not in line):
-                path = line.removeprefix(line_start).replace('\n', '').replace(
-                    '\r', '').replace('"', '')
+                path = (
+                    line.removeprefix(line_start)
+                    .replace('\n', '')
+                    .replace('\r', '')
+                    .replace('"', '')
+                )
                 path = os.path.join(path, filename)
                 paths.append(path)
 
@@ -50,8 +55,10 @@ def pkg_name():
     try:
         tree = ET.parse('package.xml')
     except FileNotFoundError:
-        print('Could not find package.xml in current working directory.\n'
-              'Are you sure we are inside a ROS package?')
+        print(
+            'Could not find package.xml in current working directory.\n'
+            'Are you sure we are inside a ROS package?'
+        )
         exit(2)
     root = tree.getroot()
     pkg_name = root.find('name').text
@@ -76,40 +83,69 @@ def manual_source_paths(ws_paths):
             for p in tmp_paths:
                 if p not in source_paths:
                     source_paths.append(p)
-            local_setup_path = os.path.join(os.path.dirname(setup_path),
-                                            'local_setup.bash')
+            local_setup_path = os.path.join(
+                os.path.dirname(setup_path), 'local_setup.bash'
+            )
             if local_setup_path not in source_paths:
                 source_paths.append(local_setup_path)
     return source_paths
 
 
+def EnvironCompleter(**kwargs):
+    return os.environ
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('verb',
-                        nargs='?',
-                        default='',
-                        choices=('all', 'this', 'up-to-this'))
-    parser.add_argument('--underlay',
-                        type=pathlib.Path,
-                        required=False,
-                        action='append')
+    parser.add_subparsers(
+        title='selection', help='Package selection', dest='sel_parser'
+    )
+
+    class SelectionCompleter:
+        def __init__(self, selections):
+            self.selections = selections
+
+        def __call__(self, **kwargs):
+            # return (key for key in self.selections)
+            return self.selections
+
+    selection_args = {
+        'all': 'Build all packages in workspace.',
+        'this': 'Build only the package in the current directory.',
+        'up-to-this': (
+            'Build the package in the current directory and its dependencies.'
+        ),
+    }
+    parser.add_argument('--selection').completer = SelectionCompleter(
+        selection_args
+    )
+    parser.add_argument(
+        '--underlay', type=pathlib.Path, required=False, action='append'
+    )
+    parser.add_argument('--env-var1', help='test help text')
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
     if args.underlay is None:
         source_paths = auto_source_paths()
         if None in source_paths:
-            print('Failed to automagically source the enviroment. '
-                  'If it is the first time building the workspace, specify the '
-                  'underlay workspaces manually, e.g.:\n'
-                  'build-ros --underlay ~/ros2_underlay')
+            print(
+                'Failed to automagically source the enviroment. '
+                'If it is the first time building the workspace, specify the '
+                'underlay workspaces manually, e.g.:\n'
+                'build-ros --underlay ~/ros2_underlay'
+            )
             exit(1)
     else:
         source_paths = manual_source_paths(args.underlay)
         if None in source_paths:
-            print('Failed to source the manually specified underlays. '
-                  'Do they exist?')
+            print(
+                'Failed to source the manually specified underlays. '
+                'Do they exist?'
+            )
     print(source_paths)
-    if args.verb == '' or args.verb == 'all':
+    print(args)
+    exit(0)
+    if args.selection == '' or args.verb == 'all':
         print('Build all')
         colcon_arg = ''
     elif args.verb == 'this':
@@ -125,13 +161,14 @@ def main():
     source_cmd = (' && ').join([f'. {source}' for source in source_paths])
     colcon_cmd = (
         f'colcon build --symlink-install {colcon_arg} '
-        '--cmake-args --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ')
+        '--cmake-args --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS=ON '
+    )
 
     file_path = find_setup_script(recursive=True)
     ros_dir = os.path.dirname(os.path.dirname(file_path))
     cd_cmd = f'cd {ros_dir}'
     tmp = ' && '.join([cd_cmd, source_cmd, colcon_cmd])
-    bash_cmd = f'bash -l -c \'{tmp}\''
+    bash_cmd = f"bash -l -c '{tmp}'"
     cmd = ' '.join([env_cmd, bash_cmd])
     print(cmd)
     x = subprocess.Popen(

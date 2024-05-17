@@ -38,11 +38,13 @@ def include_launch_files(launch_description: LaunchDescription):
         launch_arguments=args.items(),
     )
 
-    action = GroupAction([
-        PushRosNamespace(LaunchConfiguration('vehicle_name')),
-        mixer,
-        attitude_controller,
-    ])
+    action = GroupAction(
+        [
+            PushRosNamespace(LaunchConfiguration('vehicle_name')),
+            mixer,
+            attitude_controller,
+        ]
+    )
     launch_description.add_action(action)
 
 

@@ -35,8 +35,7 @@ from hippo_msgs.msg import ActuatorControls, Float64Stamped
 
 
 class ESC(Node):
-    """Handles the interaction with the thrusters' ESCs.
-    """
+    """Handles the interaction with the thrusters' ESCs."""
 
     def __init__(self, node_name):
         super().__init__(node_name=node_name)
@@ -52,14 +51,15 @@ class ESC(Node):
         self.thrusts = [0.0] * 8
         self.t_rev_last = self.get_clock().now()
 
-        self.rpm_pub = self.create_publisher(ActuatorControls, "thruster_rpms",
-                                             1)
-        self.vbat_pub = self.create_publisher(Float64Stamped, "battery_voltage",
-                                              1)
-        self.actuator_sub = self.create_subscription(ActuatorControls,
-                                                     'thruster_controls',
-                                                     self.on_thruster_controls,
-                                                     1)
+        self.rpm_pub = self.create_publisher(
+            ActuatorControls, 'thruster_rpms', 1
+        )
+        self.vbat_pub = self.create_publisher(
+            Float64Stamped, 'battery_voltage', 1
+        )
+        self.actuator_sub = self.create_subscription(
+            ActuatorControls, 'thruster_controls', self.on_thruster_controls, 1
+        )
         self.send_thrust_timer = self.create_timer(1 / 50, self.send_thrusts)
         self.read_rpm_timer = self.create_timer(1 / 10, self.read_rpm_counter)
         self.read_vbat_timer = self.create_timer(1.0, self.read_vbat)
@@ -73,8 +73,10 @@ class ESC(Node):
                 try:
                     v += esc.get_battery_voltage()
                 except IOError:
-                    self.get_logger().error('Could not read voltage from '
-                                            f'thruster {hex(esc.address)}.')
+                    self.get_logger().error(
+                        'Could not read voltage from '
+                        f'thruster {hex(esc.address)}.'
+                    )
                 else:
                     i += 1
 
@@ -112,7 +114,8 @@ class ESC(Node):
                 except IOError:
                     self.get_logger().error(
                         f'Communication with thruster {hex(esc.address)} '
-                        'failed!')
+                        'failed!'
+                    )
 
     def read_rpm_counter(self):
         now = self.get_clock().now()
@@ -122,37 +125,43 @@ class ESC(Node):
         for i, esc in enumerate(self.escs):
             if esc is not None:
                 try:
-                    revs[i] = esc.get_motor_rev_counter(
-                    ) / dt.nanoseconds * 1e9 * 60
+                    revs[i] = (
+                        esc.get_motor_rev_counter() / dt.nanoseconds * 1e9 * 60
+                    )
                 except IOError:
                     self.get_logger().error(
                         'Failed to receive revolution '
-                        f'counter for thruster {hex(esc.address)}.')
+                        f'counter for thruster {hex(esc.address)}.'
+                    )
         self.rpm_pub.publish(ActuatorControls(control=revs))
 
     def init_params(self):
         param_name = 'rx_timeout'
         descriptor = ParameterDescriptor(
             type=ParameterType.PARAMETER_DOUBLE,
-            description=('If the node does not get a new setpoint for a '
-                         f'duration of <{param_name}>, it will set neutral '
-                         'outputs.'),
+            description=(
+                'If the node does not get a new setpoint for a '
+                f'duration of <{param_name}>, it will set neutral '
+                'outputs.'
+            ),
             floating_point_range=[
                 FloatingPointRange(from_value=0.0, to_value=1.0)
-            ])
-        self.declare_parameter(name=param_name,
-                               value=0.5,
-                               descriptor=descriptor)
+            ],
+        )
+        self.declare_parameter(
+            name=param_name, value=0.5, descriptor=descriptor
+        )
 
         param_name = 'i2c_addresses'
         descriptor = ParameterDescriptor(
             type=ParameterType.PARAMETER_INTEGER_ARRAY,
             description=('I2C addresses of the ESCs to use.'),
-            integer_range=[IntegerRange(from_value=0, to_value=127, step=1)])
+            integer_range=[IntegerRange(from_value=0, to_value=127, step=1)],
+        )
         default = [0x29 + x for x in range(4)]
-        self.declare_parameter(name=param_name,
-                               value=default,
-                               descriptor=descriptor)
+        self.declare_parameter(
+            name=param_name, value=default, descriptor=descriptor
+        )
 
         self.add_on_set_parameters_callback(self.on_set_parameters)
 
@@ -166,7 +175,8 @@ class ESC(Node):
                     self.addresses = param.value
                 else:
                     return rcl_interfaces.msg.SetParametersResult(
-                        successful=False)
+                        successful=False
+                    )
         return rcl_interfaces.msg.SetParametersResult(successful=True)
 
     def detect_escs(self):
@@ -178,12 +188,14 @@ class ESC(Node):
             except IOError:
                 success = False
                 self.get_logger().error(
-                    f'Could not find device at {hex(address)}')
+                    f'Could not find device at {hex(address)}'
+                )
             else:
                 if not success:
                     self.get_logger().warning(
                         f'Device at {hex(address)} does '
-                        'not seem to be an ESC. Ignoring it.')
+                        'not seem to be an ESC. Ignoring it.'
+                    )
             if success:
                 self.get_logger().info(f'ESC at {hex(address)} added.')
                 escs[i] = esc
@@ -192,12 +204,12 @@ class ESC(Node):
 
 def main():
     rclpy.init()
-    node = ESC("esc_commander")
+    node = ESC('esc_commander')
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

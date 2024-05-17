@@ -26,8 +26,10 @@ def declare_launch_args(launch_description: LaunchDescription):
 
 def include_attitude_control(launch_description: LaunchDescription):
     package_path = get_package_share_path('hippo_control')
-    path = str(package_path /
-               'launch/attitude_control/attitude_control_hippocampus.launch.py')
+    path = str(
+        package_path
+        / 'launch/attitude_control/attitude_control_hippocampus.launch.py'
+    )
     source = PythonLaunchDescriptionSource(path)
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
@@ -43,10 +45,12 @@ def include_carrot_control(launch_description: LaunchDescription):
     args.add_vehicle_name_and_sim_time()
     args.add(['carrot_control_config'])
     action = IncludeLaunchDescription(source, launch_arguments=args.items())
-    action = GroupAction([
-        PushRosNamespace(LaunchConfiguration('vehicle_name')),
-        action,
-    ])
+    action = GroupAction(
+        [
+            PushRosNamespace(LaunchConfiguration('vehicle_name')),
+            action,
+        ]
+    )
     launch_description.add_action(action)
 
 

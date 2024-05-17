@@ -21,7 +21,6 @@ import pyquaternion
 
 
 class Generator:
-
     def __init__(self) -> None:
         self.position: np.ndarray
         self.heading = np.ndarray
@@ -33,11 +32,12 @@ class Generator:
         t = np.linspace(0.0, 2.0 * np.pi, n_samples)
 
         def x_coord(t):
-            return (a * np.sqrt(2) * np.cos(t)) / (np.sin(t)**2 + 1.0)
+            return (a * np.sqrt(2) * np.cos(t)) / (np.sin(t) ** 2 + 1.0)
 
         def y_coord(t):
-            return (a * np.sqrt(2) * np.cos(t) * np.sin(t) /
-                    (np.sin(t)**2 + 1.0))
+            return (
+                a * np.sqrt(2) * np.cos(t) * np.sin(t) / (np.sin(t) ** 2 + 1.0)
+            )
 
         x = x_coord(t)
         y = y_coord(t)

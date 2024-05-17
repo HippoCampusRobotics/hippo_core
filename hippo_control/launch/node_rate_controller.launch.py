@@ -14,15 +14,15 @@ def declare_launch_args(launch_description: LaunchDescription):
 
 
 def add_node(launch_description: LaunchDescription):
-    action = Node(package='hippo_control',
-                  executable='rate_controller_node',
-                  parameters=[
-                      {
-                          'use_sim_time': LaunchConfiguration('use_sim_time')
-                      },
-                      LaunchConfiguration('rate_control_config'),
-                  ],
-                  output='screen')
+    action = Node(
+        package='hippo_control',
+        executable='rate_controller_node',
+        parameters=[
+            {'use_sim_time': LaunchConfiguration('use_sim_time')},
+            LaunchConfiguration('rate_control_config'),
+        ],
+        output='screen',
+    )
     launch_description.add_action(action)
 
 

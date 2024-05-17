@@ -9,30 +9,38 @@ def declare_launch_args(launch_description: LaunchDescription):
     action = DeclareLaunchArgument(
         'attitude_control_feedthrough',
         default_value='false',
-        description=('Whether or not to skip the controller and feed through '
-                     'roll, pitch and yaw.'))
+        description=(
+            'Whether or not to skip the controller and feed through '
+            'roll, pitch and yaw.'
+        ),
+    )
     launch_description.add_action(action)
 
-    default_path = get_package_share_path(
-        'hippo_control') / 'config/attitude_control_hippocampus_default.yaml'
-    action = DeclareLaunchArgument(name='attitude_control_config',
-                                   default_value=str(default_path))
+    default_path = (
+        get_package_share_path('hippo_control')
+        / 'config/attitude_control_hippocampus_default.yaml'
+    )
+    action = DeclareLaunchArgument(
+        name='attitude_control_config', default_value=str(default_path)
+    )
     launch_description.add_action(action)
 
 
 def add_node(launch_description: LaunchDescription):
-    action = Node(package='hippo_control',
-                  executable='geometric_attitude_control_node',
-                  parameters=[
-                      {
-                          'feedthrough':
-                          LaunchConfiguration('attitude_control_feedthrough'),
-                          'use_sim_time':
-                          LaunchConfiguration('use_sim_time')
-                      },
-                      LaunchConfiguration('attitude_control_config'),
-                  ],
-                  output='screen')
+    action = Node(
+        package='hippo_control',
+        executable='geometric_attitude_control_node',
+        parameters=[
+            {
+                'feedthrough': LaunchConfiguration(
+                    'attitude_control_feedthrough'
+                ),
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            },
+            LaunchConfiguration('attitude_control_config'),
+        ],
+        output='screen',
+    )
     launch_description.add_action(action)
 
 

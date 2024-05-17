@@ -30,7 +30,6 @@ from std_msgs.msg import Float64
 
 
 class CameraServo(Node):
-
     def __init__(self, node_name):
         super().__init__(node_name=node_name)
         self.timed_out = False
@@ -47,8 +46,9 @@ class CameraServo(Node):
         descr.type = ParameterType.PARAMETER_INTEGER
         self.declare_parameter('tilt', 50, descr)
         self.add_on_set_parameters_callback(self.on_parameters)
-        self.tilt_sub = self.create_subscription(Float64, '~/tilt',
-                                                 self.on_tilt, 10)
+        self.tilt_sub = self.create_subscription(
+            Float64, '~/tilt', self.on_tilt, 10
+        )
 
     def on_parameters(self, params):
         for param in params:

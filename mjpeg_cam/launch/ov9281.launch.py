@@ -10,17 +10,18 @@ def generate_launch_description():
     pkg_path = get_package_share_path('mjpeg_cam')
     config_file_path = str(pkg_path / 'config/ov9281.yaml')
 
-    action = Node(executable='mjpeg_cam_node',
-                  name=LaunchConfiguration('camera_name'),
-                  namespace=LaunchConfiguration('camera_name'),
-                  package='mjpeg_cam',
-                  parameters=[
-                      {
-                          'use_sim_time': False,
-                      },
-                      LaunchConfiguration('config_file',
-                                          default=config_file_path),
-                  ])
+    action = Node(
+        executable='mjpeg_cam_node',
+        name=LaunchConfiguration('camera_name'),
+        namespace=LaunchConfiguration('camera_name'),
+        package='mjpeg_cam',
+        parameters=[
+            {
+                'use_sim_time': False,
+            },
+            LaunchConfiguration('config_file', default=config_file_path),
+        ],
+    )
     launch_description.add_action(action)
 
     return launch_description

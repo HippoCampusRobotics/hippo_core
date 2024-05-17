@@ -30,7 +30,6 @@ from std_msgs.msg import Float64
 
 
 class SpotLight(Node):
-
     def __init__(self, node_name):
         super().__init__(node_name=node_name)
         self.timed_out = False
@@ -47,8 +46,9 @@ class SpotLight(Node):
         descr.type = ParameterType.PARAMETER_INTEGER
         self.declare_parameter('brightness', 50, descr)
         self.add_on_set_parameters_callback(self.on_parameters)
-        self.brightness_sub = self.create_subscription(Float64, '~/brightness',
-                                                       self.on_brightness, 10)
+        self.brightness_sub = self.create_subscription(
+            Float64, '~/brightness', self.on_brightness, 10
+        )
 
     def on_parameters(self, params):
         for param in params:
@@ -67,8 +67,9 @@ class SpotLight(Node):
     def on_brightness(self, msg: Float64):
         value = min(1.0, max(0.0, msg.data))
         self.set_servo(value)
-        param = Parameter('brightness', Parameter.Type.INTEGER,
-                          int(value * 100.0))
+        param = Parameter(
+            'brightness', Parameter.Type.INTEGER, int(value * 100.0)
+        )
         self.set_parameters([param])
 
 

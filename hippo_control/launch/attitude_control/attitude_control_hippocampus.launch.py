@@ -10,26 +10,32 @@ def declare_launch_args(launch_description: LaunchDescription):
     package_path = get_package_share_path('hippo_control')
 
     default_path = str(
-        package_path /
-        'config/attitude_control/geometric_hippocampus_default.yaml')
-    action = DeclareLaunchArgument(name='attitude_control_config',
-                                   default_value=default_path)
+        package_path
+        / 'config/attitude_control/geometric_hippocampus_default.yaml'
+    )
+    action = DeclareLaunchArgument(
+        name='attitude_control_config', default_value=default_path
+    )
     launch_description.add_action(action)
 
-    default_path = str(package_path /
-                       'config/actuator_mixer/hippocampus_default.yaml')
+    default_path = str(
+        package_path / 'config/actuator_mixer/hippocampus_default.yaml'
+    )
     action = DeclareLaunchArgument(
         name='mixer_path',
         default_value=default_path,
-        description='Path to mixer configuration .yaml file.')
+        description='Path to mixer configuration .yaml file.',
+    )
     launch_description.add_action(action)
 
 
 def include_launch_files(launch_description: LaunchDescription):
     package_path = get_package_share_path('hippo_control')
 
-    path = str(package_path /
-               'launch/attitude_control/attitude_control_generic.launch.py')
+    path = str(
+        package_path
+        / 'launch/attitude_control/attitude_control_generic.launch.py'
+    )
     source = PythonLaunchDescriptionSource(path)
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()

@@ -10,7 +10,6 @@ from sensor_msgs.msg import CompressedImage
 
 
 class CameraNode(Node):
-
     def __init__(self):
         super().__init__('mjpeg_camera')
         self.bridge = CvBridge()
@@ -24,15 +23,18 @@ class CameraNode(Node):
         qos = rclpy.qos.QoSProfile(
             reliability=rclpy.qos.QoSReliabilityPolicy.BEST_EFFORT,
             history=rclpy.qos.QoSHistoryPolicy.KEEP_LAST,
-            depth=1)
-        self.image_pub = self.create_publisher(CompressedImage,
-                                               'image_raw/compressed', qos)
+            depth=1,
+        )
+        self.image_pub = self.create_publisher(
+            CompressedImage, 'image_raw/compressed', qos
+        )
 
         self.grab_thread = threading.Thread(target=self.grab_worker)
         self.grab_thread.start()
 
     def grab_worker(self):
         import time
+
         time.sleep(1.0)
         while rclpy.ok():
             success, frame = self.device.read()

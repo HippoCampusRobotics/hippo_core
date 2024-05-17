@@ -8,24 +8,29 @@ from hippo_common.launch_helper import LaunchArgsDict
 
 
 def declare_launch_args(launch_description: LaunchDescription):
-    default = get_package_share_path(
-        'path_planning') / 'config/path_follower_default.yaml'
+    default = (
+        get_package_share_path('path_planning')
+        / 'config/path_follower_default.yaml'
+    )
     action = DeclareLaunchArgument(
         'path_follower_config',
         description='Path to the path follower configuration YAML file',
-        default_value=str(default))
+        default_value=str(default),
+    )
     launch_description.add_action(action)
 
 
 def add_path_follower_node(launch_description: LaunchDescription):
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
-    action = Node(package='path_planning',
-                  executable='path_follower_node',
-                  parameters=[
-                      args,
-                      LaunchConfiguration('path_follower_config'),
-                  ])
+    action = Node(
+        package='path_planning',
+        executable='path_follower_node',
+        parameters=[
+            args,
+            LaunchConfiguration('path_follower_config'),
+        ],
+    )
     launch_description.add_action(action)
 
 

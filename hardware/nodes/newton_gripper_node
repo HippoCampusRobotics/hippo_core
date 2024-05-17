@@ -24,7 +24,6 @@ from hippo_msgs.msg import NewtonGripperCommand
 
 
 class NewtonGripper(Node):
-
     def __init__(self, node_name):
         super().__init__(node_name=node_name)
         self.timed_out = False
@@ -33,19 +32,21 @@ class NewtonGripper(Node):
         self.gripper_pin = 18
         self.command_timeout = 0.5
 
-        self.timeout_timer = self.create_timer(self.command_timeout,
-                                               self.on_timeout)
+        self.timeout_timer = self.create_timer(
+            self.command_timeout, self.on_timeout
+        )
 
-        self.command_sub = self.create_subscription(NewtonGripperCommand,
-                                                    'gripper_command',
-                                                    self.on_gripper_command, 10)
+        self.command_sub = self.create_subscription(
+            NewtonGripperCommand, 'gripper_command', self.on_gripper_command, 10
+        )
 
     def on_gripper_command(self, msg: NewtonGripperCommand):
         self.timeout_timer.reset()
         if self.timed_out:
             self.timed_out = False
             self.get_logger().info(
-                f'"{self.command_sub.topic_name}" not timed out anymore')
+                f'"{self.command_sub.topic_name}" not timed out anymore'
+            )
         if msg.action == NewtonGripperCommand.ACTION_CLOSE:
             self.close_gripper()
         elif msg.action == NewtonGripperCommand.ACTION_OPEN:
@@ -54,7 +55,8 @@ class NewtonGripper(Node):
             self.stop_gripper()
         else:
             self.get_logger().warning(
-                f'Received unhandled action: {msg.action}')
+                f'Received unhandled action: {msg.action}'
+            )
 
     def open_gripper(self):
         self.pi.set_servo_pulsewidth(self.gripper_pin, 1800)

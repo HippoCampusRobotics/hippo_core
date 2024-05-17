@@ -20,10 +20,13 @@ def declare_launch_args(launch_description: LaunchDescription):
     launch_description.add_action(action)
 
     package_path = get_package_share_path('hippo_control')
-    path = str(package_path /
-               'config/attitude_control/quaternion_motor_failure_default.yaml')
-    action = DeclareLaunchArgument('attitude_control_config',
-                                   default_value=path)
+    path = str(
+        package_path
+        / 'config/attitude_control/quaternion_motor_failure_default.yaml'
+    )
+    action = DeclareLaunchArgument(
+        'attitude_control_config', default_value=path
+    )
     launch_description.add_action(action)
 
     path = str(package_path / 'config/motor_failure_default.yaml')

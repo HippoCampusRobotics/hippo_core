@@ -22,13 +22,16 @@ def include_launch_files(launch_description: LaunchDescription):
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
 
-    depth_estimator = IncludeLaunchDescription(source,
-                                               launch_arguments=args.items())
+    depth_estimator = IncludeLaunchDescription(
+        source, launch_arguments=args.items()
+    )
 
-    action = GroupAction([
-        PushRosNamespace(LaunchConfiguration('vehicle_name')),
-        depth_estimator,
-    ])
+    action = GroupAction(
+        [
+            PushRosNamespace(LaunchConfiguration('vehicle_name')),
+            depth_estimator,
+        ]
+    )
     launch_description.add_action(action)
 
 

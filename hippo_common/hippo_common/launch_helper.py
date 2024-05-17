@@ -26,7 +26,6 @@ from launch_ros.actions import Node, PushRosNamespace
 
 
 class LaunchArgsDict(dict):
-
     def add(self, name: str | Iterable[str]) -> None:
         """Add a LaunchConfiguration as a key value pair to the internal dict.
 
@@ -50,33 +49,40 @@ class LaunchArgsDict(dict):
         self.add_vehicle_name()
 
 
-def declare_vehicle_name_and_sim_time(launch_description: LaunchDescription,
-                                      use_sim_time_default=None):
+def declare_vehicle_name_and_sim_time(
+    launch_description: LaunchDescription, use_sim_time_default=None
+):
     declare_vehicle_name(launch_description=launch_description)
-    declare_use_sim_time(launch_description=launch_description,
-                         default=use_sim_time_default)
+    declare_use_sim_time(
+        launch_description=launch_description, default=use_sim_time_default
+    )
 
 
 def declare_vehicle_name(launch_description: LaunchDescription):
     action = DeclareLaunchArgument(
-        'vehicle_name', description='Vehicle name used as namespace.')
+        'vehicle_name', description='Vehicle name used as namespace.'
+    )
     launch_description.add_action(action)
 
 
 def declare_use_sim_time(launch_description: LaunchDescription, default=None):
     action = DeclareLaunchArgument(
         'use_sim_time',
-        description=('Decides wether to use the wall time or the clock topic '
-                     'as time reference. Set to TRUE for simulation.'),
-        default_value=default)
+        description=(
+            'Decides wether to use the wall time or the clock topic '
+            'as time reference. Set to TRUE for simulation.'
+        ),
+        default_value=default,
+    )
     launch_description.add_action(action)
 
 
 def create_camera_bridge(
-        vehicle_name: str | Substitution,
-        camera_name: str | Substitution,
-        use_camera: LaunchConfiguration,
-        image_name: str | Substitution = 'image_rect') -> GroupAction:
+    vehicle_name: str | Substitution,
+    camera_name: str | Substitution,
+    use_camera: LaunchConfiguration,
+    image_name: str | Substitution = 'image_rect',
+) -> GroupAction:
     base_topic = PathJoinSubstitution(['/', vehicle_name, camera_name])
     image_topic = PathJoinSubstitution([base_topic, image_name])
     image_types = '@sensor_msgs/msg/Image[ignition.msgs.Image'
@@ -90,20 +96,22 @@ def create_camera_bridge(
         'name': [camera_name],
     }
 
-    node_group = GroupAction(launch_configurations=group_configs,
-                             actions=[
-                                 PushRosNamespace(vehicle_name),
-                                 Node(
-                                     package='ros_gz_bridge',
-                                     executable='parameter_bridge',
-                                     name=LaunchConfiguration('name'),
-                                     arguments=[
-                                         LaunchConfiguration('camera_info'),
-                                         LaunchConfiguration('image_topic'),
-                                     ],
-                                     condition=IfCondition(use_camera),
-                                     output='screen',
-                                 ),
-                             ])
+    node_group = GroupAction(
+        launch_configurations=group_configs,
+        actions=[
+            PushRosNamespace(vehicle_name),
+            Node(
+                package='ros_gz_bridge',
+                executable='parameter_bridge',
+                name=LaunchConfiguration('name'),
+                arguments=[
+                    LaunchConfiguration('camera_info'),
+                    LaunchConfiguration('image_topic'),
+                ],
+                condition=IfCondition(use_camera),
+                output='screen',
+            ),
+        ],
+    )
 
     return node_group

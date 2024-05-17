@@ -44,30 +44,40 @@ class EkfParams:
 
 
 class KalmanFilter(object):
-
     def __init__(self, ekf_params: EkfParams, atmospheric_pressure=101300):
         self.ekf_params = ekf_params
 
         self.dim_state = 2
         self.dim_meas = 1
-        self._x_est_0 = np.array(astuple(
-            self.ekf_params.initial_state)).reshape((-1, 1))
+        self._x_est_0 = np.array(
+            astuple(self.ekf_params.initial_state)
+        ).reshape((-1, 1))
         self._p0_mat = self.ekf_params.initial_state_covariance
         self._p0_mat = np.array(
-            np.diag([
-                self.ekf_params.initial_state_covariance.z**2,
-                self.ekf_params.initial_state_covariance.dz**2
-            ]))
+            np.diag(
+                [
+                    self.ekf_params.initial_state_covariance.z**2,
+                    self.ekf_params.initial_state_covariance.dz**2,
+                ]
+            )
+        )
 
         self._x_est = self._x_est_0
         self._p_mat = self._p0_mat
 
-        self._v_mat = np.array((np.diag([
-            self.ekf_params.process_noise.z**2,
-            self.ekf_params.process_noise.dz**2
-        ])))
+        self._v_mat = np.array(
+            (
+                np.diag(
+                    [
+                        self.ekf_params.process_noise.z**2,
+                        self.ekf_params.process_noise.dz**2,
+                    ]
+                )
+            )
+        )
         self._w_mat = np.array(
-            np.diag([self.ekf_params.measurement_noise.pressure**2]))
+            np.diag([self.ekf_params.measurement_noise.pressure**2])
+        )
         self._h_mat = np.array([-1.0e4, 0.0]).reshape((1, -1))
         self._atmos_press = atmospheric_pressure
 
@@ -101,8 +111,10 @@ class KalmanFilter(object):
     def predict(self, dt):
         a_mat = np.array([[1, dt], [0, 1]])
         self._x_est = np.matmul(a_mat, self._x_est)
-        self._p_mat = np.matmul(np.matmul(a_mat, self._p_mat),
-                                a_mat.transpose()) + self._v_mat
+        self._p_mat = (
+            np.matmul(np.matmul(a_mat, self._p_mat), a_mat.transpose())
+            + self._v_mat
+        )
 
     def update(self, z):
         # estimated pressure measurement
@@ -111,10 +123,15 @@ class KalmanFilter(object):
         y = np.asarray(z - z_est).reshape((-1, 1))
 
         # compute K gain
-        tmp = np.matmul(np.matmul(self._h_mat, self._p_mat),
-                        self._h_mat.transpose()) + self._w_mat
-        k_mat = np.matmul(np.matmul(self._p_mat, self._h_mat.transpose()),
-                          np.linalg.inv(tmp))
+        tmp = (
+            np.matmul(
+                np.matmul(self._h_mat, self._p_mat), self._h_mat.transpose()
+            )
+            + self._w_mat
+        )
+        k_mat = np.matmul(
+            np.matmul(self._p_mat, self._h_mat.transpose()), np.linalg.inv(tmp)
+        )
 
         # update state
         self._x_est = self._x_est + np.matmul(k_mat, y)
@@ -125,13 +142,13 @@ class KalmanFilter(object):
 
 
 class DepthEstimatorNode(Node):
-
     def __init__(self, node_name):
         super().__init__(node_name=node_name)
 
         self.declare_parameter('atmospheric_pressure', 101300)
         self.atmospheric_pressure = str(
-            self.get_parameter('atmospheric_pressure').value)
+            self.get_parameter('atmospheric_pressure').value
+        )
         # self.get_logger().info(
         #     f'Atmospheric pressure is set to: {self.atmospheric_pressure}')
 
@@ -140,22 +157,22 @@ class DepthEstimatorNode(Node):
 
         self.t_last_prediction = self.get_clock().now()
 
-        self.depth_pub = self.create_publisher(DepthStamped,
-                                               'depth',
-                                               qos_profile=1)
+        self.depth_pub = self.create_publisher(
+            DepthStamped, 'depth', qos_profile=1
+        )
 
-        self.pressure_sub = self.create_subscription(FluidPressure,
-                                                     'pressure',
-                                                     self.on_pressure,
-                                                     qos_profile=1)
+        self.pressure_sub = self.create_subscription(
+            FluidPressure, 'pressure', self.on_pressure, qos_profile=1
+        )
 
-        self.predict_timer = self.create_timer(timer_period_sec=(1 / 30),
-                                               callback=self.predict)
-        self.send_depth_timer = self.create_timer(timer_period_sec=(1 / 30),
-                                                  callback=self.send_depth)
+        self.predict_timer = self.create_timer(
+            timer_period_sec=(1 / 30), callback=self.predict
+        )
+        self.send_depth_timer = self.create_timer(
+            timer_period_sec=(1 / 30), callback=self.send_depth
+        )
 
     def init_ekf_params(self):
-
         def recursion(data: Any, name: str):
             if not dataclasses.is_dataclass(data):
                 descriptor = ParameterDescriptor()
@@ -171,9 +188,12 @@ class DepthEstimatorNode(Node):
                 return self.get_parameter(name).value
             for field_name in data.__annotations__.keys():
                 setattr(
-                    data, field_name,
-                    recursion(getattr(data, f'{field_name}'),
-                              f'{name}.{field_name}'))
+                    data,
+                    field_name,
+                    recursion(
+                        getattr(data, f'{field_name}'), f'{name}.{field_name}'
+                    ),
+                )
             return data
 
         ekf_params = recursion(EkfParams(), 'ekf_params')
@@ -203,12 +223,12 @@ class DepthEstimatorNode(Node):
 
 def main():
     rclpy.init()
-    node = DepthEstimatorNode("depth_estimator_node")
+    node = DepthEstimatorNode('depth_estimator_node')
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

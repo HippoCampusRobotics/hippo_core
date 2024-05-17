@@ -15,7 +15,8 @@ def declare_launch_args(launch_description: LaunchDescription):
 
     package_path = get_package_share_path('hippo_common')
     default_config_vehicle_file = package_path / (
-        'config/transformations_bluerov_default.yaml')
+        'config/transformations_bluerov_default.yaml'
+    )
     action = DeclareLaunchArgument(
         name='tf_vehicle_config_file',
         default_value=str(default_config_vehicle_file),
@@ -30,16 +31,20 @@ def generate_launch_description():
     launch_args = LaunchArgsDict()
     launch_args.add_vehicle_name_and_sim_time()
 
-    action = GroupAction([
-        PushROSNamespace(LaunchConfiguration('vehicle_name')),
-        Node(package='hippo_common',
-             executable='tf_publisher_vehicle_node',
-             output='screen',
-             parameters=[
-                 launch_args,
-                 LaunchConfiguration('tf_vehicle_config_file'),
-             ]),
-    ])
+    action = GroupAction(
+        [
+            PushROSNamespace(LaunchConfiguration('vehicle_name')),
+            Node(
+                package='hippo_common',
+                executable='tf_publisher_vehicle_node',
+                output='screen',
+                parameters=[
+                    launch_args,
+                    LaunchConfiguration('tf_vehicle_config_file'),
+                ],
+            ),
+        ]
+    )
     launch_description.add_action(action)
 
     return launch_description

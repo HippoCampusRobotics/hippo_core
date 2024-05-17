@@ -14,11 +14,14 @@ def generate_launch_description():
     use_sim_time_launch_arg = launch.actions.DeclareLaunchArgument(
         name='use_sim_time',
         default_value='false',
-        description='decide if simulation time is used')
+        description='decide if simulation time is used',
+    )
     vehicle_name_launch_arg = launch.actions.DeclareLaunchArgument(
-        name='vehicle_name', description='Vehicle name used as namespace.')
+        name='vehicle_name', description='Vehicle name used as namespace.'
+    )
     serial_port_arg = launch.actions.DeclareLaunchArgument(
-        name='serial_port', default_value='/dev/teensy_data')
+        name='serial_port', default_value='/dev/teensy_data'
+    )
 
     launch_includes = []
     # include teensy_esc node
@@ -30,14 +33,20 @@ def generate_launch_description():
     }.items()
     descr = launch.actions.IncludeLaunchDescription(
         launch.launch_description_sources.PythonLaunchDescriptionSource(path),
-        launch_arguments=launch_arguments)
+        launch_arguments=launch_arguments,
+    )
 
     launch_includes.append(descr)
 
     namespace_group = launch.actions.GroupAction(
-        [launch_ros.actions.PushRosNamespace(vehicle_name)] + launch_includes)
+        [launch_ros.actions.PushRosNamespace(vehicle_name)] + launch_includes
+    )
 
-    return launch.LaunchDescription([
-        use_sim_time_launch_arg, serial_port_arg, vehicle_name_launch_arg,
-        namespace_group
-    ])
+    return launch.LaunchDescription(
+        [
+            use_sim_time_launch_arg,
+            serial_port_arg,
+            vehicle_name_launch_arg,
+            namespace_group,
+        ]
+    )

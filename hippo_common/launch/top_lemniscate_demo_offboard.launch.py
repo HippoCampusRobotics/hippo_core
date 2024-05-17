@@ -24,23 +24,28 @@ def declare_launch_args(launch_description: LaunchDescription):
     declare_vehicle_name_and_sim_time(launch_description)
 
     package_path = get_package_share_path('hippo_control')
-    path = str(package_path /
-               'config/actuator_mixer/hippocampus_normalized_default.yaml')
+    path = str(
+        package_path
+        / 'config/actuator_mixer/hippocampus_normalized_default.yaml'
+    )
     action = DeclareLaunchArgument('mixer_path', default_value=path)
     launch_description.add_action(action)
 
     package_path = get_package_share_path('hippo_common')
     default = str(package_path / ('config/transformations_hippo_default.yaml'))
-    action = DeclareLaunchArgument(name='tf_vehicle_config_file',
-                                   description='TF config file',
-                                   default_value=default)
+    action = DeclareLaunchArgument(
+        name='tf_vehicle_config_file',
+        description='TF config file',
+        default_value=default,
+    )
     launch_description.add_action(action)
 
 
 def include_path_follower():
     package_path = get_package_share_path('hippo_control')
-    path = str(package_path /
-               'launch/top_path_following_intra_process.launch.py')
+    path = str(
+        package_path / 'launch/top_path_following_intra_process.launch.py'
+    )
     source = PythonLaunchDescriptionSource(path)
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
