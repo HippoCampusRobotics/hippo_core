@@ -33,7 +33,6 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(hippo_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
@@ -52,7 +51,6 @@ target_link_libraries(hippo_common
 ament_target_dependencies(hippo_common
   Eigen3
   geometry_msgs
-  hippo_msgs
   rclcpp
 )
 ament_export_targets(hippo_commonTarget HAS_LIBRARY_TARGET)
@@ -68,7 +66,7 @@ install(TARGETS hippo_common
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib
 )
-ament_export_dependencies(Eigen3 hippo_msgs geometry_msgs rclcpp yaml-cpp)
+ament_export_dependencies(Eigen3 geometry_msgs rclcpp yaml-cpp)
 ################################################################################
 ## tf_publisher composable node
 ################################################################################
