@@ -91,9 +91,9 @@ def create_camera_bridge(
 ) -> GroupAction:
     base_topic = PathJoinSubstitution(['/', vehicle_name, camera_name])
     image_topic = PathJoinSubstitution([base_topic, image_name])
-    image_types = '@sensor_msgs/msg/Image[ignition.msgs.Image'
+    image_types = '@sensor_msgs/msg/Image[gz.msgs.Image'
     camera_info_topic = PathJoinSubstitution([base_topic, 'camera_info'])
-    camera_info_types = '@sensor_msgs/msg/CameraInfo[ignition.msgs.CameraInfo'
+    camera_info_types = '@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo'
 
     group_configs = {
         'camera_info': [camera_info_topic, camera_info_types],
