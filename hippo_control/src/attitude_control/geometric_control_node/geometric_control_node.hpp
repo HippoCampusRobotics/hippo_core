@@ -21,7 +21,7 @@
 #include <geometry_msgs/msg/quaternion_stamped.hpp>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <hippo_control_msgs/msg/actuator_setpoint.hpp>
-#include <hippo_msgs/msg/float64_stamped.hpp>
+#include <hippo_control_msgs/msg/roll_target.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/parameter.hpp>
@@ -61,8 +61,8 @@ class GeometricControlNode : public rclcpp::Node {
 
   void OnOdometry(const nav_msgs::msg::Odometry::SharedPtr msg);
   void OnHeadingTarget(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
-  void OnRollTarget(const hippo_msgs::msg::Float64Stamped::SharedPtr msg) {
-    roll_target_ = msg->data;
+  void OnRollTarget(const hippo_control_msgs::msg::RollTarget::SharedPtr msg) {
+    roll_target_ = msg->roll_target;
   }
   void SetControllerGains();
 
@@ -84,7 +84,7 @@ class GeometricControlNode : public rclcpp::Node {
   //////////////////////////////////////////////////////////////////////////////
   rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr
       heading_target_sub_;
-  rclcpp::Subscription<hippo_msgs::msg::Float64Stamped>::SharedPtr
+  rclcpp::Subscription<hippo_control_msgs::msg::RollTarget>::SharedPtr
       roll_target_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
 

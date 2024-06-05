@@ -54,7 +54,7 @@ void GeometricControlNode::InitPublishers() {
 
 void GeometricControlNode::InitSubscriptions() {
   using geometry_msgs::msg::Vector3Stamped;
-  using hippo_msgs::msg::Float64Stamped;
+  using hippo_control_msgs::msg::RollTarget;
   using nav_msgs::msg::Odometry;
 
   std::string topic;
@@ -71,9 +71,9 @@ void GeometricControlNode::InitSubscriptions() {
       topic, qos, [this](const Odometry::SharedPtr msg) { OnOdometry(msg); });
 
   topic = "roll_target";
-  roll_target_sub_ = create_subscription<Float64Stamped>(
+  roll_target_sub_ = create_subscription<RollTarget>(
       topic, qos,
-      [this](const Float64Stamped::SharedPtr msg) { OnRollTarget(msg); });
+      [this](const RollTarget::SharedPtr msg) { OnRollTarget(msg); });
 }
 
 hippo_control_msgs::msg::ActuatorSetpoint GeometricControlNode::ZeroMsg(
