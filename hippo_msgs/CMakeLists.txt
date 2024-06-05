@@ -39,6 +39,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/AnchorPose.msg"
   "msg/AnchorPoses.msg"
   "msg/AngularVelocity.msg"
+  "msg/BoolStamped.msg"
   "msg/DepthStamped.msg"
   "msg/EscRpms.msg"
   "msg/EscVoltages.msg"
