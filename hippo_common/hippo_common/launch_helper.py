@@ -17,12 +17,18 @@
 
 from typing import Iterable
 
+from ament_index_python.packages import get_package_share_path
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction
 from launch.conditions import IfCondition
 from launch.substitution import Substitution
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, PushRosNamespace
+
+
+def config_file_path(pkg_name: str, file_name: str):
+    path = get_package_share_path(pkg_name) / 'config' / file_name
+    return str(path)
 
 
 class LaunchArgsDict(dict):
