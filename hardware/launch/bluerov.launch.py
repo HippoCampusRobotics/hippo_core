@@ -2,6 +2,7 @@ from ament_index_python.packages import get_package_share_path
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
+    ExecuteProcess,
     GroupAction,
     IncludeLaunchDescription,
 )
@@ -132,6 +133,21 @@ def add_micro_ros_agent():
     return action
 
 
+def add_micro_xrce_agent():
+    action = ExecuteProcess(
+        cmd=[
+            'MicroXRCEAgent',
+            'serial',
+            '--dev',
+            '/dev/fcu_data',
+            '-b',
+            '921600',
+        ],
+        output='screen',
+    )
+    return action
+
+
 def generate_launch_description():
     launch_description = LaunchDescription()
     declare_launch_args(launch_description=launch_description)
@@ -150,6 +166,7 @@ def generate_launch_description():
     )
     launch_description.add_action(group)
 
-    launch_description.add_action(add_micro_ros_agent())
+    # launch_description.add_action(add_micro_ros_agent())
+    launch_description.add_action(add_micro_xrce_agent())
 
     return launch_description
