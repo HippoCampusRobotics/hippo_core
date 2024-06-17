@@ -167,6 +167,13 @@ void TeensyCommander::OnActuatorControls(
   ReadSerial();
 }
 
+/**
+ * @brief Apply a polynomial input mapping to compensate for battery charge
+ * dependent voltage drop.
+ *
+ * @param input Must be in range [-1, 1]
+ * @return PWM value between [1100, 1900]
+ */
 uint16_t TeensyCommander::ApplyPolynomialInputMapping(double input) {
   if (std::abs(input) < zero_rpm_threshold_) {
     return uint16_t(1500);
@@ -192,6 +199,12 @@ uint16_t TeensyCommander::ApplyPolynomialInputMapping(double input) {
   return std::clamp(uint16_t(pwm), uint16_t(1000), uint16_t(2000));
 }
 
+/**
+ * @brief Apply a simple linear input mapping.
+ *
+ * @param input Must be in range [-1, 1]
+ * @return PWM value between [1100, 1900]
+ */
 uint16_t TeensyCommander::ApplyLinearInputMapping(double input) {
   uint16_t pwm = 1500 + 400 * input;
   return pwm;
