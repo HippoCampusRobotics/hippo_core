@@ -21,10 +21,13 @@
 #include <sys/ioctl.h>
 
 #include <algorithm>
-#include <thread>
+#include <cmath>
+
+#define NANF (std::numeric_limits<float>::quiet_NaN())
 
 namespace esc {
 namespace teensy {
+
 TeensyCommander::TeensyCommander(rclcpp::NodeOptions const &_options)
     : Node("teensy_commander", _options) {
   DeclareParams();
@@ -101,15 +104,15 @@ void TeensyCommander::InitPublishers() {
   arming_state_pub_ =
       create_publisher<std_msgs::msg::Bool>(topic, rclcpp::SystemDefaultsQoS());
 
-  topic = "battery_voltage";
-  battery_voltage_pub_ = create_publisher<std_msgs::msg::Float64>(
+  topic = "battery_state";
+  battery_pub_ = create_publisher<sensor_msgs::msg::BatteryState>(
       topic, rclcpp::SystemDefaultsQoS());
 
   topic = "thruster_values";
   actuator_controls_pub_ =
       create_publisher<hippo_control_msgs::msg::ActuatorControls>(
           topic, rclcpp::SystemDefaultsQoS());
-  topic = "debug_pwm_output";
+  topic = "~/debug_pwm_output";
   pwm_output_debug_pub_ =
       create_publisher<hippo_control_msgs::msg::ActuatorControls>(
           topic, rclcpp::SystemDefaultsQoS());
@@ -164,7 +167,7 @@ void TeensyCommander::OnActuatorControls(
   ReadSerial();
 }
 
-uint16_t TeensyCommander::InputToPWM(double input) {
+uint16_t TeensyCommander::ApplyPolynomialInputMapping(double input) {
   if (std::abs(input) < zero_rpm_threshold_) {
     return uint16_t(1500);
   }
@@ -189,7 +192,20 @@ uint16_t TeensyCommander::InputToPWM(double input) {
   return std::clamp(uint16_t(pwm), uint16_t(1000), uint16_t(2000));
 }
 
-double TeensyCommander::PWMToInput(uint16_t pwm) {
+uint16_t TeensyCommander::ApplyLinearInputMapping(double input) {
+  uint16_t pwm = 1500 + 400 * input;
+  return pwm;
+}
+
+uint16_t TeensyCommander::InputToPWM(double input) {
+  if (params_.apply_pwm_to_thrust_mapping) {
+    return ApplyPolynomialInputMapping(input);
+  } else {
+    return ApplyLinearInputMapping(input);
+  }
+}
+
+double TeensyCommander::ApplyPolynomialPWMMapping(uint16_t pwm) {
   const double upper_limit_deadzone = interpolate(
       battery_voltage_mapping_, mapping_coeffs_.lower.voltage,
       mapping_coeffs_.upper.voltage, mapping_coeffs_.lower.forward.back(),
@@ -231,6 +247,19 @@ double TeensyCommander::PWMToInput(uint16_t pwm) {
         mapping_coeffs_.upper.backward[2]);
     return inverseSecondOrderPolynomial(double(pwm), quadratic_coeff,
                                         linear_coeff, constant_coeff);
+  }
+}
+
+double TeensyCommander::ApplyLinearPWMMapping(uint16_t pwm) {
+  double input = (static_cast<double>(pwm) - 1500) / 400;
+  return input;
+}
+
+double TeensyCommander::PWMToInput(uint16_t pwm) {
+  if (params_.apply_pwm_to_thrust_mapping) {
+    return ApplyPolynomialPWMMapping(pwm);
+  } else {
+    return ApplyLinearPWMMapping(pwm);
   }
 }
 
@@ -288,14 +317,37 @@ void TeensyCommander::PublishArmingState() {
 }
 
 void TeensyCommander::PublishBatteryVoltage() {
-  if (!battery_voltage_pub_) {
+  if (!battery_pub_) {
     RCLCPP_WARN(get_logger(), "Battery Voltage Publisher not available.");
     return;
   }
 
-  std_msgs::msg::Float64 msg;
-  msg.data = battery_voltage_;
-  battery_voltage_pub_->publish(msg);
+  constexpr int n_cells = 4;
+  const float cell_voltage = battery_voltage_ / n_cells;
+
+  using sensor_msgs::msg::BatteryState;
+  BatteryState msg;
+  msg.header.stamp = now();
+  msg.voltage = battery_voltage_;
+  msg.cell_voltage.reserve(n_cells);
+  msg.cell_temperature.reserve(n_cells);
+  for (int i = 0; i < n_cells; ++i) {
+    msg.cell_voltage.push_back(cell_voltage);
+    msg.cell_temperature.push_back(NANF);
+  }
+
+  msg.temperature = NANF;
+  msg.current = NANF;
+  msg.charge = NANF;
+  msg.capacity = NANF;
+  msg.design_capacity = 15.6f;
+  msg.percentage = NANF;
+  msg.power_supply_status = BatteryState::POWER_SUPPLY_STATUS_DISCHARGING;
+  msg.power_supply_health = BatteryState::POWER_SUPPLY_HEALTH_UNKNOWN;
+  msg.power_supply_technology = BatteryState::POWER_SUPPLY_TECHNOLOGY_LION;
+  msg.present = true;
+
+  battery_pub_->publish(msg);
 }
 
 void TeensyCommander::PublishThrusterValues(std::array<double, 8> &_values) {

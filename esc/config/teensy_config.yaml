@@ -1,6 +1,10 @@
 /**: # wildcard for the node name
   ros__parameters:
 
+    serial_port: "/dev/teensy_data"
+    # if false only a linear mapping form [-1,1] to [1100,1900] is applied
+    # and the paramters below are ignored
+    apply_pwm_to_thrust_mapping: false
     zero_rpm_threshold: 0.001 # in interval [-1, 1]
     coeffs_rpm_pwm: # coefficients calculating relation rpm->pwm for an input [-1, 1] to [1000, 2000] [mus]
       lower: # lower voltage bound
