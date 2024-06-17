@@ -12,6 +12,7 @@ from launch_ros.actions import Node, PushRosNamespace
 
 from hippo_common.launch_helper import (
     LaunchArgsDict,
+    config_file_path,
     declare_vehicle_name_and_sim_time,
 )
 
@@ -27,6 +28,12 @@ def declare_launch_args(launch_description: LaunchDescription):
         name='mixer_path',
         default_value=default_path,
         description='Path to mixer configuration .yaml file',
+    )
+    launch_description.add_action(action)
+
+    default_path = config_file_path('esc', 'teensy_config.yaml')
+    action = DeclareLaunchArgument(
+        name='esc_config_file', default_value=default_path
     )
     launch_description.add_action(action)
 
@@ -94,7 +101,7 @@ def add_esc_node():
         executable='teensy_commander_node',
         package='esc',
         name='esc_commander',
-        parameters=[args],
+        parameters=[args, LaunchConfiguration('esc_config_file')],
     )
     return action
 
