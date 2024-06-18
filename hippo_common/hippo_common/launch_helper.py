@@ -33,7 +33,7 @@ def config_file_path(pkg_name: str, file_name: str):
 
 
 def launch_file_source(pkg_name: str, file_name: str):
-    path = get_package_share_path(pkg_name) / 'config' / file_name
+    path = str(get_package_share_path(pkg_name) / 'launch' / file_name)
     source = PythonLaunchDescriptionSource(path)
     return source
 
