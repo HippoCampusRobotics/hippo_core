@@ -22,7 +22,7 @@
 namespace hippo_control {
 namespace mixer {
 
-SimpleMixer::SimpleMixer(){};
+SimpleMixer::SimpleMixer() {};
 
 void SimpleMixer::SetMapping(int _index, const Mapping &_mapping) {
   if ((_index >= kOutputChannels)) {
