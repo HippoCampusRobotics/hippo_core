@@ -159,6 +159,36 @@ class ESC : public rclcpp::Node {
 
   void OnSendThrottle() { SendThrottle(); }
 
+  void PublishBatteryState() {
+    sensor_msgs::msg::BatteryState voltage_msg;
+    constexpr int n_cells = 3;
+    const float cell_voltage = battery_voltage_ / n_cells;
+
+    using sensor_msgs::msg::BatteryState;
+    voltage_msg.header.stamp = now();
+    voltage_msg.voltage = battery_voltage_;
+    voltage_msg.cell_voltage.reserve(n_cells);
+    voltage_msg.cell_temperature.reserve(n_cells);
+    for (int i = 0; i < n_cells; ++i) {
+      voltage_msg.cell_voltage.push_back(cell_voltage);
+      voltage_msg.cell_temperature.push_back(NANF);
+    }
+
+    voltage_msg.temperature = NANF;
+    voltage_msg.current = NANF;
+    voltage_msg.charge = NANF;
+    voltage_msg.capacity = NANF;
+    voltage_msg.design_capacity = 15.6f;
+    voltage_msg.percentage = NANF;
+    voltage_msg.power_supply_status =
+        BatteryState::POWER_SUPPLY_STATUS_DISCHARGING;
+    voltage_msg.power_supply_health = BatteryState::POWER_SUPPLY_HEALTH_UNKNOWN;
+    voltage_msg.power_supply_technology =
+        BatteryState::POWER_SUPPLY_TECHNOLOGY_LION;
+    voltage_msg.present = true;
+    battery_voltage_pub_->publish(voltage_msg);
+  }
+
   void OnReadBattery() {
     auto msg = hippo_msgs::msg::EscVoltages();
     int i = 0;
@@ -180,39 +210,13 @@ class ESC : public rclcpp::Node {
       }
       ++i;
     }
-    sensor_msgs::msg::BatteryState voltage_msg;
-    constexpr int n_cells = 3;
-    const float cell_voltage = battery_voltage_ / n_cells;
-
-    using sensor_msgs::msg::BatteryState;
-    float battery_voltage;
     if (n_voltages > 0) {
-      battery_voltage = voltage_sum / n_voltages;
+      battery_voltage_ = voltage_sum / n_voltages;
     } else {
-      battery_voltage = std::numeric_limits<double>::quiet_NaN();
-    }
-    voltage_msg.header.stamp = now();
-    voltage_msg.voltage = battery_voltage;
-    voltage_msg.cell_voltage.reserve(n_cells);
-    voltage_msg.cell_temperature.reserve(n_cells);
-    for (int i = 0; i < n_cells; ++i) {
-      voltage_msg.cell_voltage.push_back(cell_voltage);
-      voltage_msg.cell_temperature.push_back(NANF);
+      battery_voltage_ = std::numeric_limits<double>::quiet_NaN();
     }
 
-    voltage_msg.temperature = NANF;
-    voltage_msg.current = NANF;
-    voltage_msg.charge = NANF;
-    voltage_msg.capacity = NANF;
-    voltage_msg.design_capacity = 15.6f;
-    voltage_msg.percentage = NANF;
-    voltage_msg.power_supply_status =
-        BatteryState::POWER_SUPPLY_STATUS_DISCHARGING;
-    voltage_msg.power_supply_health = BatteryState::POWER_SUPPLY_HEALTH_UNKNOWN;
-    voltage_msg.power_supply_technology =
-        BatteryState::POWER_SUPPLY_TECHNOLOGY_LION;
-    voltage_msg.present = true;
-    battery_voltage_pub_->publish(voltage_msg);
+    PublishBatteryState();
   }
 
   void OnThrusterCommand(
