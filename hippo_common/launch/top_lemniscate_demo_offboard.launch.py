@@ -79,6 +79,7 @@ def add_px4_bridge_node():
     args.add_vehicle_name_and_sim_time()
     return Node(
         package='visual_localization',
+        executable='px4_bridge',
         namespace=LaunchConfiguration('vehicle_name'),
         name='px4_bridge',
         parameters=[args],
