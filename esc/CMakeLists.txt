@@ -119,7 +119,7 @@ install(TARGETS ${component_name}
 ament_python_install_package(${PROJECT_NAME})
 
 add_executable(esc_commander_node src/esc_commander_node.cpp src/afro_esc.cpp)
-ament_target_dependencies(esc_commander_node rclcpp hippo_msgs hippo_control_msgs std_srvs)
+ament_target_dependencies(esc_commander_node rclcpp hippo_msgs hippo_control_msgs std_srvs sensor_msgs)
 
 # Install Python executables
 install(PROGRAMS

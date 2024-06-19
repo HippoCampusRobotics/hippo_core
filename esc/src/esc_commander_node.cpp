@@ -26,11 +26,14 @@
 #include <rclcpp/create_timer.hpp>
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/battery_state.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 
 #include "afro_esc.h"
+
+#define NANF (std::numeric_limits<float>::quiet_NaN())
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -66,7 +69,7 @@ class ESC : public rclcpp::Node {
         "esc_voltages", 50);
 
     battery_voltage_pub_ =
-        create_publisher<std_msgs::msg::Float64>("battery_voltage", 50);
+        create_publisher<sensor_msgs::msg::BatteryState>("battery_state", 50);
 
     esc_rpm_pub_ =
         this->create_publisher<hippo_msgs::msg::EscRpms>("esc_rpms", 50);
@@ -177,14 +180,39 @@ class ESC : public rclcpp::Node {
       }
       ++i;
     }
-    std_msgs::msg::Float64 voltage_msg;
+    sensor_msgs::msg::BatteryState voltage_msg;
+    constexpr int n_cells = 3;
+    const float cell_voltage = battery_voltage_ / n_cells;
+
+    using sensor_msgs::msg::BatteryState;
+    float battery_voltage;
     if (n_voltages > 0) {
-      voltage_msg.data = voltage_sum / n_voltages;
+      battery_voltage = voltage_sum / n_voltages;
     } else {
-      voltage_msg.data = std::numeric_limits<double>::quiet_NaN();
+      battery_voltage = std::numeric_limits<double>::quiet_NaN();
     }
+    voltage_msg.header.stamp = now();
+    voltage_msg.voltage = battery_voltage;
+    voltage_msg.cell_voltage.reserve(n_cells);
+    voltage_msg.cell_temperature.reserve(n_cells);
+    for (int i = 0; i < n_cells; ++i) {
+      voltage_msg.cell_voltage.push_back(cell_voltage);
+      voltage_msg.cell_temperature.push_back(NANF);
+    }
+
+    voltage_msg.temperature = NANF;
+    voltage_msg.current = NANF;
+    voltage_msg.charge = NANF;
+    voltage_msg.capacity = NANF;
+    voltage_msg.design_capacity = 15.6f;
+    voltage_msg.percentage = NANF;
+    voltage_msg.power_supply_status =
+        BatteryState::POWER_SUPPLY_STATUS_DISCHARGING;
+    voltage_msg.power_supply_health = BatteryState::POWER_SUPPLY_HEALTH_UNKNOWN;
+    voltage_msg.power_supply_technology =
+        BatteryState::POWER_SUPPLY_TECHNOLOGY_LION;
+    voltage_msg.present = true;
     battery_voltage_pub_->publish(voltage_msg);
-    esc_voltage_pub_->publish(msg);
   }
 
   void OnThrusterCommand(
@@ -402,7 +430,8 @@ class ESC : public rclcpp::Node {
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr
       paramter_callback_handle_;
   rclcpp::Publisher<hippo_msgs::msg::EscVoltages>::SharedPtr esc_voltage_pub_;
-  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr battery_voltage_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::BatteryState>::SharedPtr
+      battery_voltage_pub_;
   rclcpp::Publisher<hippo_msgs::msg::EscRpms>::SharedPtr esc_rpm_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr arming_state_pub_;
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr arming_servie_;
