@@ -63,7 +63,7 @@ def include_visual_localization():
     return IncludeLaunchDescription(source, launch_arguments=args.items())
 
 
-def create_tf_publisher_vehicle_node():
+def add_tf_publisher_vehicle_node():
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     return Node(
@@ -74,12 +74,26 @@ def create_tf_publisher_vehicle_node():
     )
 
 
+def add_px4_bridge_node():
+    args = LaunchArgsDict()
+    args.add_vehicle_name_and_sim_time()
+    return Node(
+        package='visual_localization',
+        namespace=LaunchConfiguration('vehicle_name'),
+        name='px4_bridge',
+        parameters=[args],
+        output='screen',
+        emulate_tty=True,
+    )
+
+
 def generate_launch_description():
     launch_description = LaunchDescription()
     declare_launch_args(launch_description=launch_description)
     actions = [
         include_path_follower(),
-        create_tf_publisher_vehicle_node(),
+        add_tf_publisher_vehicle_node(),
+        add_px4_bridge_node(),
         include_visual_localization(),
     ]
     for action in actions:
