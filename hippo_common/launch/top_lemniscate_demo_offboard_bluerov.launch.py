@@ -18,6 +18,7 @@ def declare_launch_args(launch_description: LaunchDescription):
     action = DeclareLaunchArgument('mixer_path', default_value=config_file)
     launch_description.add_action(action)
 
+    pkg = 'hippo_common'
     config_file = config_file_path(pkg, 'transformations_bluerov_default.yaml')
     action = DeclareLaunchArgument(
         name='tf_vehicle_config_file', default_value=config_file
