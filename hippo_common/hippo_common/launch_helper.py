@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Thies Lennart Alff
+# Copyright (C) 2023-2024 Thies Lennart Alff
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -19,7 +19,8 @@ from typing import Iterable
 
 from ament_index_python.packages import get_package_share_path
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction
+from launch.action import Action
+from launch.actions import DeclareLaunchArgument, GroupAction, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitution import Substitution
@@ -36,6 +37,30 @@ def launch_file_source(pkg_name: str, file_name: str):
     path = str(get_package_share_path(pkg_name) / 'launch' / file_name)
     source = PythonLaunchDescriptionSource(path)
     return source
+
+
+def validate_vehicle_type(context, valid_vehicles, *args, **kwargs):
+    value = LaunchConfiguration('vehicle_type').perform(context)
+    if value not in valid_vehicles:
+        raise ValueError(f'"Any of vehicle_type:={valid_vehicles}" is required')
+
+
+def require_hippocampus_vehicle_type() -> Action:
+    return OpaqueFunction(
+        function=validate_vehicle_type,
+        args=[['hippocampus']],
+    )
+
+
+def require_bluerov_vehicle_type() -> Action:
+    return OpaqueFunction(function=validate_vehicle_type, args=[['bluerov']])
+
+
+def required_valid_vehicle_type() -> Action:
+    return OpaqueFunction(
+        function=validate_vehicle_type,
+        args=[['hippocampus', 'bluerov']],
+    )
 
 
 class LaunchArgsDict(dict):
@@ -61,6 +86,9 @@ class LaunchArgsDict(dict):
         self.add_sim_time()
         self.add_vehicle_name()
 
+    def add_vehicle_type(self):
+        super().__setitem__('vehicle_type', LaunchConfiguration('vehicle_type'))
+
 
 def declare_vehicle_name_and_sim_time(
     launch_description: LaunchDescription, use_sim_time_default=None
@@ -69,6 +97,14 @@ def declare_vehicle_name_and_sim_time(
     declare_use_sim_time(
         launch_description=launch_description, default=use_sim_time_default
     )
+
+
+def declare_vehicle_type(launch_description: LaunchDescription):
+    action = DeclareLaunchArgument(
+        'vehicle_type',
+        description='Either "hippocampus" or "bluerov".',
+    )
+    launch_description.add_action(action)
 
 
 def declare_vehicle_name(launch_description: LaunchDescription):
