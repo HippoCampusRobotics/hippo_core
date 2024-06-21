@@ -23,6 +23,7 @@
 #include <hippo_control_msgs/msg/actuator_controls.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/battery_state.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <std_srvs/srv/set_bool.hpp>
@@ -58,7 +59,8 @@ class TeensyCommander : public rclcpp::Node {
 
  private:
   struct Params {
-    std::string serial_port{"/dev/teensy_data"};
+    std::string serial_port;
+    bool apply_pwm_to_thrust_mapping;
   };
   void DeclareParams();
   bool InitSerial(std::string _port_name);
@@ -69,7 +71,11 @@ class TeensyCommander : public rclcpp::Node {
   void SetThrottle(const std::array<double, 8> &_values);
   void SetThrottle(double _value);
   uint16_t InputToPWM(double input);
+  uint16_t ApplyLinearInputMapping(double input);
+  uint16_t ApplyPolynomialInputMapping(double input);
   double PWMToInput(uint16_t pwm);
+  double ApplyLinearPWMMapping(uint16_t pwm);
+  double ApplyPolynomialPWMMapping(uint16_t pwm);
   void PublishArmingState();
   void PublishBatteryVoltage();
   void PublishThrusterValues(std::array<double, 8> &_values);
@@ -84,7 +90,7 @@ class TeensyCommander : public rclcpp::Node {
   // Publishers
   //////////////////////////////////////////////////////////////////////////////
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr arming_state_pub_;
-  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr battery_voltage_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::BatteryState>::SharedPtr battery_pub_;
   rclcpp::Publisher<hippo_control_msgs::msg::ActuatorControls>::SharedPtr
       actuator_controls_pub_;
   rclcpp::Publisher<hippo_control_msgs::msg::ActuatorControls>::SharedPtr

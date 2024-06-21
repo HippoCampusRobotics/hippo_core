@@ -32,6 +32,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(hippo_msgs REQUIRED)
 find_package(hippo_control_msgs REQUIRED)
@@ -102,6 +103,7 @@ ament_target_dependencies(${component_name}
   hippo_common
   hippo_msgs
   hippo_control_msgs
+  sensor_msgs
   std_msgs
   std_srvs
 )
@@ -117,7 +119,7 @@ install(TARGETS ${component_name}
 ament_python_install_package(${PROJECT_NAME})
 
 add_executable(esc_commander_node src/esc_commander_node.cpp src/afro_esc.cpp)
-ament_target_dependencies(esc_commander_node rclcpp hippo_msgs hippo_control_msgs std_srvs)
+ament_target_dependencies(esc_commander_node rclcpp hippo_msgs hippo_control_msgs std_srvs sensor_msgs)
 
 # Install Python executables
 install(PROGRAMS

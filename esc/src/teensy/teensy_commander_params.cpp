@@ -26,13 +26,8 @@ void TeensyCommander::DeclareParams() {
   std::string description;
   rcl_interfaces::msg::ParameterDescriptor descriptor;
 
-  name = "serial_port";
-  description = "Full filename of the serial port (e.g. /dev/ttyACM0)";
-  descriptor = hippo_common::param_utils::Description(description, true);
-  {
-    auto &param = params_.serial_port;
-    param = this->declare_parameter(name, param, descriptor);
-  }
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(serial_port);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(apply_pwm_to_thrust_mapping);
 
   name = "zero_rpm_threshold";
   description = "Threshold below which the input is interpreted as zero";

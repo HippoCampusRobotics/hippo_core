@@ -6,7 +6,7 @@
 namespace hippo_control {
 namespace mixer_bluerov {
 
-SimpleMixer::SimpleMixer(){};
+SimpleMixer::SimpleMixer() {};
 
 void SimpleMixer::SetMapping(int _index, const Mapping &_mapping) {
   if ((_index >= kOutputChannels)) {
@@ -207,6 +207,43 @@ Eigen::Matrix<double, size_output, 1> SimpleMixer::ResolveDeadzone(
     return thrusters;
   }
 }
+void SimpleMixer::ApplyDeadZoneCompensation(
+    const std::array<double, InputChannels::kCount> &_actuator_controls,
+    double _lower_limit, double _upper_limit) {
+  Eigen::Matrix<double, InputChannels::kInputHorizontal, 1>
+      input_vec_horizontal;
+  for (int i = 0; i < InputChannels::kInputHorizontal; i++) {
+    input_vec_horizontal(i) =
+        _actuator_controls[InputChannels::kIdxsHorizontal[i]];
+  }
+  Eigen::Matrix<double, kOutputHorizontal, 1> output_vec_horizontal;
+  output_vec_horizontal = ResolveDeadzone(
+      mixer_matrix_inverse_horizontal_, nullspace_horizontal_,
+      -thruster_models_[ThrustDirection::backward].deadzone_minimum,
+      thruster_models_[ThrustDirection::forward].deadzone_minimum, _lower_limit,
+      _upper_limit, input_vec_horizontal, last_output_horizontal_);
+
+  Eigen::Matrix<double, InputChannels::kInputVertical, 1> input_vec_vertical;
+  for (int i = 0; i < InputChannels::kInputVertical; i++) {
+    input_vec_vertical(i) = _actuator_controls[InputChannels::kIdxsVertical[i]];
+  }
+  Eigen::Matrix<double, kOutputVertical, 1> output_vec_vertical;
+  output_vec_vertical = ResolveDeadzone(
+      mixer_matrix_inverse_vertical_, nullspace_vertical_,
+      -thruster_models_[ThrustDirection::backward].deadzone_minimum,
+      thruster_models_[ThrustDirection::forward].deadzone_minimum, _lower_limit,
+      _upper_limit, input_vec_vertical, last_output_vertical_);
+
+  // write back into outputs:
+  for (int i = 0; i < kOutputHorizontal; i++) {
+    outputs_[kOutputIdxsHorizontal[i]].total = output_vec_horizontal[i];
+  }
+  for (int i = 0; i < kOutputVertical; i++) {
+    outputs_[kOutputIdxsVertical[i]].total = output_vec_vertical[i];
+  }
+  last_output_horizontal_ = output_vec_horizontal;
+  last_output_vertical_ = output_vec_vertical;
+}
 
 double SimpleMixer::ApplyInput(
     const std::array<double, InputChannels::kCount> &_actuator_controls) {
@@ -234,41 +271,7 @@ double SimpleMixer::ApplyInput(
       outputs_[i_out].total = 0.0;
     }
   } else if (compensate_deadzone_) {
-    Eigen::Matrix<double, InputChannels::kInputHorizontal, 1>
-        input_vec_horizontal;
-    for (int i = 0; i < InputChannels::kInputHorizontal; i++) {
-      input_vec_horizontal(i) =
-          _actuator_controls[InputChannels::kIdxsHorizontal[i]];
-    }
-    Eigen::Matrix<double, kOutputHorizontal, 1> output_vec_horizontal;
-    output_vec_horizontal = ResolveDeadzone(
-        mixer_matrix_inverse_horizontal_, nullspace_horizontal_,
-        -thruster_models_[ThrustDirection::backward].deadzone_minimum,
-        thruster_models_[ThrustDirection::forward].deadzone_minimum, limit_min,
-        limit_max, input_vec_horizontal, last_output_horizontal_);
-
-    Eigen::Matrix<double, InputChannels::kInputVertical, 1> input_vec_vertical;
-    for (int i = 0; i < InputChannels::kInputVertical; i++) {
-      input_vec_vertical(i) =
-          _actuator_controls[InputChannels::kIdxsVertical[i]];
-    }
-    Eigen::Matrix<double, kOutputVertical, 1> output_vec_vertical;
-    output_vec_vertical = ResolveDeadzone(
-        mixer_matrix_inverse_vertical_, nullspace_vertical_,
-        -thruster_models_[ThrustDirection::backward].deadzone_minimum,
-        thruster_models_[ThrustDirection::forward].deadzone_minimum, limit_min,
-        limit_max, input_vec_vertical, last_output_vertical_);
-
-    // write back into outputs:
-    for (int i = 0; i < kOutputHorizontal; i++) {
-      outputs_[kOutputIdxsHorizontal[i]].total = output_vec_horizontal[i];
-    }
-    for (int i = 0; i < kOutputVertical; i++) {
-      outputs_[kOutputIdxsVertical[i]].total = output_vec_vertical[i];
-    }
-    last_output_horizontal_ = output_vec_horizontal;
-    last_output_vertical_ = output_vec_vertical;
-
+    ApplyDeadZoneCompensation(_actuator_controls, limit_min, limit_max);
   } else {  // no dead zone compensation desired
     for (int i_out = 0; i_out < kOutputChannels; ++i_out) {
       for (int i_in = 0; i_in < InputChannels::kCount; ++i_in) {
@@ -292,6 +295,8 @@ double SimpleMixer::ApplyInput(
       output = ThrustToRevsPerSec(thrust, ThrustDirection::backward);
     }
 
+    // normalize the output so the output in range
+    // [min_revs_per_second; max_revs_per_second] becomes [-1, 1]
     output /= max_rotations_per_second_;
     output *= mappings_[i_out].output_scaling;
     if (outputs_[i_out].total < 0) {

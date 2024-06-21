@@ -19,9 +19,6 @@ def declare_launch_args(launch_description: LaunchDescription):
     declare_vehicle_name_and_sim_time(launch_description=launch_description)
 
     package_path = get_package_share_path('hippo_control')
-    path = str(package_path / 'config/actuator_mixer/hippocampus_default.yaml')
-    action = DeclareLaunchArgument('mixer_path', default_value=path)
-    launch_description.add_action(action)
 
     path = str(
         package_path
@@ -43,19 +40,6 @@ def add_composable_nodes(launch_description: LaunchDescription):
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
     extra_args = [{'use_intra_process_comms': True}]
-
-    node = ComposableNode(
-        package='hippo_control',
-        plugin='hippo_control::mixer::ActuatorMixerNode',
-        namespace=LaunchConfiguration('vehicle_name'),
-        name='actuator_mixer',
-        parameters=[
-            args,
-            LaunchConfiguration('mixer_path'),
-        ],
-        extra_arguments=extra_args,
-    )
-    nodes.append(node)
 
     node = ComposableNode(
         package='hippo_control',

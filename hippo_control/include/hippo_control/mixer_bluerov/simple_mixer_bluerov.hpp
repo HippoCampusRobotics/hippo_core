@@ -203,6 +203,10 @@ class SimpleMixer {
   double ApplyInput(
       const std::array<double, InputChannels::kCount> &_actuator_controls);
 
+  void ApplyDeadZoneCompensation(
+      const std::array<double, InputChannels::kCount> &_actuator_controls,
+      double _lower_limit, double _upper_limit);
+
   void ScaleOutputs(double _scale);
 
   void ResetOutputs();

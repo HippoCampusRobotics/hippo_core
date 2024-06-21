@@ -97,9 +97,9 @@ def EnvironCompleter(**kwargs):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_subparsers(
-        title='selection', help='Package selection', dest='sel_parser'
-    )
+    # parser.add_subparsers(
+    #    title='selection', help='Package selection', dest='sel_parser'
+    # )
 
     class SelectionCompleter:
         def __init__(self, selections):
@@ -116,9 +116,7 @@ def main():
             'Build the package in the current directory and its dependencies.'
         ),
     }
-    parser.add_argument('--selection').completer = SelectionCompleter(
-        selection_args
-    )
+    parser.add_argument('verb').completer = SelectionCompleter(selection_args)
     parser.add_argument(
         '--underlay', type=pathlib.Path, required=False, action='append'
     )
@@ -144,8 +142,7 @@ def main():
             )
     print(source_paths)
     print(args)
-    exit(0)
-    if args.selection == '' or args.verb == 'all':
+    if args.verb == 'all':
         print('Build all')
         colcon_arg = ''
     elif args.verb == 'this':
@@ -159,6 +156,7 @@ def main():
     term = 'xterm-256color'
     env_cmd = f'env -i $TERM={term}'
     source_cmd = (' && ').join([f'. {source}' for source in source_paths])
+    print(source_cmd)
     colcon_cmd = (
         f'colcon build --symlink-install {colcon_arg} '
         '--cmake-args --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS=ON '

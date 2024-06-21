@@ -1,17 +1,15 @@
-from ament_index_python.packages import get_package_share_path
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
     GroupAction,
-    IncludeLaunchDescription,
 )
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, PushRosNamespace
 
 from hippo_common.launch_helper import (
     LaunchArgsDict,
+    config_file_path,
     declare_vehicle_name_and_sim_time,
 )
 
@@ -19,27 +17,30 @@ from hippo_common.launch_helper import (
 def declare_launch_args(launch_description: LaunchDescription):
     declare_vehicle_name_and_sim_time(launch_description=launch_description)
 
-    package_path = get_package_share_path('hippo_control')
-    default_path = str(
-        package_path / 'config/actuator_mixer/bluerov_normalized_default.yaml'
-    )
+    pkg = 'hippo_control'
+    config_file = config_file_path(pkg, 'actuator_mixer_bluerov_advanced.yaml')
+    action = DeclareLaunchArgument('mixer_path', default_value=config_file)
+    launch_description.add_action(action)
+
+    default_path = config_file_path('esc', 'teensy_config.yaml')
     action = DeclareLaunchArgument(
-        name='mixer_path',
-        default_value=default_path,
-        description='Path to mixer configuration .yaml file',
+        name='esc_config_file', default_value=default_path
     )
     launch_description.add_action(action)
 
 
-def include_mixer():
-    package_path = get_package_share_path('hippo_control')
-    path = str(package_path / 'launch/node_actuator_mixer.launch.py')
-    source = PythonLaunchDescriptionSource(path)
+def add_mixer_node():
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
-    args.add(['mixer_path'])
-    mixer = IncludeLaunchDescription(source, launch_arguments=args.items())
-    return mixer
+    return Node(
+        package='hippo_control',
+        executable='actuator_mixer_bluerov_node',
+        parameters=[
+            args,
+            LaunchConfiguration('mixer_path'),
+        ],
+        output='screen',
+    )
 
 
 def add_camera_node():
@@ -94,7 +95,7 @@ def add_esc_node():
         executable='teensy_commander_node',
         package='esc',
         name='esc_commander',
-        parameters=[args],
+        parameters=[args, LaunchConfiguration('esc_config_file')],
     )
     return action
 
@@ -153,7 +154,7 @@ def generate_launch_description():
     declare_launch_args(launch_description=launch_description)
 
     actions = [
-        include_mixer(),
+        add_mixer_node(),
         # add_camera_node(),
         add_jpeg_camera_node(),
         add_newton_gripper_node(),

@@ -30,6 +30,7 @@
   <depend>hippo_control_msgs</depend>
   <depend>hippo_msgs</depend>
   <depend>std_srvs</depend>
+  <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>eigen</depend>
 
