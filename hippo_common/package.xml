@@ -1,36 +1,31 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>hippo_common</name>
-  <version>0.0.0</version>
-  <description>The control package</description>
+    <name>hippo_common</name>
+    <version>0.0.0</version>
+    <description>The control package</description>
 
-  <maintainer email="thies.lennart.alff@tuhh.de">Thies Lennart Alff</maintainer>
+    <maintainer email="thies.lennart.alff@tuhh.de">Thies Lennart Alff</maintainer>
 
+    <license>GPLv2</license>
 
-  <!-- One license tag required, multiple allowed, one license per tag -->
-  <!-- Commonly used license strings: -->
-  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
-  <license>GPLv2</license>
+    <url type="website">hippocampusrobotics.github.io/docs</url>
 
+    <author email="thies.lennart.alff@tuhh.de">Thies Lennart Alff</author>
 
-  <url type="website">hippocampusrobotics.github.io/docs</url>
+    <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <author email="thies.lennart.alff@tuhh.de">Thies Lennart Alff</author>
+    <depend>rclcpp</depend>
+    <depend>eigen</depend>
+    <depend>geometry_msgs</depend>
+    <depend>yaml-cpp</depend>
+    <depend>nav_msgs</depend>
+    <depend>visualization_msgs</depend>
+    <depend>tf2</depend>
+    <depend>tf2_ros</depend>
 
-  <buildtool_depend>ament_cmake</buildtool_depend>
-
-  <depend>rclcpp</depend>
-  <depend>eigen</depend>
-  <depend>geometry_msgs</depend>
-  <depend>nav_msgs</depend>
-  <depend>visualization_msgs</depend>
-  <depend>tf2</depend>
-  <depend>tf2_ros</depend>
-
-
-  <!-- The export tag contains other, unspecified, tags -->
-  <export>
-    <build_type>ament_cmake</build_type>
-  </export>
+    <!-- The export tag contains other, unspecified, tags -->
+    <export>
+        <build_type>ament_cmake</build_type>
+    </export>
 </package>
