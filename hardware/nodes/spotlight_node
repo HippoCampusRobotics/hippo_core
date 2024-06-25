@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (C) 2023 Thies Lennart Alff
+# Copyright (C) 2023-2024 Thies Lennart Alff
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -16,6 +16,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
+import threading
+import time
+
 import pigpio
 import rclpy
 from rcl_interfaces.msg import (
@@ -27,6 +30,7 @@ from rcl_interfaces.msg import (
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from std_msgs.msg import Float64
+from std_srvs.srv import Trigger, Trigger_Request, Trigger_Response
 
 
 class SpotLight(Node):
@@ -49,6 +53,37 @@ class SpotLight(Node):
         self.brightness_sub = self.create_subscription(
             Float64, '~/brightness', self.on_brightness, 10
         )
+
+        self.startup_service = self.create_service(
+            Trigger, '~/startup_sequence', self.serve_startup_sequence
+        )
+        self.startup_sequence_thread = None
+
+    def serve_startup_sequence(self, _: Trigger_Request):
+        response = Trigger_Response()
+        if self.startup_sequence_thread is not None:
+            if self.startup_sequence_thread.is_alive():
+                response.success = False
+                return response
+        self.startup_sequence_thread = threading.Thread(
+            target=self.startup_sequence_thread
+        )
+        self.startup_sequence_thread.start()
+        response.success = True
+        return response
+
+    def startup_sequence(self):
+        t_start = self.get_clock().now()
+        toggle = False
+        while True:
+            t_now = self.get_clock().now()
+            dt: rclpy.duration.Duration = t_now - t_start
+            if dt >= rclpy.duration.Duration(seconds=2):
+                break
+            self.set_servo(1 - int(toggle))
+            toggle = not toggle
+            time.sleep(0.1)
+        self.set_servo(0.0)
 
     def on_parameters(self, params):
         for param in params:
