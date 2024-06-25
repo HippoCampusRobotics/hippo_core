@@ -62,6 +62,7 @@ class SpotLight(Node):
     def serve_startup_sequence(
         self, _: Trigger_Request, response: Trigger_Response
     ):
+        self.get_logger().info('Serving startup sequence')
         if self.startup_sequence_thread is not None:
             if self.startup_sequence_thread.is_alive():
                 response.success = False
@@ -76,12 +77,14 @@ class SpotLight(Node):
     def startup_sequence(self):
         t_start = self.get_clock().now()
         toggle = False
+        self.get_logger().info('Starting startup sequence.')
         while True:
             t_now = self.get_clock().now()
             dt: rclpy.duration.Duration = t_now - t_start
             if dt >= rclpy.duration.Duration(seconds=2):
                 break
-            self.set_servo(1 - int(toggle))
+            val = 1.0 - int(toggle)
+            self.set_servo(val)
             toggle = not toggle
             time.sleep(0.1)
         self.set_servo(0.0)
