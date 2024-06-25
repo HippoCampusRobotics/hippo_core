@@ -86,7 +86,7 @@ class SpotLight(Node):
             val = 1.0 - int(toggle)
             self.set_servo(val)
             toggle = not toggle
-            time.sleep(0.1)
+            time.sleep(0.05)
         self.set_servo(0.0)
 
     def on_parameters(self, params):
