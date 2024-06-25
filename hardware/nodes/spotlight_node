@@ -59,8 +59,9 @@ class SpotLight(Node):
         )
         self.startup_sequence_thread = None
 
-    def serve_startup_sequence(self, _: Trigger_Request):
-        response = Trigger_Response()
+    def serve_startup_sequence(
+        self, _: Trigger_Request, response: Trigger_Response
+    ):
         if self.startup_sequence_thread is not None:
             if self.startup_sequence_thread.is_alive():
                 response.success = False
