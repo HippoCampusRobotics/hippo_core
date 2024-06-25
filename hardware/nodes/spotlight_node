@@ -68,7 +68,7 @@ class SpotLight(Node):
                 response.success = False
                 return response
         self.startup_sequence_thread = threading.Thread(
-            target=self.startup_sequence_thread
+            target=self.startup_sequence
         )
         self.startup_sequence_thread.start()
         response.success = True
