@@ -452,7 +452,7 @@ void TeensyCommander::ReadSerial() {
 
       if (packet_.CompletelyReceived()) {
         esc_serial::msg_id_t msg_id = packet_.ParseMessage();
-        RCLCPP_INFO(get_logger(), "Received packet with id: %u", msg_id);
+        RCLCPP_DEBUG(get_logger(), "Received packet with id: %u", msg_id);
         switch (msg_id) {
           case esc_serial::ActuatorControlsMessage::MSG_ID: {
             RCLCPP_DEBUG(get_logger(), "Received ActuatControlsMessage.");
