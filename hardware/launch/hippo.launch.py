@@ -47,6 +47,7 @@ def include_vertical_camera_node():
     source = launch_file_source(pkg, 'ov9281.launch.py')
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
+    args['camera_name'] = 'vertical_camera'
     return IncludeLaunchDescription(source, launch_arguments=args.items())
 
 
@@ -95,17 +96,20 @@ def add_esc_commander():
 def generate_launch_description():
     launch_description = LaunchDescription()
     declare_launch_args(launch_description=launch_description)
-    action = GroupAction(
-        [
-            PushROSNamespace(LaunchConfiguration('vehicle_name')),
-            include_vertical_camera_node(),
-            add_esc_commander(),
-            add_mixer_node(),
-            add_micro_xrce_agent(),
-            add_mavlink_routerd(),
-            add_nsh_node(),
-        ],
-        launch_configurations={'camera_name': 'vertical_camera'},
-    )
-    launch_description.add_action(action)
+    actions = [
+        include_vertical_camera_node(),
+        GroupAction(
+            [
+                PushROSNamespace(LaunchConfiguration('vehicle_name')),
+                add_esc_commander(),
+                add_mixer_node(),
+                add_micro_xrce_agent(),
+                add_mavlink_routerd(),
+                add_nsh_node(),
+            ],
+            launch_configurations={'camera_name': 'vertical_camera'},
+        ),
+    ]
+    for action in actions:
+        launch_description.add_action(action)
     return launch_description

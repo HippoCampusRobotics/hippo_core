@@ -1,25 +1,48 @@
-from ament_index_python import get_package_share_path
 from launch import LaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+)
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+
+from hippo_common.launch_helper import (
+    LaunchArgsDict,
+    config_file_path,
+    declare_vehicle_name_and_sim_time,
+)
+
+
+def declare_launch_args(launch_description: LaunchDescription):
+    declare_vehicle_name_and_sim_time(
+        launch_description=launch_description, use_sim_time_default='false'
+    )
+
+    pkg = 'mjpeg_cam'
+    config_file = config_file_path(pkg, 'ov9281.yaml')
+    action = DeclareLaunchArgument(
+        'camera_config_file', default_value=config_file
+    )
+    launch_description.add_action(action)
 
 
 def generate_launch_description():
     launch_description = LaunchDescription()
+    declare_launch_args(launch_description)
 
-    pkg_path = get_package_share_path('mjpeg_cam')
-    config_file_path = str(pkg_path / 'config/ov9281.yaml')
-
+    args = LaunchArgsDict()
+    args.add_vehicle_name_and_sim_time()
     action = Node(
         executable='mjpeg_cam_node',
         name=LaunchConfiguration('camera_name'),
-        namespace=LaunchConfiguration('camera_name'),
+        namespace=[
+            LaunchConfiguration('vehicle_name'),
+            '/',
+            LaunchConfiguration('camera_name'),
+        ],
         package='mjpeg_cam',
         parameters=[
-            {
-                'use_sim_time': False,
-            },
-            LaunchConfiguration('config_file', default=config_file_path),
+            args,
+            LaunchConfiguration('camera_config_file'),
         ],
     )
     launch_description.add_action(action)
