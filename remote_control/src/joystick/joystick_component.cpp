@@ -130,8 +130,8 @@ void JoyStick::PublishTorque(const std::array<double, 3> &_torque) {
   hippo_control_msgs::msg::ActuatorSetpoint msg;
   msg.header.stamp = now();
   msg.header.frame_id = hippo_common::tf2_utils::frame_id::BaseLink(this);
-  msg.x = _torque[0];
-  msg.y = _torque[1];
+  msg.ignore_x = true;
+  msg.ignore_y = true;
   msg.z = _torque[2];
   if (!torque_pub_) {
     RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000,
