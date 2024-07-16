@@ -1,6 +1,0 @@
-/**: # wildcard for the node name
-  ros__parameters:
-    device_id: 0
-    fps: 30
-    publish_nth_frame: 3
-    discrete_size: 0
